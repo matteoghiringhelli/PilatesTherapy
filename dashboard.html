@@ -20,3 +20,50 @@
     }
 
     button {
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+
+    table {
+      border-collapse: collapse;
+      margin-top: 20px;
+      width: 100%;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
+
+    th {
+      background-color: #f0f0f0;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>Dashboard Studio Pilates</h1>
+
+<button onclick="loadClienti()">Carica Clienti</button>
+<button onclick="logout()">Logout</button>
+
+<p id="status"></p>
+
+<h2>Aggiungi Cliente</h2>
+
+<div style="margin-bottom:20px;">
+  <input id="new_nome" placeholder="Nome">
+  <input id="new_cognome" placeholder="Cognome">
+  <input id="new_telefono" placeholder="Telefono">
+  <input id="new_email" placeholder="Email">
+  <button onclick="aggiungiCliente()">Salva</button>
+</div>
+
+<div id="output"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="app.js?v=8"></script>
+
+</body>
+</html>
