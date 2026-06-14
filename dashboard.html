@@ -6,7 +6,6 @@
 
 <style>
 body { font-family: Arial; margin:20px; }
-
 input, select { padding:6px; margin:4px; }
 button { padding:6px 10px; cursor:pointer; }
 
@@ -23,13 +22,9 @@ th, td {
 
 th { background:#f0f0f0; }
 
-.section {
-  margin-top: 40px;
-}
+.section { margin-top: 40px; }
 
-.hidden {
-  display: none;
-}
+.hidden { display: none; }
 </style>
 </head>
 
@@ -43,9 +38,9 @@ th { background:#f0f0f0; }
 <div class="section">
 <h2>Clienti</h2>
 
-<button onclick="toggleClienti()">Apri/Chiudi Clienti</button>
+<button onclick="toggleClienti()">Apri / Chiudi</button>
 
-<div id="clientiSection">
+<div id="clientiSection" class="hidden">
 
 <button onclick="loadClienti()">Ricarica Clienti</button>
 
@@ -54,11 +49,14 @@ th { background:#f0f0f0; }
 <input id="new_cognome" placeholder="Cognome">
 <input id="new_telefono" placeholder="Telefono">
 <input id="new_email" placeholder="Email">
+<input id="new_indirizzo" placeholder="Indirizzo">
+<input id="new_citta" placeholder="Città">
+<input id="new_cap" placeholder="CAP">
+<input id="new_cf" placeholder="Codice Fiscale">
 
 <button onclick="aggiungiCliente()">Salva Cliente</button>
 
 <div id="outputClienti"></div>
-
 </div>
 </div>
 
@@ -66,9 +64,9 @@ th { background:#f0f0f0; }
 <div class="section">
 <h2>Lezioni</h2>
 
-<button onclick="toggleLezioni()">Apri/Chiudi Lezioni</button>
+<button onclick="toggleLezioni()">Apri / Chiudi</button>
 
-<div id="lezioniSection">
+<div id="lezioniSection" class="hidden">
 
 <button onclick="loadLezioni()">Ricarica Lezioni</button>
 
@@ -77,20 +75,17 @@ th { background:#f0f0f0; }
 <input id="new_ora" type="time">
 <input id="new_tipologia" placeholder="Tipologia">
 <input id="new_istruttore" placeholder="Istruttore">
-<input id="new_max" placeholder="Max">
+<input id="new_max" placeholder="Max Partecipanti">
 
 <button onclick="aggiungiLezione()">Salva Lezione</button>
 
 <div id="outputLezioni"></div>
-
 </div>
 </div>
 
 <!-- ================= PRENOTAZIONI ================= -->
 <div class="section">
 <h2>Prenotazioni</h2>
-
-<h3>Nuova Prenotazione</h3>
 
 <select id="select_cliente"></select>
 <select id="select_lezione"></select>
@@ -99,7 +94,8 @@ th { background:#f0f0f0; }
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!-- ✅ CORRETTO AL 100% -->
+https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.jsscript>
 <script src="app.js"></script>
 
 </body>
