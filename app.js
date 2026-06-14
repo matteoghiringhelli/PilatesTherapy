@@ -56,7 +56,8 @@ async function loadClienti() {
 
 
 output.innerHTML = data
-  .map(c => `<pre>${JSON.stringify(c, null, 2)}</pre>`)
+  .map(c => `<p>${c.Nome} ${c.Cognome}</p>`)
   .join("");
+
 
 }
