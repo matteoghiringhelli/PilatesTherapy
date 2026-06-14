@@ -2,100 +2,120 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Studio Pilates</title>
 
   <style>
     body {
-      font-family: Arial;
+      font-family: Arial, sans-serif;
       margin: 20px;
     }
 
+    h1, h2, h3 {
+      margin-top: 24px;
+      margin-bottom: 12px;
+    }
+
+    .top-actions {
+      margin-bottom: 16px;
+    }
+
     input {
-      padding: 6px;
+      padding: 8px;
       margin: 4px;
+      min-width: 180px;
     }
 
     button {
-      padding: 6px 10px;
+      padding: 8px 12px;
+      margin: 4px;
       cursor: pointer;
     }
 
     table {
       border-collapse: collapse;
-      margin-top: 20px;
+      margin-top: 16px;
       width: 100%;
       font-size: 14px;
     }
 
     th, td {
       border: 1px solid #ccc;
-      padding: 6px;
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
     }
 
     th {
-      background-color: #f0f0f0;
+      background-color: #f2f2f2;
     }
 
     .section {
-      margin-top: 40px;
+      margin-top: 36px;
+      padding-top: 12px;
+      border-top: 2px solid #eee;
+    }
+
+    #status {
+      font-weight: bold;
+      margin: 12px 0;
     }
   </style>
 </head>
-
 <body>
 
-<h1>Dashboard Studio Pilates</h1>
+  <h1>Dashboard Studio Pilates</h1>
 
-<button onclick="logout()">Logout</button>
+  <div class="top-actions">
+    <button onclick="logout()">Logout</button>
+  </div>
 
-<p id="status"></p>
+  <p id="status"></p>
 
-<!-- ================= CLIENTI ================= -->
+  <!-- ===================== CLIENTI ===================== -->
+  <div class="section">
+    <h2>Clienti</h2>
 
-<div class="section">
-<h2>Clienti</h2>
+    <button onclick="loadClienti()">Carica Clienti</button>
 
-<button onclick="loadClienti()">Carica Clienti</button>
+    <h3>Aggiungi Cliente</h3>
 
-<h3>Aggiungi Cliente</h3>
+    <div>
+      <input id="new_nome" placeholder="Nome">
+      <input id="new_cognome" placeholder="Cognome">
+      <input id="new_telefono" placeholder="Telefono">
+      <input id="new_email" placeholder="Email">
+      <input id="new_indirizzo" placeholder="Indirizzo">
+      <input id="new_citta" placeholder="Città">
+      <input id="new_cap" placeholder="CAP">
+      <input id="new_cf" placeholder="Codice Fiscale">
+      <button onclick="aggiungiCliente()">Salva Cliente</button>
+    </div>
 
-<input id="new_nome" placeholder="Nome">
-<input id="new_cognome" placeholder="Cognome">
-<input id="new_telefono" placeholder="Telefono">
-<input id="new_email" placeholder="Email">
-<input id="new_indirizzo" placeholder="Indirizzo">
-<input id="new_citta" placeholder="Città">
-<input id="new_cap" placeholder="CAP">
-<input id="new_cf" placeholder="Codice Fiscale">
+    <div id="outputClienti"></div>
+  </div>
 
-<button onclick="aggiungiCliente()">Salva Cliente</button>
+  <!-- ===================== LEZIONI ===================== -->
+  <div class="section">
+    <h2>Lezioni</h2>
 
-<div id="outputClienti"></div>
-</div>
+    <button onclick="loadLezioni()">Carica Lezioni</button>
 
-<!-- ================= LEZIONI ================= -->
+    <h3>Aggiungi Lezione</h3>
 
-<div class="section">
-<h2>Lezioni</h2>
+    <div>
+      <input id="new_data" type="date">
+      <input id="new_ora" type="time">
+      <input id="new_tipologia" placeholder="Tipologia">
+      <input id="new_istruttore" placeholder="Istruttore">
+      <input id="new_max" placeholder="Max Partecipanti">
+      <button onclick="aggiungiLezione()">Salva Lezione</button>
+    </div>
 
-<button onclick="loadLezioni()">Carica Lezioni</button>
+    <div id="outputLezioni"></div>
+  </div>
 
-<h3>Aggiungi Lezione</h3>
-
-<input id="new_data" type="date">
-<input id="new_ora" type="time">
-<input id="new_tipologia" placeholder="Tipologia">
-<input id="new_istruttore" placeholder="Istruttore">
-<input id="new_max" placeholder="Max Partecipanti">
-
-<button onclick="aggiungiLezione()">Salva Lezione</button>
-
-<div id="outputLezioni"></div>
-</div>
-
-https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.jsscript>
-app.js?v=10script>
-
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="app.js?v=11"></script>
 </body>
 </html>
-``
