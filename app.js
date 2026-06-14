@@ -14,27 +14,14 @@ const supabaseClient = window.supabase.createClient(
 );
 
 // ---------------------------
-// Utility HTML safe
-// ---------------------------
-function escapeHtml(value) {
-  if (value === null || value === undefined) return "";
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-// ---------------------------
 // LOGIN
 // ---------------------------
 async function login() {
-  const statusEl = document.getElementById("loginStatus");
-  const email = document.getElementById("email")?.value?.trim();
-  const password = document.getElementById("password")?.value ?? "";
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  const status = document.getElementById("loginStatus");
 
-  statusEl.innerText = "Login in corso...";
+  if (status) status.innerText = "Login in corso...";
 
   const { error } = await supabaseClient.auth.signInWithPassword({
     email,
@@ -42,11 +29,10 @@ async function login() {
   });
 
   if (error) {
-    statusEl.innerText = "Errore login: " + error.message;
+    if (status) status.innerText = "Errore login: " + error.message;
     return;
   }
 
-  statusEl.innerText = "Login OK ✅";
   window.location.href = "/dashboard.html";
 }
 
@@ -59,52 +45,18 @@ async function logout() {
 }
 
 // ---------------------------
-// CHECK SESSIONE SU DASHBOARD
+// CONTROLLO SESSIONE DASHBOARD
 // ---------------------------
-async function checkDashboardSession() {
+async function checkSession() {
   const isDashboard = window.location.pathname.includes("dashboard.html");
+
   if (!isDashboard) return;
 
   const { data, error } = await supabaseClient.auth.getSession();
 
   if (error || !data?.session) {
     window.location.href = "/index.html";
-    return;
   }
-}
-
-// ---------------------------
-// RENDER TABELLA DINAMICA
-// ---------------------------
-function renderTable(rows) {
-  const output = document.getElementById("output");
-
-  if (!rows || rows.length === 0) {
-    output.innerHTML = "<p>Nessun dato presente.</p>";
-    return;
-  }
-
-  const columns = Object.keys(rows[0]);
-
-  const thead = `
-    <thead>
-      <tr>
-        ${columns.map(col => `<th>${escapeHtml(col)}</th>`).join("")}
-      </tr>
-    </thead>
-  `;
-
-  const tbody = `
-    <tbody>
-      ${rows.map(row => `
-        <tr>
-          ${columns.map(col => `<td>${escapeHtml(row[col])}</td>`).join("")}
-        </tr>
-      `).join("")}
-    </tbody>
-  `;
-
-  output.innerHTML = `<table>${thead}${tbody}</table>`;
 }
 
 // ---------------------------
@@ -112,44 +64,55 @@ function renderTable(rows) {
 // ---------------------------
 async function loadClienti() {
   const status = document.getElementById("status");
-  const debug = document.getElementById("debug");
   const output = document.getElementById("output");
 
-  status.innerText = "Caricamento clienti...";
-  debug.innerText = "";
-  output.innerHTML = "";
+  status.innerText = "Caricamento...";
 
   const { data, error } = await supabaseClient
     .from("clienti")
-    .select("*")
-    .limit(50);
+    .select("*");
 
   if (error) {
     status.innerText = "Errore caricamento ❌";
-    debug.innerText = "Errore Supabase:\n" + JSON.stringify(error, null, 2);
+    console.error(error);
     return;
   }
 
   if (!data || data.length === 0) {
     status.innerText = "Nessun cliente presente";
-    debug.innerText = "La query è andata a buon fine ma non ha restituito righe.";
     return;
   }
 
-  const firstRow = data[0];
-  const keys = Object.keys(firstRow);
+  status.innerText = `Dati caricati ✅ (${data.length})`;
 
-  status.innerText = `Dati caricati ✅ (${data.length} righe)`;
-  debug.innerText =
-    "Colonne lette automaticamente dal database:\n" +
-    keys.join(", ") +
-    "\n\nPrima riga:\n" +
-    JSON.stringify(firstRow, null, 2);
-
-  renderTable(data);
+  // ✅ render tabella pulita
+  output.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nome</th>
+          <th>Cognome</th>
+          <th>Telefono</th>
+          <th>Email</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map(c => `
+          <tr>
+            <td>${c.ID_Cliente}</td>
+            <td>${c.Nome}</td>
+            <td>${c.Cognome}</td>
+            <td>${c.Telefono || ""}</td>
+            <td>${c.Email || ""}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
 }
 
 // ---------------------------
 // AUTO START
 // ---------------------------
-checkDashboardSession();
+checkSession();
