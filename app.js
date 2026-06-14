@@ -116,3 +116,52 @@ async function loadClienti() {
 // AUTO START
 // ---------------------------
 checkSession();
+
+// ---------------------------
+// AGGIUNGI CLIENTE
+// ---------------------------
+async function aggiungiCliente() {
+
+  const nome = document.getElementById("new_nome").value;
+  const cognome = document.getElementById("new_cognome").value;
+  const telefono = document.getElementById("new_telefono").value;
+  const email = document.getElementById("new_email").value;
+
+  if (!nome || !cognome) {
+    alert("Nome e Cognome obbligatori");
+    return;
+  }
+
+  // 🧠 genera ID automatico (semplice)
+  const nuovoID = "CL" + Date.now();
+
+  const { error } = await supabaseClient
+    .from("clienti")
+    .insert([
+      {
+        ID_Cliente: nuovoID,
+        Nome: nome,
+        Cognome: cognome,
+        Telefono: telefono,
+        Email: email,
+        Data_Registrazione: new Date().toISOString().split("T")[0]
+      }
+    ]);
+
+  if (error) {
+    console.error(error);
+    alert("Errore salvataggio ❌");
+    return;
+  }
+
+  alert("Cliente salvato ✅");
+
+  // reset campi
+  document.getElementById("new_nome").value = "";
+  document.getElementById("new_cognome").value = "";
+  document.getElementById("new_telefono").value = "";
+  document.getElementById("new_email").value = "";
+
+  // aggiorna lista
+  loadClienti();
+}
