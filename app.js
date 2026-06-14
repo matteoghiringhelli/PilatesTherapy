@@ -7,10 +7,19 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_ANON_KEY
 );
 
-// ---------------- LOGIN / SESSION ----------------
+// ---------------- AUTH ----------------
 async function logout() {
   await supabaseClient.auth.signOut();
   window.location.href = "/index.html";
+}
+
+// ---------------- TOGGLE UI ----------------
+function toggleClienti() {
+  document.getElementById("clientiSection").classList.toggle("hidden");
+}
+
+function toggleLezioni() {
+  document.getElementById("lezioniSection").classList.toggle("hidden");
 }
 
 // ---------------- CLIENTI ----------------
@@ -25,21 +34,17 @@ async function loadClienti() {
     </table>
   `;
 
-  // dropdown clienti
+  // dropdown aggiornato
   document.getElementById("select_cliente").innerHTML =
     data.map(c => `<option value="${c.ID_Cliente}">
       ${c.Nome} ${c.Cognome}
     </option>`).join("");
-
 }
-
 
 async function aggiungiCliente() {
 
   const nome = document.getElementById("new_nome").value;
   const cognome = document.getElementById("new_cognome").value;
-  const telefono = document.getElementById("new_telefono").value;
-  const email = document.getElementById("new_email").value;
 
   const nuovoID = "CL" + Date.now();
 
@@ -47,14 +52,11 @@ async function aggiungiCliente() {
     ID_Cliente: nuovoID,
     Nome: nome,
     Cognome: cognome,
-    Telefono: telefono,
-    Email: email,
     Data_Registrazione: new Date().toISOString().split("T")[0]
   }]);
 
   loadClienti();
 }
-
 
 // ---------------- LEZIONI ----------------
 async function loadLezioni() {
@@ -79,9 +81,7 @@ async function loadLezioni() {
     data.map(l => `<option value="${l.ID_Lezione}">
       ${l.Data} ${l.Ora} - ${l.Tipologia}
     </option>`).join("");
-
 }
-
 
 async function aggiungiLezione() {
 
@@ -101,7 +101,6 @@ async function aggiungiLezione() {
   loadLezioni();
 }
 
-
 // ---------------- PRENOTAZIONI ----------------
 async function prenota() {
 
@@ -110,7 +109,7 @@ async function prenota() {
 
   const nuovoID = "PRE" + Date.now();
 
-  const { error } = await supabaseClient
+  await supabaseClient
     .from("prenotazioni")
     .insert([{
       ID_Prenotazione: nuovoID,
@@ -118,15 +117,8 @@ async function prenota() {
       ID_Lezione: idLezione
     }]);
 
-  if (error) {
-    alert("Errore prenotazione");
-    return;
-  }
-
   alert("Prenotazione salvata ✅");
-
 }
-
 
 // ---------------- START ----------------
 loadClienti();
