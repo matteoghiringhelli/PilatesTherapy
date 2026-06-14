@@ -1,100 +1,175 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<title>Dashboard Studio Pilates</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Studio Pilates</title>
 
-<style>
-body { font-family: Arial; margin:20px; }
-input, select { padding:6px; margin:4px; }
-button { padding:6px 10px; cursor:pointer; }
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
 
-table {
-  border-collapse: collapse;
-  margin-top: 15px;
-  width: 100%;
-}
+    h1, h2, h3 {
+      margin-top: 24px;
+      margin-bottom: 12px;
+    }
 
-th, td {
-  border: 1px solid #ccc;
-  padding: 6px;
-}
+    .top-actions {
+      margin-bottom: 16px;
+    }
 
-th { background:#f0f0f0; }
+    input, select {
+      padding: 8px;
+      margin: 4px;
+      min-width: 180px;
+    }
 
-.section { margin-top: 40px; }
+    button {
+      padding: 8px 12px;
+      margin: 4px;
+      cursor: pointer;
+    }
 
-.hidden { display: none; }
-</style>
+    table {
+      border-collapse: collapse;
+      margin-top: 16px;
+      width: 100%;
+      font-size: 14px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+
+    .section {
+      margin-top: 36px;
+      padding-top: 12px;
+      border-top: 2px solid #eee;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .muted {
+      color: #666;
+      font-size: 13px;
+    }
+
+    #status {
+      font-weight: bold;
+      margin: 12px 0;
+    }
+  </style>
 </head>
-
 <body>
 
-<h1>Dashboard Studio Pilates</h1>
+  <h1>Dashboard Studio Pilates</h1>
 
-<button onclick="logout()">Logout</button>
+  <div class="top-actions">
+    <button onclick="logout()">Logout</button>
+  </div>
 
-<!-- CLIENTI -->
-<div class="section">
-<h2>Clienti</h2>
+  <p id="status"></p>
 
-<button onclick="toggleClienti()">Apri / Chiudi</button>
+  <!-- ===================== CLIENTI ===================== -->
+  <div class="section">
+    <h2>Clienti</h2>
 
-<div id="clientiSection" class="hidden">
+    <button onclick="toggleClienti()">Apri / Chiudi</button>
 
-<button onclick="loadClienti()">Ricarica Clienti</button>
+    <div id="clientiSection" class="hidden">
+      <button onclick="loadClienti()">Ricarica Clienti</button>
 
-<br><br>
-<input id="new_nome" placeholder="Nome">
-<input id="new_cognome" placeholder="Cognome">
-<input id="new_telefono" placeholder="Telefono">
-<input id="new_email" placeholder="Email">
-<input id="new_indirizzo" placeholder="Indirizzo">
-<input id="new_citta" placeholder="Città">
-<input id="new_cap" placeholder="CAP">
-<input id="new_cf" placeholder="Codice Fiscale">
+      <h3>Aggiungi Cliente</h3>
 
-<button onclick="aggiungiCliente()">Salva Cliente</button>
+      <div class="form-row">
+        <input id="new_nome" placeholder="Nome">
+        <input id="new_cognome" placeholder="Cognome">
+        <input id="new_telefono" placeholder="Telefono">
+        <input id="new_email" placeholder="Email">
+      </div>
 
-<div id="outputClienti"></div>
-</div>
-</div>
+      <div class="form-row">
+        <input id="new_indirizzo" placeholder="Indirizzo">
+        <input id="new_citta" placeholder="Città">
+        <input id="new_cap" placeholder="CAP">
+        <input id="new_cf" placeholder="Codice Fiscale">
+      </div>
 
-<!-- LEZIONI -->
-<div class="section">
-<h2>Lezioni</h2>
+      <button onclick="aggiungiCliente()">Salva Cliente</button>
 
-<button onclick="toggleLezioni()">Apri / Chiudi</button>
+      <div id="outputClienti"></div>
+    </div>
+  </div>
 
-<div id="lezioniSection" class="hidden">
+  <!-- ===================== LEZIONI ===================== -->
+  <div class="section">
+    <h2>Lezioni</h2>
 
-<button onclick="loadLezioni()">Ricarica Lezioni</button>
+    <button onclick="toggleLezioni()">Apri / Chiudi</button>
 
-<br><br>
-<input id="new_data" type="date">
-<input id="new_ora" type="time">
-<input id="new_tipologia" placeholder="Tipologia">
+    <div id="lezioniSection" class="hidden">
+      <button onclick="loadLezioni()">Ricarica Lezioni</button>
 
-<button onclick="aggiungiLezione()">Salva Lezione</button>
+      <h3>Aggiungi Lezione</h3>
 
-<div id="outputLezioni"></div>
-</div>
-</div>
+      <div class="form-row">
+        <input id="new_data" type="date">
 
-<!-- PRENOTAZIONI -->
-<div class="section">
-<h2>Prenotazioni</h2>
+        <select id="new_ora">
+          <!-- popolato da app.js -->
+        </select>
 
-<select id="select_cliente"></select>
-<select id="select_lezione"></select>
+        <select id="new_tipologia">
+          <option value="">Tipologia</option>
+          <option value="Privata">Privata</option>
+          <option value="Duetto">Duetto</option>
+          <option value="Mini-Gruppo">Mini-Gruppo</option>
+        </select>
 
-<button onclick="prenota()">Prenota</button>
+        <input id="new_istruttore" placeholder="Istruttore">
+      </div>
 
-</div>
+      <p class="muted">
+        Max partecipanti impostato automaticamente in base alla tipologia:
+        Privata = 1, Duetto = 2, Mini-Gruppo = 3
+      </p>
 
-<!-- ✅ QUESTO È IL FIX VERO -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="app.js"></script>
+      <button onclick="aggiungiLezione()">Salva Lezione</button>
 
+      <div id="outputLezioni"></div>
+    </div>
+  </div>
+
+  <!-- ===================== PRENOTAZIONI ===================== -->
+  <div class="section">
+    <h2>Prenotazioni</h2>
+
+    <div class="form-row">
+      <select id="select_cliente"></select>
+      <select id="select_lezione"></select>
+      <button onclick="prenota()">Prenota</button>
+    </div>
+  </div>
+
+  https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.jsscript>
+  app.js?v=20script>
 </body>
 </html>
