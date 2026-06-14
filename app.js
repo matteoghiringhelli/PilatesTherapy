@@ -32,26 +32,61 @@ async function loadClienti() {
   document.getElementById("outputClienti").innerHTML = `
     <table>
       <tr>
+        <th>ID Cliente</th>
         <th>Nome</th>
         <th>Cognome</th>
         <th>Telefono</th>
+        <th>Email</th>
+        <th>Indirizzo</th>
+        <th>Città</th>
+        <th>CAP</th>
+        <th>Codice Fiscale</th>
       </tr>
+
       ${data.map(c => `
         <tr>
+          <td>${c.ID_Cliente}</td>
           <td>${c.Nome || ""}</td>
           <td>${c.Cognome || ""}</td>
           <td>${c.Telefono || ""}</td>
+          <td>${c.Email || ""}</td>
+          <td>${c.Indirizzo || ""}</td>
+          <td>${c["Cittá"] || ""}</td>
+          <td>${c.CAP || ""}</td>
+          <td>${c.Codice_Fiscale || ""}</td>
         </tr>
       `).join("")}
     </table>
   `;
 
+  // dropdown clienti
   document.getElementById("select_cliente").innerHTML =
     data.map(c => `
       <option value="${c.ID_Cliente}">
         ${c.Nome} ${c.Cognome}
       </option>
     `).join("");
+}
+
+// ---------------- AGGIUNGI CLIENTE ----------------
+async function aggiungiCliente() {
+
+  const nuovoID = "CL" + Date.now();
+
+  await supabaseClient.from("clienti").insert([{
+    ID_Cliente: nuovoID,
+    Nome: document.getElementById("new_nome").value,
+    Cognome: document.getElementById("new_cognome").value,
+    Telefono: document.getElementById("new_telefono").value,
+    Email: document.getElementById("new_email").value,
+    Indirizzo: document.getElementById("new_indirizzo").value,
+    "Cittá": document.getElementById("new_citta").value,
+    CAP: document.getElementById("new_cap").value,
+    Codice_Fiscale: document.getElementById("new_cf").value,
+    Data_Registrazione: new Date().toISOString().split("T")[0]
+  }]);
+
+  loadClienti();
 }
 
 // ---------------- LEZIONI ----------------
@@ -62,15 +97,22 @@ async function loadLezioni() {
   document.getElementById("outputLezioni").innerHTML = `
     <table>
       <tr>
+        <th>ID Lezione</th>
         <th>Data</th>
         <th>Ora</th>
         <th>Tipologia</th>
+        <th>Istruttore</th>
+        <th>Max Partecipanti</th>
       </tr>
+
       ${data.map(l => `
         <tr>
+          <td>${l.ID_Lezione}</td>
           <td>${l.Data}</td>
           <td>${l.Ora}</td>
           <td>${l.Tipologia || ""}</td>
+          <td>${l.Istruttore || ""}</td>
+          <td>${l.Max_Partecipanti || ""}</td>
         </tr>
       `).join("")}
     </table>
@@ -84,6 +126,34 @@ async function loadLezioni() {
     `).join("");
 }
 
-// ---------------- START ----------------
-loadClienti();
-loadLezioni();
+// ---------------- AGGIUNGI LEZIONE ----------------
+async function aggiungiLezione() {
+
+  const nuovoID = "LEZ" + Date.now();
+
+  await supabaseClient.from("lezioni").insert([{
+    ID_Lezione: nuovoID,
+    Data: document.getElementById("new_data").value,
+    Ora: document.getElementById("new_ora").value,
+    Tipologia: document.getElementById("new_tipologia").value,
+    Istruttore: document.getElementById("new_istruttore").value,
+    Max_Partecipanti: document.getElementById("new_max").value
+  }]);
+
+  loadLezioni();
+}
+
+// ---------------- PRENOTAZIONI ----------------
+async function prenota() {
+
+  const nuovoID = "PRE" + Date.now();
+
+  await supabaseClient.from("prenotazioni").insert([{
+    ID_Prenotazione: nuovoID,
+    ID_Cliente: document.getElementById("select_cliente").value,
+    ID_Lezione: document.getElementById("select_lezione").value
+  }]);
+
+  alert("Prenotazione salvata ✅");
+}
+
