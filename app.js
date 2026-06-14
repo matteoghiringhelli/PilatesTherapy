@@ -27,7 +27,13 @@ function toggleLezioni() {
 // ---------------- CLIENTI ----------------
 async function loadClienti() {
 
-  const { data } = await supabaseClient.from("clienti").select("*");
+  const { data, error } = await supabaseClient.from("clienti").select("*");
+
+  if (error) {
+    console.error(error);
+    alert("Errore caricamento clienti");
+    return;
+  }
 
   document.getElementById("outputClienti").innerHTML = `
     <table>
@@ -41,6 +47,7 @@ async function loadClienti() {
         <th>Città</th>
         <th>CAP</th>
         <th>Codice Fiscale</th>
+        <th>Data Registrazione</th>
       </tr>
 
       ${data.map(c => `
@@ -54,6 +61,7 @@ async function loadClienti() {
           <td>${c["Cittá"] || ""}</td>
           <td>${c.CAP || ""}</td>
           <td>${c.Codice_Fiscale || ""}</td>
+          <td>${c.Data_Registrazione || ""}</td>
         </tr>
       `).join("")}
     </table>
@@ -73,7 +81,7 @@ async function aggiungiCliente() {
 
   const nuovoID = "CL" + Date.now();
 
-  await supabaseClient.from("clienti").insert([{
+  const { error } = await supabaseClient.from("clienti").insert([{
     ID_Cliente: nuovoID,
     Nome: document.getElementById("new_nome").value,
     Cognome: document.getElementById("new_cognome").value,
@@ -86,13 +94,27 @@ async function aggiungiCliente() {
     Data_Registrazione: new Date().toISOString().split("T")[0]
   }]);
 
+  if (error) {
+    console.error(error);
+    alert("Errore salvataggio cliente");
+    return;
+  }
+
+  alert("Cliente salvato ✅");
+
   loadClienti();
 }
 
 // ---------------- LEZIONI ----------------
 async function loadLezioni() {
 
-  const { data } = await supabaseClient.from("lezioni").select("*");
+  const { data, error } = await supabaseClient.from("lezioni").select("*");
+
+  if (error) {
+    console.error(error);
+    alert("Errore caricamento lezioni");
+    return;
+  }
 
   document.getElementById("outputLezioni").innerHTML = `
     <table>
@@ -131,7 +153,7 @@ async function aggiungiLezione() {
 
   const nuovoID = "LEZ" + Date.now();
 
-  await supabaseClient.from("lezioni").insert([{
+  const { error } = await supabaseClient.from("lezioni").insert([{
     ID_Lezione: nuovoID,
     Data: document.getElementById("new_data").value,
     Ora: document.getElementById("new_ora").value,
@@ -139,6 +161,12 @@ async function aggiungiLezione() {
     Istruttore: document.getElementById("new_istruttore").value,
     Max_Partecipanti: document.getElementById("new_max").value
   }]);
+
+  if (error) {
+    console.error(error);
+    alert("Errore salvataggio lezione");
+    return;
+  }
 
   loadLezioni();
 }
@@ -148,12 +176,21 @@ async function prenota() {
 
   const nuovoID = "PRE" + Date.now();
 
-  await supabaseClient.from("prenotazioni").insert([{
+  const { error } = await supabaseClient.from("prenotazioni").insert([{
     ID_Prenotazione: nuovoID,
     ID_Cliente: document.getElementById("select_cliente").value,
     ID_Lezione: document.getElementById("select_lezione").value
   }]);
 
+  if (error) {
+    console.error(error);
+    alert("Errore prenotazione");
+    return;
+  }
+
   alert("Prenotazione salvata ✅");
 }
 
+// ---------------- START ----------------
+loadClienti();
+loadLezioni();
