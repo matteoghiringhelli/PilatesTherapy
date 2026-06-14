@@ -56,9 +56,11 @@ async function loadClienti() {
   status.innerText = "Dati caricati ✅";
 
 
+
 output.innerHTML = response.data
-  .map(c => `<pre>${Object.keys(c)}</pre>`)
+  .map(c => `<p>${c.Nome} ${c.Cognome}</p>`)
   .join("");
+
 
 }
 
