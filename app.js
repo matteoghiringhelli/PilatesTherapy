@@ -14,30 +14,7 @@ const supabaseClient = window.supabase.createClient(
 );
 
 // ---------------------------
-// LOGIN
-// ---------------------------
-async function login() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-  const status = document.getElementById("loginStatus");
-
-  if (status) status.innerText = "Login in corso...";
-
-  const { error } = await supabaseClient.auth.signInWithPassword({
-    email,
-    password
-  });
-
-  if (error) {
-    if (status) status.innerText = "Errore login: " + error.message;
-    return;
-  }
-
-  window.location.href = "/dashboard.html";
-}
-
-// ---------------------------
-// LOGOUT
+// LOGIN / LOGOUT
 // ---------------------------
 async function logout() {
   await supabaseClient.auth.signOut();
@@ -45,16 +22,16 @@ async function logout() {
 }
 
 // ---------------------------
-// CONTROLLO SESSIONE DASHBOARD
+// CHECK SESSION
 // ---------------------------
 async function checkSession() {
   const isDashboard = window.location.pathname.includes("dashboard.html");
 
   if (!isDashboard) return;
 
-  const { data, error } = await supabaseClient.auth.getSession();
+  const { data } = await supabaseClient.auth.getSession();
 
-  if (error || !data?.session) {
+  if (!data?.session) {
     window.location.href = "/index.html";
   }
 }
@@ -73,8 +50,8 @@ async function loadClienti() {
     .select("*");
 
   if (error) {
-    status.innerText = "Errore caricamento ❌";
     console.error(error);
+    status.innerText = "Errore caricamento ❌";
     return;
   }
 
@@ -83,9 +60,8 @@ async function loadClienti() {
     return;
   }
 
-  status.innerText = `Dati caricati ✅ (${data.length})`;
+  status.innerText = `Clienti caricati ✅ (${data.length})`;
 
-  // ✅ render tabella pulita
   output.innerHTML = `
     <table>
       <thead>
@@ -95,6 +71,7 @@ async function loadClienti() {
           <th>Cognome</th>
           <th>Telefono</th>
           <th>Email</th>
+          <th>Azioni</th>
         </tr>
       </thead>
       <tbody>
@@ -105,17 +82,16 @@ async function loadClienti() {
             <td>${c.Cognome}</td>
             <td>${c.Telefono || ""}</td>
             <td>${c.Email || ""}</td>
+            <td>
+              <button onclick="modificaCliente('${c.ID_Cliente}')">Modifica</button>
+              <button onclick="eliminaCliente('${c.ID_Cliente}')">Elimina</button>
+            </td>
           </tr>
         `).join("")}
       </tbody>
     </table>
   `;
 }
-
-// ---------------------------
-// AUTO START
-// ---------------------------
-checkSession();
 
 // ---------------------------
 // AGGIUNGI CLIENTE
@@ -132,7 +108,6 @@ async function aggiungiCliente() {
     return;
   }
 
-  // 🧠 genera ID automatico (semplice)
   const nuovoID = "CL" + Date.now();
 
   const { error } = await supabaseClient
@@ -156,12 +131,69 @@ async function aggiungiCliente() {
 
   alert("Cliente salvato ✅");
 
-  // reset campi
   document.getElementById("new_nome").value = "";
   document.getElementById("new_cognome").value = "";
   document.getElementById("new_telefono").value = "";
   document.getElementById("new_email").value = "";
 
-  // aggiorna lista
   loadClienti();
 }
+
+// ---------------------------
+// ELIMINA CLIENTE
+// ---------------------------
+async function eliminaCliente(id) {
+
+  const conferma = confirm("Vuoi eliminare questo cliente?");
+
+  if (!conferma) return;
+
+  const { error } = await supabaseClient
+    .from("clienti")
+    .delete()
+    .eq("ID_Cliente", id);
+
+  if (error) {
+    console.error(error);
+    alert("Errore eliminazione ❌");
+    return;
+  }
+
+  alert("Cliente eliminato ✅");
+
+  loadClienti();
+}
+
+// ---------------------------
+// MODIFICA CLIENTE
+// ---------------------------
+async function modificaCliente(id) {
+
+  const nuovoNome = prompt("Nuovo nome:");
+  const nuovoCognome = prompt("Nuovo cognome:");
+
+  if (!nuovoNome || !nuovoCognome) return;
+
+  const { error } = await supabaseClient
+    .from("clienti")
+    .update({
+      Nome: nuovoNome,
+      Cognome: nuovoCognome
+    })
+    .eq("ID_Cliente", id);
+
+  if (error) {
+    console.error(error);
+    alert("Errore modifica ❌");
+    return;
+  }
+
+  alert("Cliente aggiornato ✅");
+
+  loadClienti();
+}
+
+// ---------------------------
+// START
+// ---------------------------
+checkSession();
