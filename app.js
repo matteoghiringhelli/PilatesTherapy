@@ -7,8 +7,7 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_ANON_KEY,
   {
     auth: {
-      persistSession: true,
-      autoRefreshToken: true
+      persistSession: true
     }
   }
 );
@@ -22,120 +21,93 @@ async function logout() {
 }
 
 // ===========================
-// TOGGLE SEZIONI
+// TOGGLE
 // ===========================
 function toggleClienti() {
   const el = document.getElementById("clientiSection");
-  if (!el) return;
   el.classList.toggle("hidden");
 }
 
 function toggleLezioni() {
   const el = document.getElementById("lezioniSection");
-  if (!el) return;
   el.classList.toggle("hidden");
 }
 
 // ===========================
-// ORARI LEZIONI (07:00-21:00 ogni 30 minuti)
+// ORARI AUTOMATICI (07:00 - 21:00)
 // ===========================
 function popolaOrari() {
-  const selectOra = document.getElementById("new_ora");
-  if (!selectOra) return;
+  const select = document.getElementById("new_ora");
+  if (!select) return;
 
-  selectOra.innerHTML = `<option value="">Ora</option>`;
+  select.innerHTML = `<option value="">Ora</option>`;
 
-  for (let hour = 7; hour <= 21; hour++) {
-    for (let minute of [0, 30]) {
-      if (hour === 21 && minute === 30) continue; // stop a 21:00
-      const hh = String(hour).padStart(2, "0");
-      const mm = String(minute).padStart(2, "0");
-      const value = `${hh}:${mm}`;
+  for (let h = 7; h <= 21; h++) {
+    for (let m of [0, 30]) {
+
+      if (h === 21 && m === 30) continue;
+
+      const hh = String(h).padStart(2, "0");
+      const mm = String(m).padStart(2, "0");
+      const ora = `${hh}:${mm}`;
+
       const opt = document.createElement("option");
-      opt.value = value;
-      opt.textContent = value;
-      selectOra.appendChild(opt);
+      opt.value = ora;
+      opt.textContent = ora;
+
+      select.appendChild(opt);
     }
   }
 }
 
 // ===========================
-// UTILITY MAX PARTECIPANTI
+// MAX PARTECIPANTI
 // ===========================
-function getMaxPartecipantiByTipologia(tipologia) {
+function getMaxPartecipanti(tipologia) {
+
   if (tipologia === "Privata") return 1;
   if (tipologia === "Duetto") return 2;
-  if (tipologia === "Mini-Gruppo") return 3;
+  if (tipologia === "Mini-Gruppo") return 4; // ✅ CAMBIATO QUI
+
   return null;
 }
 
 // ===========================
-// CLIENTI - LOAD
+// CLIENTI
 // ===========================
 async function loadClienti() {
-  const status = document.getElementById("status");
-  const output = document.getElementById("outputClienti");
 
-  if (!output) return;
+  const { data } = await supabaseClient.from("clienti").select("*");
 
-  status && (status.innerText = "Caricamento clienti...");
-
-  const { data, error } = await supabaseClient
-    .from("clienti")
-    .select("*")
-    .order("Cognome", { ascending: true });
-
-  if (error) {
-    console.error(error);
-    status && (status.innerText = "Errore caricamento clienti ❌");
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    status && (status.innerText = "Nessun cliente presente");
-    output.innerHTML = "";
-    document.getElementById("select_cliente").innerHTML = "";
-    return;
-  }
-
-  status && (status.innerText = `Clienti caricati ✅ (${data.length})`);
-
-  output.innerHTML = `
+  document.getElementById("outputClienti").innerHTML = `
     <table>
-      <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nome</th>
+        <th>Cognome</th>
+        <th>Telefono</th>
+        <th>Email</th>
+        <th>Indirizzo</th>
+        <th>Città</th>
+        <th>CAP</th>
+        <th>CF</th>
+      </tr>
+      ${data.map(c => `
         <tr>
-          <th>ID Cliente</th>
-          <th>Nome</th>
-          <th>Cognome</th>
-          <th>Telefono</th>
-          <th>Email</th>
-          <th>Indirizzo</th>
-          <th>Città</th>
-          <th>CAP</th>
-          <th>Codice Fiscale</th>
-          <th>Data Registrazione</th>
+          <td>${c.ID_Cliente}</td>
+          <td>${c.Nome || ""}</td>
+          <td>${c.Cognome || ""}</td>
+          <td>${c.Telefono || ""}</td>
+          <td>${c.Email || ""}</td>
+          <td>${c.Indirizzo || ""}</td>
+          <td>${c["Cittá"] || ""}</td>
+          <td>${c.CAP || ""}</td>
+          <td>${c.Codice_Fiscale || ""}</td>
         </tr>
-      </thead>
-      <tbody>
-        ${data.map(c => `
-          <tr>
-            <td>${c.ID_Cliente || ""}</td>
-            <td>${c.Nome || ""}</td>
-            <td>${c.Cognome || ""}</td>
-            <td>${c.Telefono || ""}</td>
-            <td>${c.Email || ""}</td>
-            <td>${c.Indirizzo || ""}</td>
-            <td>${c["Cittá"] || ""}</td>
-            <td>${c.CAP || ""}</td>
-            <td>${c.Codice_Fiscale || ""}</td>
-            <td>${c.Data_Registrazione || ""}</td>
-          </tr>
-        `).join("")}
-      </tbody>
+      `).join("")}
     </table>
   `;
 
-  // dropdown clienti
   document.getElementById("select_cliente").innerHTML =
     data.map(c => `
       <option value="${c.ID_Cliente}">
@@ -145,186 +117,86 @@ async function loadClienti() {
 }
 
 // ===========================
-// CLIENTI - AGGIUNGI
+// AGGIUNGI CLIENTE
 // ===========================
 async function aggiungiCliente() {
-  const nome = document.getElementById("new_nome")?.value.trim() || "";
-  const cognome = document.getElementById("new_cognome")?.value.trim() || "";
-  const telefono = document.getElementById("new_telefono")?.value.trim() || "";
-  const email = document.getElementById("new_email")?.value.trim() || "";
-  const indirizzo = document.getElementById("new_indirizzo")?.value.trim() || "";
-  const citta = document.getElementById("new_citta")?.value.trim() || "";
-  const cap = document.getElementById("new_cap")?.value.trim() || "";
-  const codiceFiscale = document.getElementById("new_cf")?.value.trim() || "";
-
-  if (!nome || !cognome) {
-    alert("Nome e Cognome obbligatori");
-    return;
-  }
 
   const nuovoID = "CL" + Date.now();
 
-  const { error } = await supabaseClient
-    .from("clienti")
-    .insert([
-      {
-        ID_Cliente: nuovoID,
-        Nome: nome,
-        Cognome: cognome,
-        Telefono: telefono,
-        Email: email,
-        Indirizzo: indirizzo,
-        "Cittá": citta,
-        CAP: cap,
-        Codice_Fiscale: codiceFiscale,
-        Data_Registrazione: new Date().toISOString().split("T")[0]
-      }
-    ]);
-
-  if (error) {
-    console.error(error);
-    alert("Errore salvataggio cliente ❌");
-    return;
-  }
-
-  alert("Cliente salvato ✅");
-
-  const idsToClear = [
-    "new_nome",
-    "new_cognome",
-    "new_telefono",
-    "new_email",
-    "new_indirizzo",
-    "new_citta",
-    "new_cap",
-    "new_cf"
-  ];
-
-  idsToClear.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = "";
-  });
+  await supabaseClient.from("clienti").insert([{
+    ID_Cliente: nuovoID,
+    Nome: document.getElementById("new_nome").value,
+    Cognome: document.getElementById("new_cognome").value,
+    Telefono: document.getElementById("new_telefono").value,
+    Email: document.getElementById("new_email").value,
+    Data_Registrazione: new Date().toISOString().split("T")[0]
+  }]);
 
   loadClienti();
 }
 
 // ===========================
-// LEZIONI - LOAD
+// LEZIONI
 // ===========================
 async function loadLezioni() {
-  const status = document.getElementById("status");
-  const output = document.getElementById("outputLezioni");
 
-  if (!output) return;
+  const { data } = await supabaseClient.from("lezioni").select("*");
 
-  status && (status.innerText = "Caricamento lezioni...");
-
-  const { data, error } = await supabaseClient
-    .from("lezioni")
-    .select("*")
-    .order("Data", { ascending: true })
-    .order("Ora", { ascending: true });
-
-  if (error) {
-    console.error(error);
-    status && (status.innerText = "Errore caricamento lezioni ❌");
-    return;
-  }
-
-  if (!data || data.length === 0) {
-    status && (status.innerText = "Nessuna lezione presente");
-    output.innerHTML = "";
-    document.getElementById("select_lezione").innerHTML = "";
-    return;
-  }
-
-  status && (status.innerText = `Lezioni caricate ✅ (${data.length})`);
-
-  output.innerHTML = `
+  document.getElementById("outputLezioni").innerHTML = `
     <table>
-      <thead>
+      <tr>
+        <th>ID</th>
+        <th>Data</th>
+        <th>Ora</th>
+        <th>Tipologia</th>
+        <th>Istruttore</th>
+        <th>Max</th>
+      </tr>
+      ${data.map(l => `
         <tr>
-          <th>ID Lezione</th>
-          <th>Data</th>
-          <th>Ora</th>
-          <th>Tipologia</th>
-          <th>Istruttore</th>
-          <th>Max Partecipanti</th>
+          <td>${l.ID_Lezione}</td>
+          <td>${l.Data}</td>
+          <td>${l.Ora}</td>
+          <td>${l.Tipologia}</td>
+          <td>${l.Istruttore}</td>
+          <td>${l.Max_Partecipanti}</td>
         </tr>
-      </thead>
-      <tbody>
-        ${data.map(l => `
-          <tr>
-            <td>${l.ID_Lezione || ""}</td>
-            <td>${l.Data || ""}</td>
-            <td>${l.Ora || ""}</td>
-            <td>${l.Tipologia || ""}</td>
-            <td>${l.Istruttore || ""}</td>
-            <td>${l.Max_Partecipanti || ""}</td>
-          </tr>
-        `).join("")}
-      </tbody>
+      `).join("")}
     </table>
   `;
 
-  // dropdown lezioni
   document.getElementById("select_lezione").innerHTML =
     data.map(l => `
       <option value="${l.ID_Lezione}">
-        ${l.Data} ${l.Ora} - ${l.Tipologia} (${l.Istruttore || "n/d"})
+        ${l.Data} ${l.Ora} - ${l.Tipologia}
       </option>
     `).join("");
 }
 
 // ===========================
-// LEZIONI - AGGIUNGI
+// AGGIUNGI LEZIONE
 // ===========================
 async function aggiungiLezione() {
-  const dataLezione = document.getElementById("new_data")?.value || "";
-  const oraLezione = document.getElementById("new_ora")?.value || "";
-  const tipologia = document.getElementById("new_tipologia")?.value || "";
-  const istruttore = document.getElementById("new_istruttore")?.value.trim() || "";
 
-  if (!dataLezione || !oraLezione || !tipologia || !istruttore) {
-    alert("Data, Ora, Tipologia e Istruttore sono obbligatori");
-    return;
-  }
+  const data = document.getElementById("new_data").value;
+  const ora = document.getElementById("new_ora").value;
+  const tipologia = document.getElementById("new_tipologia").value;
+  const istruttore = document.getElementById("new_istruttore").value;
 
   const nuovoID = "LEZ" + Date.now();
-  const maxPartecipanti = getMaxPartecipantiByTipologia(tipologia);
 
-  const { error } = await supabaseClient
-    .from("lezioni")
-    .insert([
-      {
-        ID_Lezione: nuovoID,
-        Data: dataLezione,
-        Ora: oraLezione,
-        Tipologia: tipologia,
-        Istruttore: istruttore,
-        Max_Partecipanti: maxPartecipanti
-      }
-    ]);
+  const max = getMaxPartecipanti(tipologia);
 
-  if (error) {
-    console.error(error);
-    alert("Errore salvataggio lezione ❌");
-    return;
-  }
+  await supabaseClient.from("lezioni").insert([{
+    ID_Lezione: nuovoID,
+    Data: data,
+    Ora: ora,
+    Tipologia: tipologia,
+    Istruttore: istruttore,
+    Max_Partecipanti: max
+  }]);
 
   alert("Lezione salvata ✅");
-
-  const idsToClear = [
-    "new_data",
-    "new_ora",
-    "new_tipologia",
-    "new_istruttore"
-  ];
-
-  idsToClear.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = "";
-  });
 
   loadLezioni();
 }
@@ -333,39 +205,22 @@ async function aggiungiLezione() {
 // PRENOTAZIONI
 // ===========================
 async function prenota() {
-  const idCliente = document.getElementById("select_cliente")?.value || "";
-  const idLezione = document.getElementById("select_lezione")?.value || "";
-
-  if (!idCliente || !idLezione) {
-    alert("Seleziona cliente e lezione");
-    return;
-  }
 
   const nuovoID = "PRE" + Date.now();
 
-  const { error } = await supabaseClient
-    .from("prenotazioni")
-    .insert([
-      {
-        ID_Prenotazione: nuovoID,
-        ID_Cliente: idCliente,
-        ID_Lezione: idLezione
-      }
-    ]);
-
-  if (error) {
-    console.error(error);
-    alert("Errore prenotazione ❌");
-    return;
-  }
+  await supabaseClient.from("prenotazioni").insert([{
+    ID_Prenotazione: nuovoID,
+    ID_Cliente: document.getElementById("select_cliente").value,
+    ID_Lezione: document.getElementById("select_lezione").value
+  }]);
 
   alert("Prenotazione salvata ✅");
 }
 
 // ===========================
-// AVVIO
+// START
 // ===========================
-(function initApp() {
+(function init() {
   popolaOrari();
   loadClienti();
   loadLezioni();
