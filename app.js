@@ -31,41 +31,34 @@ async function login() {
 // -------------------
 // LOAD CLIENTI
 // -------------------
+
 async function loadClienti() {
   const status = document.getElementById("status");
   const output = document.getElementById("output");
 
   status.innerText = "Caricamento...";
 
-  const response = await supabaseClient
+  const { data, error } = await supabaseClient
     .from("clienti")
     .select("*");
 
-  console.log(response); // utile anche per debug futuro
-
-  // 🔥 debug visivo completo
-  output.innerHTML = `
-    <p><strong>Errore:</strong> ${JSON.stringify(response.error)}</p>
-    <p><strong>Data:</strong> ${JSON.stringify(response.data)}</p>
-  `;
-
-  if (response.error) {
-    status.innerText = "Errore ❌";
+  if (error) {
+    console.error(error);
+    status.innerText = "Errore caricamento ❌";
     return;
   }
 
-  if (!response.data || response.data.length === 0) {
-    status.innerText = "Nessun dato";
+  if (!data || data.length === 0) {
+    status.innerText = "Nessun cliente presente";
     return;
   }
 
-  status.innerText = "Dati OK ✅";
+  status.innerText = "Dati caricati ✅";
 
-  output.innerHTML = response.data
-    .map(c => `<p>${c.Nome} ${c.Cognome}</p>`)
+  output.innerHTML = data
+    .map(c => `<p>${c.nome} ${c.cognome}</p>`)
     .join("");
 }
-
 
 
 
