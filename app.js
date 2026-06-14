@@ -14,15 +14,7 @@ const supabaseClient = window.supabase.createClient(
 );
 
 // ---------------------------
-// LOGIN / LOGOUT
-// ---------------------------
-async function logout() {
-  await supabaseClient.auth.signOut();
-  window.location.href = "/index.html";
-}
-
-// ---------------------------
-// CHECK SESSION
+// SESSION CHECK
 // ---------------------------
 async function checkSession() {
   const isDashboard = window.location.pathname.includes("dashboard.html");
@@ -34,6 +26,14 @@ async function checkSession() {
   if (!data?.session) {
     window.location.href = "/index.html";
   }
+}
+
+// ---------------------------
+// LOGOUT
+// ---------------------------
+async function logout() {
+  await supabaseClient.auth.signOut();
+  window.location.href = "/index.html";
 }
 
 // ---------------------------
@@ -51,16 +51,16 @@ async function loadClienti() {
 
   if (error) {
     console.error(error);
-    status.innerText = "Errore caricamento ❌";
+    status.innerText = "Errore ❌";
     return;
   }
 
   if (!data || data.length === 0) {
-    status.innerText = "Nessun cliente presente";
+    status.innerText = "Nessun cliente";
     return;
   }
 
-  status.innerText = `Clienti caricati ✅ (${data.length})`;
+  status.innerText = `Clienti: ${data.length} ✅`;
 
   output.innerHTML = `
     <table>
@@ -71,6 +71,11 @@ async function loadClienti() {
           <th>Cognome</th>
           <th>Telefono</th>
           <th>Email</th>
+          <th>Indirizzo</th>
+          <th>Città</th>
+          <th>CAP</th>
+          <th>CF</th>
+          <th>Data Reg.</th>
           <th>Azioni</th>
         </tr>
       </thead>
@@ -82,6 +87,11 @@ async function loadClienti() {
             <td>${c.Cognome}</td>
             <td>${c.Telefono || ""}</td>
             <td>${c.Email || ""}</td>
+            <td>${c.Indirizzo || ""}</td>
+            <td>${c["Cittá"] || ""}</td>
+            <td>${c.CAP || ""}</td>
+            <td>${c.Codice_Fiscale || ""}</td>
+            <td>${c.Data_Registrazione || ""}</td>
             <td>
               <button onclick="modificaCliente('${c.ID_Cliente}')">Modifica</button>
               <button onclick="eliminaCliente('${c.ID_Cliente}')">Elimina</button>
@@ -102,6 +112,10 @@ async function aggiungiCliente() {
   const cognome = document.getElementById("new_cognome").value;
   const telefono = document.getElementById("new_telefono").value;
   const email = document.getElementById("new_email").value;
+  const indirizzo = document.getElementById("new_indirizzo").value;
+  const citta = document.getElementById("new_citta").value;
+  const cap = document.getElementById("new_cap").value;
+  const codiceFiscale = document.getElementById("new_cf").value;
 
   if (!nome || !cognome) {
     alert("Nome e Cognome obbligatori");
@@ -119,81 +133,5 @@ async function aggiungiCliente() {
         Cognome: cognome,
         Telefono: telefono,
         Email: email,
-        Data_Registrazione: new Date().toISOString().split("T")[0]
-      }
-    ]);
-
-  if (error) {
-    console.error(error);
-    alert("Errore salvataggio ❌");
-    return;
-  }
-
-  alert("Cliente salvato ✅");
-
-  document.getElementById("new_nome").value = "";
-  document.getElementById("new_cognome").value = "";
-  document.getElementById("new_telefono").value = "";
-  document.getElementById("new_email").value = "";
-
-  loadClienti();
-}
-
-// ---------------------------
-// ELIMINA CLIENTE
-// ---------------------------
-async function eliminaCliente(id) {
-
-  const conferma = confirm("Vuoi eliminare questo cliente?");
-
-  if (!conferma) return;
-
-  const { error } = await supabaseClient
-    .from("clienti")
-    .delete()
-    .eq("ID_Cliente", id);
-
-  if (error) {
-    console.error(error);
-    alert("Errore eliminazione ❌");
-    return;
-  }
-
-  alert("Cliente eliminato ✅");
-
-  loadClienti();
-}
-
-// ---------------------------
-// MODIFICA CLIENTE
-// ---------------------------
-async function modificaCliente(id) {
-
-  const nuovoNome = prompt("Nuovo nome:");
-  const nuovoCognome = prompt("Nuovo cognome:");
-
-  if (!nuovoNome || !nuovoCognome) return;
-
-  const { error } = await supabaseClient
-    .from("clienti")
-    .update({
-      Nome: nuovoNome,
-      Cognome: nuovoCognome
-    })
-    .eq("ID_Cliente", id);
-
-  if (error) {
-    console.error(error);
-    alert("Errore modifica ❌");
-    return;
-  }
-
-  alert("Cliente aggiornato ✅");
-
-  loadClienti();
-}
-
-// ---------------------------
-// START
-// ---------------------------
-checkSession();
+        Indirizzo: indirizzo,
+        "Cittá": citta,
