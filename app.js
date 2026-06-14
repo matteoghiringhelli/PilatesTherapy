@@ -14,18 +14,29 @@ const supabaseClient = window.supabase.createClient(
 );
 
 // ---------------------------
-// SESSION CHECK
+// LOGIN
 // ---------------------------
-async function checkSession() {
-  const isDashboard = window.location.pathname.includes("dashboard.html");
+async function login() {
+  const emailEl = document.getElementById("email");
+  const passwordEl = document.getElementById("password");
+  const statusEl = document.getElementById("loginStatus");
 
-  if (!isDashboard) return;
+  const email = emailEl ? emailEl.value.trim() : "";
+  const password = passwordEl ? passwordEl.value : "";
 
-  const { data } = await supabaseClient.auth.getSession();
+  if (statusEl) statusEl.innerText = "Login in corso...";
 
-  if (!data?.session) {
-    window.location.href = "/index.html";
+  const { error } = await supabaseClient.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    if (statusEl) statusEl.innerText = "Errore login: " + error.message;
+    return;
   }
+
+  window.location.href = "/dashboard.html";
 }
 
 // ---------------------------
@@ -37,101 +48,23 @@ async function logout() {
 }
 
 // ---------------------------
-// LOAD CLIENTI
+// CHECK SESSIONE
 // ---------------------------
-async function loadClienti() {
-  const status = document.getElementById("status");
-  const output = document.getElementById("output");
+async function checkSession() {
+  const isDashboard = window.location.pathname.includes("dashboard.html");
+  if (!isDashboard) return;
 
-  status.innerText = "Caricamento...";
+  const { data, error } = await supabaseClient.auth.getSession();
 
-  const { data, error } = await supabaseClient
-    .from("clienti")
-    .select("*");
-
-  if (error) {
-    console.error(error);
-    status.innerText = "Errore ❌";
+  if (error || !data?.session) {
+    window.location.href = "/index.html";
     return;
   }
-
-  if (!data || data.length === 0) {
-    status.innerText = "Nessun cliente";
-    return;
-  }
-
-  status.innerText = `Clienti: ${data.length} ✅`;
-
-  output.innerHTML = `
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Nome</th>
-          <th>Cognome</th>
-          <th>Telefono</th>
-          <th>Email</th>
-          <th>Indirizzo</th>
-          <th>Città</th>
-          <th>CAP</th>
-          <th>CF</th>
-          <th>Data Reg.</th>
-          <th>Azioni</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${data.map(c => `
-          <tr>
-            <td>${c.ID_Cliente}</td>
-            <td>${c.Nome}</td>
-            <td>${c.Cognome}</td>
-            <td>${c.Telefono || ""}</td>
-            <td>${c.Email || ""}</td>
-            <td>${c.Indirizzo || ""}</td>
-            <td>${c["Cittá"] || ""}</td>
-            <td>${c.CAP || ""}</td>
-            <td>${c.Codice_Fiscale || ""}</td>
-            <td>${c.Data_Registrazione || ""}</td>
-            <td>
-              <button onclick="modificaCliente('${c.ID_Cliente}')">Modifica</button>
-              <button onclick="eliminaCliente('${c.ID_Cliente}')">Elimina</button>
-            </td>
-          </tr>
-        `).join("")}
-      </tbody>
-    </table>
-  `;
 }
 
 // ---------------------------
-// AGGIUNGI CLIENTE
+// CLIENTI - LOAD
 // ---------------------------
-async function aggiungiCliente() {
+async function loadClienti() {
+  const status = document.getElementById("status");
 
-  const nome = document.getElementById("new_nome").value;
-  const cognome = document.getElementById("new_cognome").value;
-  const telefono = document.getElementById("new_telefono").value;
-  const email = document.getElementById("new_email").value;
-  const indirizzo = document.getElementById("new_indirizzo").value;
-  const citta = document.getElementById("new_citta").value;
-  const cap = document.getElementById("new_cap").value;
-  const codiceFiscale = document.getElementById("new_cf").value;
-
-  if (!nome || !cognome) {
-    alert("Nome e Cognome obbligatori");
-    return;
-  }
-
-  const nuovoID = "CL" + Date.now();
-
-  const { error } = await supabaseClient
-    .from("clienti")
-    .insert([
-      {
-        ID_Cliente: nuovoID,
-        Nome: nome,
-        Cognome: cognome,
-        Telefono: telefono,
-        Email: email,
-        Indirizzo: indirizzo,
-        "Cittá": citta,
