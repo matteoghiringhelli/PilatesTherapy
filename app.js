@@ -37,28 +37,35 @@ async function loadClienti() {
 
   status.innerText = "Caricamento...";
 
-  const { data, error } = await supabaseClient
+  const response = await supabaseClient
     .from("clienti")
     .select("*");
 
-  if (error) {
-    console.error(error);
-    status.innerText = "Errore caricamento ❌";
+  console.log(response); // utile anche per debug futuro
+
+  // 🔥 debug visivo completo
+  output.innerHTML = `
+    <p><strong>Errore:</strong> ${JSON.stringify(response.error)}</p>
+    <p><strong>Data:</strong> ${JSON.stringify(response.data)}</p>
+  `;
+
+  if (response.error) {
+    status.innerText = "Errore ❌";
     return;
   }
 
-  if (!data || data.length === 0) {
-    status.innerText = "Nessun cliente presente";
+  if (!response.data || response.data.length === 0) {
+    status.innerText = "Nessun dato";
     return;
   }
 
-  status.innerText = "Dati caricati ✅";
+  status.innerText = "Dati OK ✅";
 
+  output.innerHTML = response.data
+    .map(c => `<p>${c.Nome} ${c.Cognome}</p>`)
+    .join("");
+}
 
-
-output.innerHTML = data
-  .map(c => `<pre>${JSON.stringify(c, null, 2)}</pre>`)
-  .join("");
 
 
 
