@@ -7,21 +7,53 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_ANON_KEY
 );
 
+// ---------------- CONFIG ----------------
+const MAX_PARTECIPANTI = {
+  "Privata": 1,
+  "Duetto": 2,
+  "Mini-Gruppo": 4
+};
+
 // ---------------- AUTH ----------------
 async function logout() {
   await supabaseClient.auth.signOut();
   window.location.href = "/index.html";
 }
 
+// ---------------- INIT ----------------
+window.onload = () => {
+  generaOrari();
+  loadClienti();
+  loadLezioni();
+};
+
+// ---------------- ORARI ----------------
+function generaOrari() {
+  const select = document.getElementById("new_ora");
+  select.innerHTML = "<option value=''>Ora</option>";
+
+  for (let h = 7; h <= 21; h++) {
+    for (let m of [0, 30]) {
+      const ora =
+        String(h).padStart(2, "0") + ":" +
+        String(m).padStart(2, "0");
+
+      const opt = document.createElement("option");
+      opt.value = ora;
+      opt.textContent = ora;
+
+      select.appendChild(opt);
+    }
+  }
+}
+
 // ---------------- TOGGLE ----------------
 function toggleClienti() {
-  const el = document.getElementById("clientiSection");
-  el.classList.toggle("hidden");
+  document.getElementById("clientiSection").classList.toggle("hidden");
 }
 
 function toggleLezioni() {
-  const el = document.getElementById("lezioniSection");
-  el.classList.toggle("hidden");
+  document.getElementById("lezioniSection").classList.toggle("hidden");
 }
 
 // ---------------- CLIENTI ----------------
@@ -54,9 +86,11 @@ async function loadClienti() {
   `;
 
   document.getElementById("select_cliente").innerHTML =
-    data.map(c => `<option value="${c.ID_Cliente}">
-      ${c.Nome} ${c.Cognome}
-    </option>`).join("");
+    "<option value=''>Seleziona cliente</option>" +
+    data.map(c => `
+      <option value="${c.ID_Cliente}">
+        ${c.Nome} ${c.Cognome}
+      </option>`).join("");
 }
 
 // ---------------- MODIFICA CLIENTE ----------------
@@ -83,116 +117,3 @@ async function eliminaCliente(id) {
   await supabaseClient
     .from("clienti")
     .delete()
-    .eq("ID_Cliente", id);
-
-  loadClienti();
-}
-
-// ---------------- AGGIUNGI CLIENTE ----------------
-async function aggiungiCliente() {
-
-  const nuovoID = "CL" + Date.now();
-
-  await supabaseClient.from("clienti").insert([{
-    ID_Cliente: nuovoID,
-    Nome: document.getElementById("new_nome").value,
-    Cognome: document.getElementById("new_cognome").value,
-    Data_Registrazione: new Date().toISOString().split("T")[0]
-  }]);
-
-  loadClienti();
-}
-
-// ---------------- LEZIONI ----------------
-async function loadLezioni() {
-
-  const { data } = await supabaseClient.from("lezioni").select("*");
-
-  document.getElementById("outputLezioni").innerHTML = `
-    <table>
-      <tr>
-        <th>ID</th><th>Data</th><th>Ora</th>
-        <th>Tipologia</th><th>Istruttore</th><th>Max</th>
-        <th>Azioni</th>
-      </tr>
-
-      ${data.map(l => `
-        <tr>
-          <td>${l.ID_Lezione}</td>
-          <td>${l.Data}</td>
-          <td>${l.Ora}</td>
-          <td>${l.Tipologia}</td>
-          <td>${l.Istruttore}</td>
-          <td>${l.Max_Partecipanti}</td>
-          <td>
-            <button onclick="eliminaLezione('${l.ID_Lezione}')">Elimina</button>
-          </td>
-        </tr>
-      `).join("")}
-    </table>
-  `;
-
-  document.getElementById("select_lezione").innerHTML =
-    data.map(l => `<option value="${l.ID_Lezione}">
-      ${l.Data} ${l.Ora} - ${l.Tipologia}
-    </option>`).join("");
-}
-
-// ---------------- ELIMINA LEZIONE ----------------
-async function eliminaLezione(id) {
-
-  if (!confirm("Eliminare lezione?")) return;
-
-  await supabaseClient
-    .from("lezioni")
-    .delete()
-    .eq("ID_Lezione", id);
-
-  loadLezioni();
-}
-
-// ---------------- AGGIUNGI LEZIONE ----------------
-async function aggiungiLezione() {
-
-  const nuovoID = "LEZ" + Date.now();
-
-  await supabaseClient.from("lezioni").insert([{
-    ID_Lezione: nuovoID,
-    Data: document.getElementById("new_data").value,
-    Ora: document.getElementById("new_ora").value,
-    Tipologia: document.getElementById("new_tipologia").value,
-    Istruttore: document.getElementById("new_istruttore").value,
-    Max_Partecipanti: 4
-  }]);
-
-  loadLezioni();
-}
-
-// ---------------- PRENOTAZIONI FIX ----------------
-async function prenota() {
-
-  const idCliente = document.getElementById("select_cliente").value;
-  const idLezione = document.getElementById("select_lezione").value;
-
-  const nuovoID = "PRE" + Date.now();
-
-  const { error } = await supabaseClient
-    .from("prenotazioni")
-    .insert([{
-      ID_Prenotazione: nuovoID,
-      ID_Cliente: idCliente,
-      ID_Lezione: idLezione
-    }]);
-
-  if (error) {
-    console.error(error);
-    alert("Errore prenotazione");
-    return;
-  }
-
-  alert("Prenotazione salvata ✅");
-}
-
-// ---------------- START ----------------
-loadClienti();
-loadLezioni();
