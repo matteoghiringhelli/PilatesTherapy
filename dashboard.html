@@ -9,6 +9,7 @@
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
+      color: #222;
     }
 
     h1, h2, h3 {
@@ -42,8 +43,6 @@
     th, td {
       border: 1px solid #ccc;
       padding: 8px;
-      text-align: left;
-      vertical-align: top;
     }
 
     th {
@@ -67,11 +66,6 @@
       margin-bottom: 8px;
     }
 
-    .muted {
-      color: #666;
-      font-size: 13px;
-    }
-
     #status {
       font-weight: bold;
       margin: 12px 0;
@@ -88,7 +82,7 @@
 
   <p id="status"></p>
 
-  <!-- ===================== CLIENTI ===================== -->
+  <!-- CLIENTI -->
   <div class="section">
     <h2>Clienti</h2>
 
@@ -97,44 +91,37 @@
     <div id="clientiSection" class="hidden">
       <button onclick="loadClienti()">Ricarica Clienti</button>
 
-      <h3>Aggiungi Cliente</h3>
-
       <div class="form-row">
         <input id="new_nome" placeholder="Nome">
         <input id="new_cognome" placeholder="Cognome">
         <input id="new_telefono" placeholder="Telefono">
         <input id="new_email" placeholder="Email">
-      </div>
-
-      <div class="form-row">
         <input id="new_indirizzo" placeholder="Indirizzo">
         <input id="new_citta" placeholder="Città">
         <input id="new_cap" placeholder="CAP">
         <input id="new_cf" placeholder="Codice Fiscale">
       </div>
 
-      <button onclick="aggiungiCliente()">Salva Cliente</button>
+      <button onclick="aggiungiCliente()">Salva</button>
 
       <div id="outputClienti"></div>
     </div>
   </div>
 
-  <!-- ===================== LEZIONI ===================== -->
+  <!-- LEZIONI -->
   <div class="section">
     <h2>Lezioni</h2>
 
     <button onclick="toggleLezioni()">Apri / Chiudi</button>
 
     <div id="lezioniSection" class="hidden">
-      <button onclick="loadLezioni()">Ricarica Lezioni</button>
-
-      <h3>Aggiungi Lezione</h3>
+      <button onclick="loadLezioni()">Ricarica</button>
 
       <div class="form-row">
         <input id="new_data" type="date">
 
         <select id="new_ora">
-          <!-- popolato da app.js -->
+          <option value="">Ora</option>
         </select>
 
         <select id="new_tipologia">
@@ -147,18 +134,13 @@
         <input id="new_istruttore" placeholder="Istruttore">
       </div>
 
-      <p class="muted">
-        Max partecipanti impostato automaticamente in base alla tipologia:
-        Privata = 1, Duetto = 2, Mini-Gruppo = 3
-      </p>
-
-      <button onclick="aggiungiLezione()">Salva Lezione</button>
+      <button onclick="aggiungiLezione()">Salva</button>
 
       <div id="outputLezioni"></div>
     </div>
   </div>
 
-  <!-- ===================== PRENOTAZIONI ===================== -->
+  <!-- PRENOTAZIONI -->
   <div class="section">
     <h2>Prenotazioni</h2>
 
@@ -166,9 +148,11 @@
       <select id="select_cliente"></select>
       <select id="select_lezione"></select>
       <button onclick="prenota()">Prenota</button>
+      <button onclick="loadPrenotazioni()">Ricarica</button>
     </div>
-  </div>
 
+    <div id="outputPrenotazioni"></div>
+  </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="app.js"></script>
