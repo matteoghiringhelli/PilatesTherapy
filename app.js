@@ -7,279 +7,137 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_ANON_KEY
 );
 
-// ---------------- CONFIG ----------------
-const MAX_PARTECIPANTI = {
+const MAX = {
   "Privata": 1,
   "Duetto": 2,
   "Mini-Gruppo": 4
 };
 
-// ---------------- AUTH ----------------
-async function logout() {
-  await supabaseClient.auth.signOut();
-  window.location.href = "/index.html";
-}
+let clienti = [];
+let lezioni = [];
+let prenotazioni = [];
 
-// ---------------- INIT (FIX TOGGLE) ----------------
-window.addEventListener("DOMContentLoaded", () => {
-  try { generaOrari(); } catch (e) { console.error(e); }
-  try { loadClienti(); } catch (e) { console.error(e); }
-  try { loadLezioni(); } catch (e) { console.error(e); }
+window.addEventListener("DOMContentLoaded", async () => {
+  generaOrari();
+  await loadClienti();
+  await loadLezioni();
+  await loadPrenotazioni();
 });
 
-// ---------------- ORARI ----------------
+// ---------------- ORARI
 function generaOrari() {
   const select = document.getElementById("new_ora");
-
-  if (!select) return;
-
-  select.innerHTML = "<option value=''>Ora</option>";
-
   for (let h = 7; h <= 21; h++) {
     for (let m of [0, 30]) {
-      const ora =
-        String(h).padStart(2, "0") + ":" +
-        String(m).padStart(2, "0");
-
-      const opt = document.createElement("option");
-      opt.value = ora;
-      opt.textContent = ora;
-
+      let val = String(h).padStart(2,'0') + ":" + String(m).padStart(2,'0');
+      let opt = document.createElement("option");
+      opt.value = val;
+      opt.textContent = val;
       select.appendChild(opt);
     }
   }
 }
 
-// ---------------- TOGGLE ----------------
-function toggleClienti() {
-  const el = document.getElementById("clientiSection");
-  if (!el) return;
-  el.classList.toggle("hidden");
-}
+// ---------------- TOGGLE
+function toggleClienti(){document.getElementById("clientiSection").classList.toggle("hidden")}
+function toggleLezioni(){document.getElementById("lezioniSection").classList.toggle("hidden")}
 
-function toggleLezioni() {
-  const el = document.getElementById("lezioniSection");
-  if (!el) return;
-  el.classList.toggle("hidden");
-}
+// ---------------- CLIENTI
+async function loadClienti(){
+  const { data } = await supabaseClient.from("clienti").select("*");
+  clienti = data;
 
-// ---------------- CLIENTI ----------------
-async function loadClienti() {
-
-  const { data, error } = await supabaseClient.from("clienti").select("*");
-
-  if (error) {
-    console.error(error);
-    return;
-  }
-
-  document.getElementById("outputClienti").innerHTML = `
-    <table>
-      <tr>
-        <th>ID</th><th>Nome</th><th>Cognome</th>
-        <th>Telefono</th><th>Email</th>
-        <th>Azioni</th>
-      </tr>
-
-      ${data.map(c => `
-        <tr>
-          <td>${c.ID_Cliente}</td>
-          <td>${c.Nome}</td>
-          <td>${c.Cognome}</td>
-          <td>${c.Telefono || ""}</td>
-          <td>${c.Email || ""}</td>
-          <td>
-            <button onclick="modificaCliente('${c.ID_Cliente}')">Modifica</button>
-            <button onclick="eliminaCliente('${c.ID_Cliente}')">Elimina</button>
-          </td>
-        </tr>
-      `).join("")}
-    </table>
-  `;
+  document.getElementById("outputClienti").innerHTML =
+    `<table>
+    <tr><th>Nome</th><th>Cognome</th></tr>
+    ${data.map(c=>`<tr><td>${c.Nome}</td><td>${c.Cognome}</td></tr>`).join("")}
+    </table>`;
 
   document.getElementById("select_cliente").innerHTML =
-    "<option value=''>Seleziona cliente</option>" +
-    data.map(c => `
-      <option value="${c.ID_Cliente}">
-        ${c.Nome} ${c.Cognome}
-      </option>`).join("");
+    `<option value="">Cliente</option>` +
+    data.map(c=>`<option value="${c.ID_Cliente}">${c.Nome} ${c.Cognome}</option>`).join("");
 }
 
-// ---------------- MODIFICA CLIENTE ----------------
-async function modificaCliente(id) {
-
-  const nome = prompt("Nuovo nome:");
-  const cognome = prompt("Nuovo cognome:");
-
-  if (!nome || !cognome) return;
-
-  await supabaseClient
-    .from("clienti")
-    .update({ Nome: nome, Cognome: cognome })
-    .eq("ID_Cliente", id);
-
-  loadClienti();
-}
-
-// ---------------- ELIMINA CLIENTE ----------------
-async function eliminaCliente(id) {
-
-  if (!confirm("Eliminare cliente?")) return;
-
-  await supabaseClient
-    .from("clienti")
-    .delete()
-    .eq("ID_Cliente", id);
-
-  loadClienti();
-}
-
-// ---------------- AGGIUNGI CLIENTE ----------------
-async function aggiungiCliente() {
-
-  const nuovoID = "CL" + Date.now();
-
+async function aggiungiCliente(){
   await supabaseClient.from("clienti").insert([{
-    ID_Cliente: nuovoID,
-    Nome: document.getElementById("new_nome").value,
-    Cognome: document.getElementById("new_cognome").value,
-    Telefono: document.getElementById("new_telefono").value,
-    Email: document.getElementById("new_email").value,
-    Indirizzo: document.getElementById("new_indirizzo").value,
-    Cittá: document.getElementById("new_citta").value,
-    CAP: document.getElementById("new_cap").value,
-    Codice_Fiscale: document.getElementById("new_cf").value,
-    Data_Registrazione: new Date().toISOString().split("T")[0]
+    ID_Cliente:"CL"+Date.now(),
+    Nome:new_nome.value,
+    Cognome:new_cognome.value
   }]);
-
   loadClienti();
 }
 
-// ---------------- LEZIONI ----------------
-async function loadLezioni() {
+// ---------------- LEZIONI
+async function loadLezioni(){
+  const { data } = await supabaseClient.from("lezioni").select("*");
+  lezioni = data;
 
-  const { data, error } = await supabaseClient.from("lezioni").select("*");
-
-  if (error) {
-    console.error(error);
-    return;
-  }
-
-  document.getElementById("outputLezioni").innerHTML = `
-    <table>
-      <tr>
-        <th>ID</th><th>Data</th><th>Ora</th>
-        <th>Tipologia</th><th>Istruttore</th><th>Max</th>
-        <th>Azioni</th>
-      </tr>
-
-      ${data.map(l => `
-        <tr>
-          <td>${l.ID_Lezione}</td>
-          <td>${l.Data}</td>
-          <td>${l.Ora}</td>
-          <td>${l.Tipologia}</td>
-          <td>${l.Istruttore}</td>
-          <td>${l.Max_Partecipanti}</td>
-          <td>
-            <button onclick="eliminaLezione('${l.ID_Lezione}')">Elimina</button>
-          </td>
-        </tr>
-      `).join("")}
-    </table>
-  `;
+  document.getElementById("outputLezioni").innerHTML =
+    `<table>
+    <tr><th>Data</th><th>Ora</th><th>Prenotati</th><th>Posti</th></tr>
+    ${data.map(l=>{
+      let p = prenotazioni.filter(x=>x.ID_Lezione==l.ID_Lezione).length;
+      let r = l.Max_Partecipanti - p;
+      return `<tr><td>${l.Data}</td><td>${l.Ora}</td><td>${p}</td><td>${r}</td></tr>`;
+    }).join("")}
+    </table>`;
 
   document.getElementById("select_lezione").innerHTML =
-    "<option value=''>Seleziona lezione</option>" +
-    data.map(l => `
-      <option value="${l.ID_Lezione}">
-        ${l.Data} ${l.Ora} - ${l.Tipologia}
-      </option>`).join("");
+    `<option value="">Lezione</option>` +
+    data.map(l=>`<option value="${l.ID_Lezione}">${l.Data} ${l.Ora}</option>`).join("");
 }
 
-// ---------------- AGGIUNGI LEZIONE ----------------
-async function aggiungiLezione() {
-
-  const tipologia = document.getElementById("new_tipologia").value;
-
-  const nuovoID = "LEZ" + Date.now();
+async function aggiungiLezione(){
+  let tipo = new_tipologia.value;
 
   await supabaseClient.from("lezioni").insert([{
-    ID_Lezione: nuovoID,
-    Data: document.getElementById("new_data").value,
-    Ora: document.getElementById("new_ora").value,
-    Tipologia: tipologia,
-    Istruttore: document.getElementById("new_istruttore").value,
-    Max_Partecipanti: MAX_PARTECIPANTI[tipologia]
+    ID_Lezione:"LEZ"+Date.now(),
+    Data:new_data.value,
+    Ora:new_ora.value,
+    Tipologia:tipo,
+    Istruttore:new_istruttore.value,
+    Max_Partecipanti:MAX[tipo]
   }]);
 
   loadLezioni();
 }
 
-// ---------------- ELIMINA LEZIONE ----------------
-async function eliminaLezione(id) {
+// ---------------- PRENOTAZIONI
+async function loadPrenotazioni(){
+  const { data } = await supabaseClient.from("prenotazioni").select("*");
+  prenotazioni = data;
 
-  if (!confirm("Eliminare lezione?")) return;
-
-  await supabaseClient
-    .from("lezioni")
-    .delete()
-    .eq("ID_Lezione", id);
-
-  loadLezioni();
+  document.getElementById("outputPrenotazioni").innerHTML =
+    `<table>
+    <tr><th>Cliente</th><th>Lezione</th></tr>
+    ${data.map(p=>{
+      let c = clienti.find(x=>x.ID_Cliente==p.ID_Cliente);
+      let l = lezioni.find(x=>x.ID_Lezione==p.ID_Lezione);
+      return `<tr><td>${c?.Nome}</td><td>${l?.Data} ${l?.Ora}</td></tr>`;
+    }).join("")}
+    </table>`;
 }
 
-// ---------------- PRENOTAZIONI (FIX COMPLETO) ----------------
-async function prenota() {
+async function prenota(){
 
-  const idCliente = document.getElementById("select_cliente").value;
-  const idLezione = document.getElementById("select_lezione").value;
+  let c = select_cliente.value;
+  let l = select_lezione.value;
 
-  if (!idCliente || !idLezione) {
-    return alert("Seleziona cliente e lezione");
-  }
+  if(!c||!l)return alert("Seleziona");
 
-  // carico prenotazioni
-  const { data: prenotazioni } = await supabaseClient
-    .from("prenotazioni")
-    .select("*");
+  let dup = prenotazioni.find(x=>x.ID_Cliente==c && x.ID_Lezione==l);
+  if(dup)return alert("Gia prenotato");
 
-  // duplicato
-  if (prenotazioni.find(p =>
-      p.ID_Cliente == idCliente &&
-      p.ID_Lezione == idLezione)) {
-    return alert("Prenotazione già esistente");
-  }
+  let count = prenotazioni.filter(x=>x.ID_Lezione==l).length;
+  let lec = lezioni.find(x=>x.ID_Lezione==l);
 
-  // carico lezione
-  const { data: lezioni } = await supabaseClient
-    .from("lezioni")
-    .select("*")
-    .eq("ID_Lezione", idLezione);
+  if(count>=lec.Max_Partecipanti)return alert("Piena");
 
-  const lezione = lezioni[0];
+  await supabaseClient.from("prenotazioni").insert([{
+    ID_Prenotazione:"PRE"+Date.now(),
+    ID_Cliente:c,
+    ID_Lezione:l
+  }]);
 
-  const count = prenotazioni.filter(p =>
-    p.ID_Lezione == idLezione
-  ).length;
-
-  if (count >= lezione.Max_Partecipanti) {
-    return alert("Lezione piena");
-  }
-
-  // insert
-  const { error } = await supabaseClient
-    .from("prenotazioni")
-    .insert([{
-      ID_Prenotazione: "PRE" + Date.now(),
-      ID_Cliente: idCliente,
-      ID_Lezione: idLezione
-    }]);
-
-  if (error) {
-    console.error(error);
-    return alert("Errore salvataggio");
-  }
-
-  alert("Prenotazione salvata ✅");
+  loadPrenotazioni();
 }
