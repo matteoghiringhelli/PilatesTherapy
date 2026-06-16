@@ -578,3 +578,9 @@ function escapeHtmlAttr(value) {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
 }
+
+function togglePrenotazioni() {
+  const el = document.getElementById("prenotazioniSection");
+  if (!el) return;
+  el.classList.toggle("hidden");
+}
