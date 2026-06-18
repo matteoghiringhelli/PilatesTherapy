@@ -1,7 +1,6 @@
 const SUPABASE_URL = "https://xxutsiiejegkgvlkgqrr.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4dXRzaWllamVna2d2bGtncXJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNTUxNjgsImV4cCI6MjA5NjgzMTE2OH0.EACUhY2OGCZVswkXdygd98I0yRMT5WQz_oNeHQgdhsU";
 
-
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const MAX_PARTECIPANTI = {
@@ -10,9 +9,14 @@ const MAX_PARTECIPANTI = {
   "Mini-Gruppo": 4
 };
 
+const RIGHE_PER_PAGINA = 50;
+
 let clientiData = [];
 let lezioniData = [];
 let prenotazioniData = [];
+
+let paginaLezioni = 1;
+let paginaPrenotazioni = 1;
 
 window.addEventListener("DOMContentLoaded", async () => {
   try {
@@ -28,6 +32,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 function setStatus(message, type = "ok") {
   const el = document.getElementById("status");
   if (!el) return;
+
   el.textContent = message || "";
   el.style.color = type === "err" ? "#b00020" : "#0a7a33";
 }
@@ -107,6 +112,8 @@ async function fetchAllRows(tableName, columns = "*", orderColumn = null, ascend
   return { data: allRows, error: null };
 }
 
+// ===================== CLIENTI =====================
+
 async function loadClienti() {
   const { data, error } = await fetchAllRows(
     "clienti",
@@ -171,9 +178,11 @@ function renderSelectClienti() {
   const sel = document.getElementById("select_cliente");
   if (!sel) return;
 
-  sel.innerHTML = '<option value="">Seleziona cliente</option>' + clientiData.map(c =>
-    `<option value="${escapeAttr(c.ID_Cliente)}">${safe(c.Nome)} ${safe(c.Cognome)}</option>`
-  ).join("");
+  sel.innerHTML =
+    '<option value="">Seleziona cliente</option>' +
+    clientiData.map(c =>
+      `<option value="${escapeAttr(c.ID_Cliente)}">${safe(c.Nome)} ${safe(c.Cognome)}</option>`
+    ).join("");
 }
 
 async function aggiungiCliente() {
@@ -214,18 +223,25 @@ async function modificaCliente(id) {
 
   const Nome = prompt("Nome", cliente.Nome || "");
   if (Nome === null) return;
+
   const Cognome = prompt("Cognome", cliente.Cognome || "");
   if (Cognome === null) return;
+
   const Telefono = prompt("Telefono", cliente.Telefono || "");
   if (Telefono === null) return;
+
   const Email = prompt("Email", cliente.Email || "");
   if (Email === null) return;
+
   const Indirizzo = prompt("Indirizzo", cliente.Indirizzo || "");
   if (Indirizzo === null) return;
+
   const Cittá = prompt("Cittá", cliente["Cittá"] || "");
   if (Cittá === null) return;
+
   const CAP = prompt("CAP", cliente.CAP || "");
   if (CAP === null) return;
+
   const Codice_Fiscale = prompt("Codice Fiscale", cliente.Codice_Fiscale || "");
   if (Codice_Fiscale === null) return;
 
@@ -265,18 +281,29 @@ async function eliminaCliente(id) {
 }
 
 function pulisciFormCliente() {
-  ["new_nome", "new_cognome", "new_telefono", "new_email", "new_indirizzo", "new_citta", "new_cap", "new_cf"].forEach(id => {
+  [
+    "new_nome",
+    "new_cognome",
+    "new_telefono",
+    "new_email",
+    "new_indirizzo",
+    "new_citta",
+    "new_cap",
+    "new_cf"
+  ].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
 }
 
+// ===================== LEZIONI =====================
+
 async function loadLezioni() {
   const { data, error } = await fetchAllRows(
     "lezioni",
     "ID_Lezione, Data, Ora, Tipologia, Istruttore, Max_Partecipanti",
-    "ID_Lezione",
-    true
+    "Data",
+    false
   );
 
   if (error) {
@@ -286,6 +313,14 @@ async function loadLezioni() {
   }
 
   lezioniData = data || [];
+
+  lezioniData.sort((a, b) => {
+    const dataA = `${a.Data || ""} ${a.Ora || ""}`;
+    const dataB = `${b.Data || ""} ${b.Ora || ""}`;
+    return dataB.localeCompare(dataA);
+  });
+
+  paginaLezioni = 1;
   renderLezioni();
   renderSelectLezioni();
 }
@@ -294,7 +329,20 @@ function renderLezioni() {
   const out = document.getElementById("outputLezioni");
   if (!out) return;
 
+  const totalePagine = Math.max(1, Math.ceil(lezioniData.length / RIGHE_PER_PAGINA));
+  if (paginaLezioni > totalePagine) paginaLezioni = totalePagine;
+
+  const start = (paginaLezioni - 1) * RIGHE_PER_PAGINA;
+  const end = start + RIGHE_PER_PAGINA;
+  const lezioniPagina = lezioniData.slice(start, end);
+
   out.innerHTML = `
+    <div style="margin-top:10px; margin-bottom:10px;">
+      <button onclick="paginaLezioniPrecedente()" ${paginaLezioni === 1 ? "disabled" : ""}>Precedente</button>
+      <span>Pagina ${paginaLezioni} di ${totalePagine} — Totale lezioni: ${lezioniData.length}</span>
+      <button onclick="paginaLezioniSuccessiva()" ${paginaLezioni === totalePagine ? "disabled" : ""}>Successiva</button>
+    </div>
+
     <table>
       <tr>
         <th>ID_Lezione</th>
@@ -307,9 +355,10 @@ function renderLezioni() {
         <th>Posti rimasti</th>
         <th>Azioni</th>
       </tr>
-      ${lezioniData.map(l => {
+      ${lezioniPagina.map(l => {
         const prenotati = prenotazioniData.filter(p => String(p.ID_Lezione) === String(l.ID_Lezione)).length;
         const rimasti = Math.max(Number(l.Max_Partecipanti || 0) - prenotati, 0);
+
         return `
           <tr>
             <td>${safe(l.ID_Lezione)}</td>
@@ -330,18 +379,36 @@ function renderLezioni() {
   `;
 }
 
+function paginaLezioniPrecedente() {
+  if (paginaLezioni > 1) {
+    paginaLezioni--;
+    renderLezioni();
+  }
+}
+
+function paginaLezioniSuccessiva() {
+  const totalePagine = Math.max(1, Math.ceil(lezioniData.length / RIGHE_PER_PAGINA));
+  if (paginaLezioni < totalePagine) {
+    paginaLezioni++;
+    renderLezioni();
+  }
+}
+
 function renderSelectLezioni() {
   const sel = document.getElementById("select_lezione");
   if (!sel) return;
 
-  sel.innerHTML = '<option value="">Seleziona lezione</option>' + lezioniData.map(l => {
-    const prenotati = prenotazioniData.filter(p => String(p.ID_Lezione) === String(l.ID_Lezione)).length;
-    return `<option value="${escapeAttr(l.ID_Lezione)}">${safe(l.Data)} ${safe(l.Ora)} - ${safe(l.Tipologia)} (${prenotati}/${safe(l.Max_Partecipanti)})</option>`;
-  }).join("");
+  sel.innerHTML =
+    '<option value="">Seleziona lezione</option>' +
+    lezioniData.map(l => {
+      const prenotati = prenotazioniData.filter(p => String(p.ID_Lezione) === String(l.ID_Lezione)).length;
+      return `<option value="${escapeAttr(l.ID_Lezione)}">${safe(l.Data)} ${safe(l.Ora)} - ${safe(l.Tipologia)} (${prenotati}/${safe(l.Max_Partecipanti)})</option>`;
+    }).join("");
 }
 
 async function aggiungiLezione() {
   const Tipologia = document.getElementById("new_tipologia")?.value || "";
+
   const payload = {
     ID_Lezione: "LZ" + Date.now(),
     Data: document.getElementById("new_data")?.value || "",
@@ -401,18 +468,25 @@ async function eliminaLezione(id) {
 }
 
 function pulisciFormLezione() {
-  ["new_data", "new_ora", "new_tipologia", "new_istruttore"].forEach(id => {
+  [
+    "new_data",
+    "new_ora",
+    "new_tipologia",
+    "new_istruttore"
+  ].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
 }
+
+// ===================== PRENOTAZIONI =====================
 
 async function loadPrenotazioni() {
   const { data, error } = await fetchAllRows(
     "prenotazioni",
     "ID_Prenotazione, ID_Cliente, ID_Lezione",
     "ID_Prenotazione",
-    true
+    false
   );
 
   if (error) {
@@ -422,6 +496,12 @@ async function loadPrenotazioni() {
   }
 
   prenotazioniData = data || [];
+
+  prenotazioniData.sort((a, b) => {
+    return String(b.ID_Prenotazione || "").localeCompare(String(a.ID_Prenotazione || ""));
+  });
+
+  paginaPrenotazioni = 1;
   renderPrenotazioni();
   renderLezioni();
   renderSelectLezioni();
@@ -431,7 +511,20 @@ function renderPrenotazioni() {
   const out = document.getElementById("outputPrenotazioni");
   if (!out) return;
 
+  const totalePagine = Math.max(1, Math.ceil(prenotazioniData.length / RIGHE_PER_PAGINA));
+  if (paginaPrenotazioni > totalePagine) paginaPrenotazioni = totalePagine;
+
+  const start = (paginaPrenotazioni - 1) * RIGHE_PER_PAGINA;
+  const end = start + RIGHE_PER_PAGINA;
+  const prenotazioniPagina = prenotazioniData.slice(start, end);
+
   out.innerHTML = `
+    <div style="margin-top:10px; margin-bottom:10px;">
+      <button onclick="paginaPrenotazioniPrecedente()" ${paginaPrenotazioni === 1 ? "disabled" : ""}>Precedente</button>
+      <span>Pagina ${paginaPrenotazioni} di ${totalePagine} — Totale prenotazioni: ${prenotazioniData.length}</span>
+      <button onclick="paginaPrenotazioniSuccessiva()" ${paginaPrenotazioni === totalePagine ? "disabled" : ""}>Successiva</button>
+    </div>
+
     <table>
       <tr>
         <th>ID_Prenotazione</th>
@@ -444,9 +537,10 @@ function renderPrenotazioni() {
         <th>Istruttore</th>
         <th>Azioni</th>
       </tr>
-      ${prenotazioniData.map(p => {
+      ${prenotazioniPagina.map(p => {
         const cliente = clientiData.find(c => String(c.ID_Cliente) === String(p.ID_Cliente));
         const lezione = lezioniData.find(l => String(l.ID_Lezione) === String(p.ID_Lezione));
+
         return `
           <tr>
             <td>${safe(p.ID_Prenotazione)}</td>
@@ -467,12 +561,24 @@ function renderPrenotazioni() {
   `;
 }
 
+function paginaPrenotazioniPrecedente() {
+  if (paginaPrenotazioni > 1) {
+    paginaPrenotazioni--;
+    renderPrenotazioni();
+  }
+}
+
+function paginaPrenotazioniSuccessiva() {
+  const totalePagine = Math.max(1, Math.ceil(prenotazioniData.length / RIGHE_PER_PAGINA));
+  if (paginaPrenotazioni < totalePagine) {
+    paginaPrenotazioni++;
+    renderPrenotazioni();
+  }
+}
+
 async function prenota() {
   const idCliente = document.getElementById("select_cliente")?.value || "";
   const idLezione = document.getElementById("select_lezione")?.value || "";
-
-  console.log("Cliente selezionato:", idCliente);
-  console.log("Lezione selezionata:", idLezione);
 
   if (!idCliente || !idLezione) {
     setStatus("Seleziona cliente e lezione", "err");
@@ -490,13 +596,14 @@ async function prenota() {
   }
 
   const lezione = lezioniData.find(l => String(l.ID_Lezione) === String(idLezione));
+
   if (!lezione) {
-    console.error("Lezione non trovata in lezioniData:", lezioniData, idLezione);
     setStatus("Lezione non trovata", "err");
     return;
   }
 
   const count = prenotazioniData.filter(p => String(p.ID_Lezione) === String(idLezione)).length;
+
   if (count >= Number(lezione.Max_Partecipanti || 0)) {
     setStatus("Lezione piena", "err");
     return;
@@ -549,10 +656,14 @@ async function eliminaPrenotazione(id) {
   setStatus("Prenotazione eliminata correttamente ✅", "ok");
 }
 
+// ===================== AUTH =====================
+
 async function logout() {
   await supabaseClient.auth.signOut();
   window.location.href = "/index.html";
 }
+
+// ===================== UTILS =====================
 
 function safe(value) {
   if (value === null || value === undefined) return "";
