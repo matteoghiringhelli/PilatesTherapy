@@ -32,14 +32,6 @@ function setStatus(message, type = "ok") {
   el.style.color = type === "err" ? "#b00020" : "#0a7a33";
 }
 
-async function reloadAll() {
-  await loadClienti();
-  await loadLezioni();
-  await loadPrenotazioni();
-  renderLezioni();
-  renderPrenotazioni();
-}
-
 function generaOrari() {
   const sel = document.getElementById("new_ora");
   if (!sel) return;
@@ -75,15 +67,57 @@ function togglePrenotazioni() {
   el.classList.toggle("hidden");
 }
 
+async function reloadAll() {
+  await loadClienti();
+  await loadLezioni();
+  await loadPrenotazioni();
+}
+
+async function fetchAllRows(tableName, columns = "*", orderColumn = null, ascending = true) {
+  const pageSize = 1000;
+  let from = 0;
+  let allRows = [];
+
+  while (true) {
+    let query = supabaseClient
+      .from(tableName)
+      .select(columns)
+      .range(from, from + pageSize - 1);
+
+    if (orderColumn) {
+      query = query.order(orderColumn, { ascending });
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    const rows = data || [];
+    allRows = allRows.concat(rows);
+
+    if (rows.length < pageSize) {
+      break;
+    }
+
+    from += pageSize;
+  }
+
+  return { data: allRows, error: null };
+}
+
 async function loadClienti() {
-  const { data, error } = await supabaseClient
-    .from("clienti")
-    .select("ID_Cliente, Nome, Cognome, Telefono, Email, Indirizzo, Cittá, CAP, Codice_Fiscale, Data_Registrazione")
-    .order("Nome", { ascending: true });
+  const { data, error } = await fetchAllRows(
+    "clienti",
+    "ID_Cliente, Nome, Cognome, Telefono, Email, Indirizzo, Cittá, CAP, Codice_Fiscale, Data_Registrazione",
+    "ID_Cliente",
+    true
+  );
 
   if (error) {
     console.error("Errore loadClienti:", error);
-    setStatus("Errore caricamento clienti", "err");
+    setStatus(`Errore caricamento clienti: ${error.message}`, "err");
     return;
   }
 
@@ -162,9 +196,10 @@ async function aggiungiCliente() {
   }
 
   const { error } = await supabaseClient.from("clienti").insert([payload]);
+
   if (error) {
     console.error("Errore aggiungiCliente:", error);
-    setStatus("Errore salvataggio cliente", "err");
+    setStatus(`Errore salvataggio cliente: ${error.message}`, "err");
     return;
   }
 
@@ -201,7 +236,7 @@ async function modificaCliente(id) {
 
   if (error) {
     console.error("Errore modificaCliente:", error);
-    setStatus("Errore modifica cliente", "err");
+    setStatus(`Errore modifica cliente: ${error.message}`, "err");
     return;
   }
 
@@ -220,7 +255,7 @@ async function eliminaCliente(id) {
 
   if (error) {
     console.error("Errore eliminaCliente:", error);
-    setStatus("Errore eliminazione cliente", "err");
+    setStatus(`Errore eliminazione cliente: ${error.message}`, "err");
     return;
   }
 
@@ -230,23 +265,23 @@ async function eliminaCliente(id) {
 }
 
 function pulisciFormCliente() {
-  const ids = ["new_nome", "new_cognome", "new_telefono", "new_email", "new_indirizzo", "new_citta", "new_cap", "new_cf"];
-  ids.forEach(id => {
+  ["new_nome", "new_cognome", "new_telefono", "new_email", "new_indirizzo", "new_citta", "new_cap", "new_cf"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
 }
 
 async function loadLezioni() {
-  const { data, error } = await supabaseClient
-    .from("lezioni")
-    .select("ID_Lezione, Data, Ora, Tipologia, Istruttore, Max_Partecipanti")
-    .order("Data", { ascending: true })
-    .order("Ora", { ascending: true });
+  const { data, error } = await fetchAllRows(
+    "lezioni",
+    "ID_Lezione, Data, Ora, Tipologia, Istruttore, Max_Partecipanti",
+    "ID_Lezione",
+    true
+  );
 
   if (error) {
     console.error("Errore loadLezioni:", error);
-    setStatus("Errore caricamento lezioni", "err");
+    setStatus(`Errore caricamento lezioni: ${error.message}`, "err");
     return;
   }
 
@@ -308,7 +343,7 @@ function renderSelectLezioni() {
 async function aggiungiLezione() {
   const Tipologia = document.getElementById("new_tipologia")?.value || "";
   const payload = {
-    ID_Lezione: "LEZ" + Date.now(),
+    ID_Lezione: "LZ" + Date.now(),
     Data: document.getElementById("new_data")?.value || "",
     Ora: document.getElementById("new_ora")?.value || "",
     Tipologia,
@@ -322,9 +357,10 @@ async function aggiungiLezione() {
   }
 
   const { error } = await supabaseClient.from("lezioni").insert([payload]);
+
   if (error) {
     console.error("Errore aggiungiLezione:", error);
-    setStatus("Errore salvataggio lezione", "err");
+    setStatus(`Errore salvataggio lezione: ${error.message}`, "err");
     return;
   }
 
@@ -337,14 +373,14 @@ async function aggiungiLezione() {
 async function eliminaLezione(id) {
   if (!confirm("Eliminare la lezione e le prenotazioni collegate?")) return;
 
-  const { error: deletePrenError } = await supabaseClient
+  const { error: errorPren } = await supabaseClient
     .from("prenotazioni")
     .delete()
     .eq("ID_Lezione", id);
 
-  if (deletePrenError) {
-    console.error("Errore delete prenotazioni collegate:", deletePrenError);
-    setStatus("Errore eliminazione prenotazioni collegate", "err");
+  if (errorPren) {
+    console.error("Errore eliminazione prenotazioni collegate:", errorPren);
+    setStatus(`Errore eliminazione prenotazioni collegate: ${errorPren.message}`, "err");
     return;
   }
 
@@ -355,7 +391,7 @@ async function eliminaLezione(id) {
 
   if (error) {
     console.error("Errore eliminaLezione:", error);
-    setStatus("Errore eliminazione lezione", "err");
+    setStatus(`Errore eliminazione lezione: ${error.message}`, "err");
     return;
   }
 
@@ -365,22 +401,23 @@ async function eliminaLezione(id) {
 }
 
 function pulisciFormLezione() {
-  const ids = ["new_data", "new_ora", "new_tipologia", "new_istruttore"];
-  ids.forEach(id => {
+  ["new_data", "new_ora", "new_tipologia", "new_istruttore"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
 }
 
 async function loadPrenotazioni() {
-  const { data, error } = await supabaseClient
-    .from("prenotazioni")
-    .select("ID_Prenotazione, ID_Cliente, ID_Lezione")
-    .order("ID_Prenotazione", { ascending: true });
+  const { data, error } = await fetchAllRows(
+    "prenotazioni",
+    "ID_Prenotazione, ID_Cliente, ID_Lezione",
+    "ID_Prenotazione",
+    true
+  );
 
   if (error) {
     console.error("Errore loadPrenotazioni:", error);
-    setStatus("Errore caricamento prenotazioni", "err");
+    setStatus(`Errore caricamento prenotazioni: ${error.message}`, "err");
     return;
   }
 
@@ -420,7 +457,6 @@ function renderPrenotazioni() {
             <td>${lezione ? safe(lezione.Ora) : ""}</td>
             <td>${lezione ? safe(lezione.Tipologia) : ""}</td>
             <td>${lezione ? safe(lezione.Istruttore) : ""}</td>
-
             <td>
               <button onclick="eliminaPrenotazione('${escapeQuote(p.ID_Prenotazione)}')">Elimina</button>
             </td>
@@ -469,7 +505,7 @@ async function prenota() {
   const response = await supabaseClient
     .from("prenotazioni")
     .insert([{
-      ID_Prenotazione: "PRE" + Date.now(),
+      ID_Prenotazione: "PR" + Date.now(),
       ID_Cliente: idCliente,
       ID_Lezione: idLezione
     }])
@@ -505,7 +541,7 @@ async function eliminaPrenotazione(id) {
 
   if (error) {
     console.error("Errore eliminaPrenotazione:", error);
-    setStatus("Errore eliminazione prenotazione", "err");
+    setStatus(`Errore eliminazione prenotazione: ${error.message}`, "err");
     return;
   }
 
