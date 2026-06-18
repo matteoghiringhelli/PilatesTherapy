@@ -3,13 +3,15 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+const APP_VERSION = "v-pagination-2026-06-18";
+
 const MAX_PARTECIPANTI = {
   "Privata": 1,
   "Duetto": 2,
   "Mini-Gruppo": 4
 };
 
-const RIGHE_PER_PAGINA = 50;
+const RIGHE_PER_PAGINA = 25;
 
 let clientiData = [];
 let lezioniData = [];
@@ -20,9 +22,10 @@ let paginaPrenotazioni = 1;
 
 window.addEventListener("DOMContentLoaded", async () => {
   try {
+    console.log("APP VERSION:", APP_VERSION);
     generaOrari();
     await reloadAll();
-    setStatus("Dashboard caricata correttamente ✅", "ok");
+    setStatus("Dashboard caricata correttamente ✅ - " + APP_VERSION, "ok");
   } catch (error) {
     console.error("Errore inizializzazione:", error);
     setStatus("Errore inizializzazione dashboard. Controlla la console F12.", "err");
@@ -315,9 +318,9 @@ async function loadLezioni() {
   lezioniData = data || [];
 
   lezioniData.sort((a, b) => {
-    const dataA = `${a.Data || ""} ${a.Ora || ""}`;
-    const dataB = `${b.Data || ""} ${b.Ora || ""}`;
-    return dataB.localeCompare(dataA);
+    const dataOraA = `${a.Data || ""} ${a.Ora || ""}`;
+    const dataOraB = `${b.Data || ""} ${b.Ora || ""}`;
+    return dataOraB.localeCompare(dataOraA);
   });
 
   paginaLezioni = 1;
@@ -336,13 +339,16 @@ function renderLezioni() {
   const end = start + RIGHE_PER_PAGINA;
   const lezioniPagina = lezioniData.slice(start, end);
 
-  out.innerHTML = `
+  const navigazione = `
     <div style="margin-top:10px; margin-bottom:10px;">
       <button onclick="paginaLezioniPrecedente()" ${paginaLezioni === 1 ? "disabled" : ""}>Precedente</button>
       <span>Pagina ${paginaLezioni} di ${totalePagine} — Totale lezioni: ${lezioniData.length}</span>
       <button onclick="paginaLezioniSuccessiva()" ${paginaLezioni === totalePagine ? "disabled" : ""}>Successiva</button>
     </div>
+  `;
 
+  out.innerHTML = `
+    ${navigazione}
     <table>
       <tr>
         <th>ID_Lezione</th>
@@ -376,6 +382,7 @@ function renderLezioni() {
         `;
       }).join("")}
     </table>
+    ${navigazione}
   `;
 }
 
@@ -518,13 +525,16 @@ function renderPrenotazioni() {
   const end = start + RIGHE_PER_PAGINA;
   const prenotazioniPagina = prenotazioniData.slice(start, end);
 
-  out.innerHTML = `
+  const navigazione = `
     <div style="margin-top:10px; margin-bottom:10px;">
       <button onclick="paginaPrenotazioniPrecedente()" ${paginaPrenotazioni === 1 ? "disabled" : ""}>Precedente</button>
       <span>Pagina ${paginaPrenotazioni} di ${totalePagine} — Totale prenotazioni: ${prenotazioniData.length}</span>
       <button onclick="paginaPrenotazioniSuccessiva()" ${paginaPrenotazioni === totalePagine ? "disabled" : ""}>Successiva</button>
     </div>
+  `;
 
+  out.innerHTML = `
+    ${navigazione}
     <table>
       <tr>
         <th>ID_Prenotazione</th>
@@ -558,6 +568,7 @@ function renderPrenotazioni() {
         `;
       }).join("")}
     </table>
+    ${navigazione}
   `;
 }
 
