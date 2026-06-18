@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <title>Dashboard Pilates</title>
+<meta charset="UTF-8">
+<title>Dashboard</title>
 
-  <style>
-    body { font-family: Arial; margin:20px }
-    table { width:100%; border-collapse: collapse; margin-top:10px}
-    th,td { border:1px solid #ccc; padding:6px }
-    .hidden { display:none }
-    .section { margin-top:30px }
-    button { margin:4px; padding:6px 10px }
-  </style>
+<style>
+body { font-family: Arial; margin:20px }
+table { width:100%; border-collapse: collapse }
+th,td { border:1px solid #ccc; padding:6px }
+.hidden { display:none }
+.section { margin-top:30px }
+button { padding:6px 10px }
+</style>
+
 </head>
-
 <body>
 
 <h1>Dashboard</h1>
@@ -22,64 +22,61 @@
 
 <!-- CLIENTI -->
 <div class="section">
-  <h2>Clienti</h2>
-  <button onclick="toggleClienti()">Apri/Chiudi</button>
+<h2>Clienti</h2>
+<button onclick="toggleClienti()">Apri/Chiudi</button>
 
-  <div id="clientiSection" class="hidden">
+<div id="clientiSection" class="hidden">
 
-    <input id="new_nome" placeholder="Nome">
-    <input id="new_cognome" placeholder="Cognome">
+<input id="new_nome" placeholder="Nome">
+<input id="new_cognome" placeholder="Cognome">
 
-    <button onclick="aggiungiCliente()">Salva</button>
+<button onclick="aggiungiCliente()">Salva</button>
 
-    <div id="outputClienti"></div>
-  </div>
+<div id="outputClienti"></div>
+</div>
 </div>
 
 <!-- LEZIONI -->
 <div class="section">
-  <h2>Lezioni</h2>
-  <button onclick="toggleLezioni()">Apri/Chiudi</button>
+<h2>Lezioni</h2>
+<button onclick="toggleLezioni()">Apri/Chiudi</button>
 
-  <div id="lezioniSection" class="hidden">
+<div id="lezioniSection" class="hidden">
 
-    <input id="new_data" type="date">
+<input id="new_data" type="date">
+<select id="new_ora"></select>
 
-    <select id="new_ora"></select>
+<select id="new_tipologia">
+<option>Privata</option>
+<option>Duetto</option>
+<option>Mini-Gruppo</option>
+</select>
 
-    <select id="new_tipologia">
-      <option value="">Tipologia</option>
-      <option>Privata</option>
-      <option>Duetto</option>
-      <option>Mini-Gruppo</option>
-    </select>
+<input id="new_istruttore" placeholder="Istruttore">
 
-    <input id="new_istruttore" placeholder="Istruttore">
+<button onclick="aggiungiLezione()">Salva</button>
 
-    <button onclick="aggiungiLezione()">Salva</button>
-
-    <div id="outputLezioni"></div>
-
-  </div>
+<div id="outputLezioni"></div>
+</div>
 </div>
 
 <!-- PRENOTAZIONI -->
 <div class="section">
-  <h2>Prenotazioni</h2>
-  <button onclick="togglePrenotazioni()">Apri/Chiudi</button>
+<h2>Prenotazioni</h2>
+<button onclick="togglePrenotazioni()">Apri/Chiudi</button>
 
-  <div id="prenotazioniSection" class="hidden">
+<div id="prenotazioniSection" class="hidden">
 
-    <select id="select_cliente"></select>
-    <select id="select_lezione"></select>
+<select id="select_cliente"></select>
+<select id="select_lezione"></select>
 
-    <button onclick="prenota()">Prenota</button>
+<button onclick="prenota()">Prenota</button>
 
-    <div id="outputPrenotazioni"></div>
-  </div>
+<div id="outputPrenotazioni"></div>
+</div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
 
 </body>
