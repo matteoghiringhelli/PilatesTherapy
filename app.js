@@ -185,35 +185,58 @@ async function loadPrenotazioni(){
 
 async function prenota(){
 
-  let c=select_cliente.value;
-  let l=select_lezione.value;
+  let c = document.getElementById("select_cliente").value;
+  let l = document.getElementById("select_lezione").value;
 
-  if(!c||!l){ alert("Seleziona"); return; }
+  console.log("Cliente:", c);
+  console.log("Lezione:", l);
 
-  let dup=prenotazioni.find(x=>x.ID_Cliente==c&&x.ID_Lezione==l);
-  if(dup){ alert("Già prenotato"); return; }
-
-  let count=prenotazioni.filter(x=>x.ID_Lezione==l).length;
-  let lez=lezioni.find(x=>x.ID_Lezione==l);
-
-  if(count>=lez.Max_Partecipanti){
-    alert("Piena"); return;
-  }
-
-  const {error} = await supabaseClient.from("prenotazioni").insert([{
-    ID_Prenotazione:"PRE"+Date.now(),
-    ID_Cliente:c,
-    ID_Lezione:l
-  }]);
-
-  if(error){
-    console.error(error);
-    alert("ERRORE INSERT (vedi console F12)");
+  if(!c || !l){
+    alert("Seleziona cliente e lezione");
     return;
   }
 
-  reloadAll();
+  let dup = prenotazioni.find(x => 
+    x.ID_Cliente == c && x.ID_Lezione == l
+  );
+
+  if(dup){
+    alert("Già prenotato");
+    return;
+  }
+
+  let count = prenotazioni.filter(x => x.ID_Lezione == l).length;
+  let lez = lezioni.find(x => x.ID_Lezione == l);
+
+  if(!lez){
+    alert("Lezione non trovata");
+    return;
+  }
+
+  if(count >= lez.Max_Partecipanti){
+    alert("Lezione piena");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("prenotazioni")
+    .insert([{
+      ID_Prenotazione: "PRE" + Date.now(),
+      ID_Cliente: c,
+      ID_Lezione: l
+    }]);
+
+  if(error){
+    console.error("ERRORE SUPABASE:", error);
+    alert("Errore insert - guarda console F12");
+    return;
+  }
+
+  alert("Prenotazione salvata ✅");
+
+  await reloadAll();
 }
+
 
 // AUTH
 async function logout(){
