@@ -416,10 +416,11 @@ function renderPrenotazioni() {
             <td>${safe(p.ID_Cliente)}</td>
             <td>${cliente ? `${safe(cliente.Nome)} ${safe(cliente.Cognome)}` : ""}</td>
             <td>${safe(p.ID_Lezione)}</td>
-            <td>${lezione ? safe(lezione.Data) : ""}</td>
+            <td>${lezione ? safe(lezione.Data) : "⚠️ NO LEZIONE"}</td>
             <td>${lezione ? safe(lezione.Ora) : ""}</td>
             <td>${lezione ? safe(lezione.Tipologia) : ""}</td>
             <td>${lezione ? safe(lezione.Istruttore) : ""}</td>
+
             <td>
               <button onclick="eliminaPrenotazione('${escapeQuote(p.ID_Prenotazione)}')">Elimina</button>
             </td>
