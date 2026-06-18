@@ -218,13 +218,15 @@ async function prenota(){
     return;
   }
 
-  const { error } = await supabaseClient
-    .from("prenotazioni")
-    .insert([{
-      ID_Prenotazione: "PRE" + Date.now(),
-      ID_Cliente: c,
-      ID_Lezione: l
-    }]);
+const response = await supabaseClientconst response = await supabaseClientprenotazioni")
+  .insert([{
+    ID_Prenotazione: "PRE" + Date.now(),
+    ID_Cliente: c,
+    ID_Lezione: l
+  }]);
+
+console.log("RISPOSTA INSERT:", response);
+
 
   if(error){
     console.error("ERRORE SUPABASE:", error);
