@@ -2,105 +2,33 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Studio Pilates</title>
+  <title>Dashboard Pilates</title>
 
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      color: #222;
-    }
-
-    h1, h2, h3 {
-      margin-top: 24px;
-      margin-bottom: 12px;
-    }
-
-    .top-actions {
-      margin-bottom: 16px;
-    }
-
-    input, select {
-      padding: 8px;
-      margin: 4px;
-      min-width: 180px;
-    }
-
-    button {
-      padding: 8px 12px;
-      margin: 4px;
-      cursor: pointer;
-    }
-
-    table {
-      border-collapse: collapse;
-      margin-top: 16px;
-      width: 100%;
-      font-size: 14px;
-    }
-
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-    }
-
-    th {
-      background-color: #f2f2f2;
-    }
-
-    .section {
-      margin-top: 36px;
-      padding-top: 12px;
-      border-top: 2px solid #eee;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    .form-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-
-    #status {
-      font-weight: bold;
-      margin: 12px 0;
-    }
+    body { font-family: Arial; margin:20px }
+    table { width:100%; border-collapse: collapse; margin-top:10px}
+    th,td { border:1px solid #ccc; padding:6px }
+    .hidden { display:none }
+    .section { margin-top:30px }
+    button { margin:4px; padding:6px 10px }
   </style>
 </head>
+
 <body>
 
-<h1>Dashboard Studio Pilates</h1>
+<h1>Dashboard</h1>
 
-<div class="top-actions">
-  <button onclick="logout()">Logout</button>
-</div>
-
-<p id="status"></p>
+<button onclick="logout()">Logout</button>
 
 <!-- CLIENTI -->
 <div class="section">
   <h2>Clienti</h2>
-
-  <button onclick="toggleClienti()">Apri / Chiudi</button>
+  <button onclick="toggleClienti()">Apri/Chiudi</button>
 
   <div id="clientiSection" class="hidden">
-    <button onclick="loadClienti()">Ricarica</button>
 
-    <div class="form-row">
-      <input id="new_nome" placeholder="Nome">
-      <input id="new_cognome" placeholder="Cognome">
-      <input id="new_telefono" placeholder="Telefono">
-      <input id="new_email" placeholder="Email">
-      <input id="new_indirizzo" placeholder="Indirizzo">
-      <input id="new_citta" placeholder="Città">
-      <input id="new_cap" placeholder="CAP">
-      <input id="new_cf" placeholder="CF">
-    </div>
+    <input id="new_nome" placeholder="Nome">
+    <input id="new_cognome" placeholder="Cognome">
 
     <button onclick="aggiungiCliente()">Salva</button>
 
@@ -111,47 +39,41 @@
 <!-- LEZIONI -->
 <div class="section">
   <h2>Lezioni</h2>
-
-  <button onclick="toggleLezioni()">Apri / Chiudi</button>
+  <button onclick="toggleLezioni()">Apri/Chiudi</button>
 
   <div id="lezioniSection" class="hidden">
-    <button onclick="loadLezioni()">Ricarica</button>
 
-    <div class="form-row">
-      <input id="new_data" type="date">
-      <select id="new_ora"><option>Ora</option></select>
+    <input id="new_data" type="date">
 
-      <select id="new_tipologia">
-        <option value="">Tipologia</option>
-        <option value="Privata">Privata</option>
-        <option value="Duetto">Duetto</option>
-        <option value="Mini-Gruppo">Mini-Gruppo</option>
-      </select>
+    <select id="new_ora"></select>
 
-      <input id="new_istruttore" placeholder="Istruttore">
-    </div>
+    <select id="new_tipologia">
+      <option value="">Tipologia</option>
+      <option>Privata</option>
+      <option>Duetto</option>
+      <option>Mini-Gruppo</option>
+    </select>
+
+    <input id="new_istruttore" placeholder="Istruttore">
 
     <button onclick="aggiungiLezione()">Salva</button>
 
     <div id="outputLezioni"></div>
+
   </div>
 </div>
 
 <!-- PRENOTAZIONI -->
 <div class="section">
   <h2>Prenotazioni</h2>
-
-  <button onclick="togglePrenotazioni()">Apri / Chiudi</button>
+  <button onclick="togglePrenotazioni()">Apri/Chiudi</button>
 
   <div id="prenotazioniSection" class="hidden">
 
-    <div class="form-row">
-      <select id="select_cliente"></select>
-      <select id="select_lezione"></select>
+    <select id="select_cliente"></select>
+    <select id="select_lezione"></select>
 
-      <button onclick="prenota()">Prenota</button>
-      <button onclick="loadPrenotazioni()">Ricarica</button>
-    </div>
+    <button onclick="prenota()">Prenota</button>
 
     <div id="outputPrenotazioni"></div>
   </div>
@@ -162,4 +84,3 @@
 
 </body>
 </html>
-``
