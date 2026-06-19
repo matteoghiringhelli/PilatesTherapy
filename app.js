@@ -660,9 +660,25 @@ async function loadPrenotazioni() {
 
 function getPrenotazioniFiltrate() {
   return prenotazioniData.filter(p => {
+
+    // ✅ recupero cliente e lezione
+    const cliente = clientiData.find(c => String(c.ID_Cliente) === String(p.ID_Cliente));
     const lezione = lezioniData.find(l => String(l.ID_Lezione) === String(p.ID_Lezione));
+
     const dataLezione = lezione ? lezione.Data : "";
-    return filtraPerData(dataLezione, filtroPrenotazioni, filtroPrenotazioniData);
+
+    // ✅ filtro per data (già esistente)
+    const passaFiltroData = filtraPerData(dataLezione, filtroPrenotazioni, filtroPrenotazioniData);
+
+    // ✅ filtro ricerca cliente
+    let passaRicerca = true;
+
+    if (searchPrenotazioni && cliente) {
+      const nomeCompleto = `${cliente.Nome || ""} ${cliente.Cognome || ""}`.toLowerCase();
+      passaRicerca = nomeCompleto.includes(searchPrenotazioni);
+    }
+
+    return passaFiltroData && passaRicerca;
   });
 }
 
