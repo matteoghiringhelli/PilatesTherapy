@@ -510,12 +510,15 @@ function renderLezioni() {
             <td>${safe(l.Max_Partecipanti)}</td>
             <td>${prenotati}</td>
             <td>${rimasti}</td>
+            
             <td>
-  <button onclick="apriPrenotazione('${escapeQuote(l.ID_Lezione)}')">📅 Prenota</button>
-  <button onclick="mostraPrenotazioniLezione('${escapeQuote(l.ID_Lezione)}')">👥 Lista</button>
-  <br>
-  <button onclick="eliminaLezione('${escapeQuote(l.ID_Lezione)}')">Elimina</button>
-</td>
+            <button onclick="mostraDettaglioLezione('${escapeQuote(l.ID_Lezione)}')">🔎 Dettaglio</button>
+            <button onclick="apriPrenotazione('${escapeQuote(l.ID_Lezione)}')">📅 Prenota</button>
+            <button onclick="mostraPrenotazioniLezione('${escapeQuote(l.ID_Lezione)}')">👥 Lista</button>
+            <br>
+            <button onclick="eliminaLezione('${escapeQuote(l.ID_Lezione)}')">Elimina</button>
+            </td>
+            
           </tr>
         `;
       }).join("")}
@@ -1268,5 +1271,116 @@ function renderPrenotazioniMobileSafe() {
   }
 }
 
+function mostraDettaglioLezione(idLezione) {
+  const box = document.getElementById("dettaglioLezioneBox");
+  if (!box) return;
+
+  const lezione = lezioniData.find(l => String(l.ID_Lezione) === String(idLezione));
+
+  if (!lezione) {
+    box.classList.remove("hidden");
+    box.innerHTML = `
+      <div class="lesson-detail">
+        <div class="lesson-detail-title">Lezione non trovata</div>
+        <button onclick="chiudiDettaglioLezione()">Chiudi</button>
+      </div>
+    `;
+    return;
+  }
+
+  const prenotazioniLezione = prenotazioniData.filter(p =>
+    String(p.ID_Lezione) === String(idLezione)
+  );
+
+  const max = Number(lezione.Max_Partecipanti || 0);
+  const prenotati = prenotazioniLezione.length;
+  const rimasti = Math.max(max - prenotati, 0);
+
+  let colore = "#34c759";
+  let stato = "Disponibile";
+
+  if (prenotati >= max) {
+    colore = "#ff3b30";
+    stato = "Piena";
+  } else if (prenotati > 0) {
+    colore = "#ffcc00";
+    stato = "Parzialmente prenotata";
+  }
+
+  const clientiHtml = prenotazioniLezione.length
+    ? prenotazioniLezione.map(p => {
+        const cliente = clientiData.find(c => String(c.ID_Cliente) === String(p.ID_Cliente));
+
+        return `
+          <div class="lesson-client-row">
+            ${cliente ? `${safe(cliente.Nome)} ${safe(cliente.Cognome)}` : "Cliente non trovato"}
+            <br>
+            <span style="font-size:12px; color:#666;">
+              ID_Prenotazione: ${safe(p.ID_Prenotazione)}
+            </span>
+          </div>
+        `;
+      }).join("")
+    : `
+      <div class="lesson-client-row">
+        Nessun cliente prenotato.
+      </div>
+    `;
+
+  box.classList.remove("hidden");
+
+  box.innerHTML = `
+    <div class="lesson-detail">
+
+      <div class="lesson-detail-title">
+        📅 ${safe(lezione.Data)} - ${safe(lezione.Ora)}
+      </div>
+
+      <div class="lesson-detail-sub" style="color:${colore}; font-weight:600;">
+        ${safe(lezione.Tipologia)} — ${stato}
+      </div>
+
+      <div class="lesson-detail-sub">
+        👤 Istruttore: ${safe(lezione.Istruttore)}
+      </div>
+
+      <div class="lesson-detail-sub">
+        👥 Prenotati: ${prenotati}/${max} — Posti rimasti: ${rimasti}
+      </div>
+
+      <div class="lesson-detail-sub">
+        ID_Lezione: ${safe(lezione.ID_Lezione)}
+      </div>
+
+      <div class="lesson-detail-section">
+        <div class="lesson-detail-section-title">
+          Clienti prenotati
+        </div>
+
+        ${clientiHtml}
+      </div>
+
+      <div class="lesson-detail-actions">
+        <button onclick="apriPrenotazione('${escapeQuote(lezione.ID_Lezione)}')">📅 Prenota</button>
+        <button onclick="mostraPrenotazioniLezione('${escapeQuote(lezione.ID_Lezione)}')">👥 Lista</button>
+        <button onclick="chiudiDettaglioLezione()">Chiudi</button>
+      </div>
+
+    </div>
+  `;
+
+  box.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+function chiudiDettaglioLezione() {
+  const box = document.getElementById("dettaglioLezioneBox");
+  if (!box) return;
+
+  box.innerHTML = "";
+  box.classList.add("hidden");
+}
 
 console.log("APP JS CARICATO OK");
