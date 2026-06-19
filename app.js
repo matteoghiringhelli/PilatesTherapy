@@ -370,7 +370,29 @@ function renderLezioni() {
             <td>${safe(l.ID_Lezione)}</td>
             <td>${safe(l.Data)}</td>
             <td>${safe(l.Ora)}</td>
-            <td>${safe(l.Tipologia)}</td>
+            <td>
+  ${
+    (() => {
+      const prenotati = prenotazioniData.filter(p => String(p.ID_Lezione) === String(l.ID_Lezione)).length;
+      const max = Number(l.Max_Partecipanti || 0);
+
+      let colore = "🟢";
+      let stato = "";
+
+      if (prenotati === 0) {
+        colore = "🟢";
+      } else if (prenotati < max) {
+        colore = "🟡";
+      } else {
+        colore = "🔴";
+        stato = " PIENA";
+      }
+
+      return `${safe(l.Tipologia)} (${prenotati}/${max}) ${colore}${stato}`;
+    })()
+  }
+</td>
+
             <td>${safe(l.Istruttore)}</td>
             <td>${safe(l.Max_Partecipanti)}</td>
             <td>${prenotati}</td>
