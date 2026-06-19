@@ -258,6 +258,14 @@
 
       <h3>Filtri Prenotazioni</h3>
 
+      <h3>Ricerca Cliente</h3>
+
+<div class="filters-row">
+  <span class="filter-label">Nome/Cognome:</span>
+  <input id="search_prenotazioni" placeholder="Cerca cliente..." oninput="applySearchPrenotazioni()">
+  <button onclick="resetSearchPrenotazioni()">Reset ricerca</button>
+</div>
+
       <div class="filters-row">
         <span class="filter-label">Mostra:</span>
         <button onclick="setFiltroPrenotazioni('tutte')">Tutte</button>
