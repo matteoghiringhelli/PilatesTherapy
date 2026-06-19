@@ -5,6 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Studio Pilates</title>
 
+  <!-- PWA / iPhone App -->
+  <linkfest.json
+
+  <meta name="theme-color" content="#ffffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Studio Pilates">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="format-detection" content="telephone=no">
+
+  /apple-touch-icon.png
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -317,8 +328,22 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="app.js"></script>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("/sw.js")
+          .then(function () {
+            console.log("Service Worker registrato correttamente");
+          })
+          .catch(function (error) {
+            console.log("Errore registrazione Service Worker:", error);
+          });
+      });
+    }
+  </script>
 
 </body>
 </html>
