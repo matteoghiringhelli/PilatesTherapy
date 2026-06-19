@@ -1122,7 +1122,12 @@ function renderLezioniMobileSafe() {
       let colore = "#34c759"; // verde
       if (Number(prenotati) >= Number(max)) colore = "#ff3b30";
       else if (Number(prenotati) > 0) colore = "#ffcc00";
-      const azioni = cells[8].innerHTML;
+      const azioni = `
+      <button onclick="mostraDettaglioLezione('${escapeQuote(idLezione)}')">🔎 Dettaglio</button>
+      <button onclick="apriPrenotazione('${escapeQuote(idLezione)}')">📅 Prenota</button>
+      <button onclick="eliminaLezione('${escapeQuote(idLezione)}')">Elimina</button>
+      ;
+
 
       cards.push(`
   <div class="card-ios">
@@ -1461,7 +1466,7 @@ function mostraSchedaCliente(idCliente) {
       </div>
 
       <div class="card-actions">
-        <button onclick="modificaCliente('${escapeQuote(cliente.ID_Cliente)}')">✏️ Modifica</button>
+        <button onclick="mostraModificaClienteInline('${escapeQuote(cliente.ID_Cliente)}')">✏️ Modifica</button>
         <button onclick="mostraPrenotazioniCliente('${escapeQuote(cliente.ID_Cliente)}')">📅 Prenotazioni</button>
         <button onclick="chiudiDettaglioCliente()">Chiudi</button>
       </div>
@@ -1578,5 +1583,106 @@ function chiudiDettaglioCliente() {
 
  renderClienti();
 }
+
+function mostraModificaClienteInline(idCliente) {
+  const box = document.getElementById("outputClienti");
+  if (!box) return;
+
+  const cliente = clientiData.find(c => String(c.ID_Cliente) === String(idCliente));
+
+  if (!cliente) {
+    box.innerHTML = `
+      <div class="card-ios">
+        <div class="card-title">Cliente non trovato</div>
+        <div class="card-actions">
+          <button onclick="chiudiDettaglioCliente()">Chiudi</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="card-ios">
+
+      <div class="card-title">
+        ✏️ Modifica Cliente
+      </div>
+
+      <div class="card-sub">
+        <strong>ID Cliente:</strong> ${safe(cliente.ID_Cliente)}
+      </div>
+
+      <div class="form-row">
+        <input id="edit_nome" placeholder="Nome" value="${escapeAttr(cliente.Nome)}">
+        <input id="edit_cognome" placeholder="Cognome" value="${escapeAttr(cliente.Cognome)}">
+      </div>
+
+      <div class="form-row">
+        <input id="edit_telefono" placeholder="Telefono" value="${escapeAttr(cliente.Telefono)}">
+        <input id="edit_email" placeholder="Email" value="${escapeAttr(cliente.Email)}">
+      </div>
+
+      <div class="form-row">
+        <input id="edit_indirizzo" placeholder="Indirizzo" value="${escapeAttr(cliente.Indirizzo)}">
+        <input id="edit_citta" placeholder="Città" value="${escapeAttr(cliente["Cittá"])}">
+      </div>
+
+      <div class="form-row">
+        <input id="edit_cap" placeholder="CAP" value="${escapeAttr(cliente.CAP)}">
+        <input id="edit_cf" placeholder="Codice Fiscale" value="${escapeAttr(cliente.Codice_Fiscale)}">
+      </div>
+
+      <div class="card-actions">
+        <button onclick="salvaModificaClienteInline('${escapeQuote(cliente.ID_Cliente)}')">💾 Salva</button>
+        <button onclick="mostraSchedaCliente('${escapeQuote(cliente.ID_Cliente)}')">Annulla</button>
+      </div>
+
+    </div>
+  `;
+
+  box.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+async function salvaModificaClienteInline(idCliente) {
+  const payload = {
+    Nome: document.getElementById("edit_nome")?.value.trim() || "",
+    Cognome: document.getElementById("edit_cognome")?.value.trim() || "",
+    Telefono: document.getElementById("edit_telefono")?.value.trim() || "",
+    Email: document.getElementById("edit_email")?.value.trim() || "",
+    Indirizzo: document.getElementById("edit_indirizzo")?.value.trim() || "",
+    Cittá: document.getElementById("edit_citta")?.value.trim() || "",
+    CAP: document.getElementById("edit_cap")?.value.trim() || "",
+    Codice_Fiscale: document.getElementById("edit_cf")?.value.trim() || ""
+  };
+
+  if (!payload.Nome || !payload.Cognome) {
+    setStatus("Nome e Cognome sono obbligatori", "err");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("clienti")
+    .update(payload)
+    .eq("ID_Cliente", idCliente);
+
+  if (error) {
+    console.error("Errore salvaModificaClienteInline:", error);
+    setStatus(`Errore modifica cliente: ${error.message}`, "err");
+    return;
+  }
+
+  await loadClienti();
+  await loadPrenotazioni();
+
+  setStatus("Cliente modificato correttamente ✅", "ok");
+
+  setTimeout(() => {
+    mostraSchedaCliente(idCliente);
+  }, 100);
+
 
 console.log("APP JS CARICATO OK");
