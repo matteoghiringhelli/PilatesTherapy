@@ -1392,7 +1392,7 @@ function chiudiDettaglioLezione() {
 }
 
 function mostraSchedaCliente(idCliente) {
-  const box = document.getElementById("outputDettaglioCliente");
+  const box = document.getElementById("outputClienti");
   if (!box) return;
 
   const cliente = clientiData.find(c => String(c.ID_Cliente) === String(idCliente));
@@ -1474,7 +1474,7 @@ function mostraSchedaCliente(idCliente) {
 }
 
 function mostraPrenotazioniCliente(idCliente) {
-  const box = document.getElementById("outputDettaglioCliente");
+  const box = document.getElementById("outputClienti");
   if (!box) return;
 
   const cliente = clientiData.find(c => String(c.ID_Cliente) === String(idCliente));
@@ -1571,11 +1571,10 @@ function mostraPrenotazioniCliente(idCliente) {
 }
 
 function chiudiDettaglioCliente() {
-  const box = document.getElementById("outputDettaglioCliente");
+  const box = document.getElementById("outputClienti");
   if (!box) return;
 
-  box.innerHTML = "";
-  box.classList.add("hidden");
+ renderClienti();
 }
 
 console.log("APP JS CARICATO OK");
