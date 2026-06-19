@@ -1195,18 +1195,28 @@ function renderClientiMobileSafe() {
       const email = cells[4].innerText;
       const azioni = cells[10].innerHTML;
 
-      cards.push(`
-        <div style="border:1px solid #ccc; padding:12px; border-radius:10px; margin-bottom:12px;">
-          <div style="font-weight:bold;">
-            ${nome} ${cognome}
-          </div>
-          <div>📞 ${telefono}</div>
-          <div>📧 ${email}</div>
-          <div style="margin-top:10px;">
-            ${azioni}
-          </div>
+      cards.push(
+        <div class="card-ios">
+        <div class="card-title">
+        ${nome} ${cognome}
+      </div>
+
+        <div class="card-sub">
+        📞 ${telefono}
+      </div>
+
+        <div class="card-sub">
+        📧 ${email}
+      </div>
+
+        <div class="card-actions">
+        <button onclick="mostraSchedaCliente('${escapeQuote(id)}')">🔎 Scheda</button>
+        <button onclick="mostraPrenotazioniCliente('${escapeQuote(id)}')">📅 Prenotazioni</button>
+      ${azioni}
+      </div>
+
         </div>
-      `);
+`);
     }
 
     if (cards.length > 0) {
@@ -1377,6 +1387,193 @@ function mostraDettaglioLezione(idLezione) {
 
 function chiudiDettaglioLezione() {
   const box = document.getElementById("dettaglioLezioneBox");
+  if (!box) return;
+
+  box.innerHTML = "";
+  box.classList.add("hidden");
+}
+
+function mostraSchedaCliente(idCliente) {
+  const box = document.getElementById("outputDettaglioCliente");
+  if (!box) return;
+
+  const cliente = clientiData.find(c => String(c.ID_Cliente) === String(idCliente));
+
+  if (!cliente) {
+    box.classList.remove("hidden");
+    box.innerHTML = `
+      <div class="card-ios">
+        <div class="card-title">Cliente non trovato</div>
+        <div class="card-actions">
+          <button onclick="chiudiDettaglioCliente()">Chiudi</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  box.classList.remove("hidden");
+
+  box.innerHTML = `
+    <div class="card-ios">
+
+      <div class="card-title">
+        🔎 Scheda Cliente
+      </div>
+
+      <div class="card-sub">
+        <strong>ID Cliente:</strong> ${safe(cliente.ID_Cliente)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Nome:</strong> ${safe(cliente.Nome)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Cognome:</strong> ${safe(cliente.Cognome)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Telefono:</strong> ${safe(cliente.Telefono)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Email:</strong> ${safe(cliente.Email)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Indirizzo:</strong> ${safe(cliente.Indirizzo)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Città:</strong> ${safe(cliente["Cittá"])}
+      </div>
+
+      <div class="card-sub">
+        <strong>CAP:</strong> ${safe(cliente.CAP)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Codice Fiscale:</strong> ${safe(cliente.Codice_Fiscale)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Data Registrazione:</strong> ${safe(cliente.Data_Registrazione)}
+      </div>
+
+      <div class="card-actions">
+        <button onclick="mostraPrenotazioniCliente('${escapeQuote(cliente.ID_Cliente)}')">📅 Prenotazioni</button>
+        <button onclick="chiudiDettaglioCliente()">Chiudi</button>
+      </div>
+
+    </div>
+  `;
+
+  box.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+function mostraPrenotazioniCliente(idCliente) {
+  const box = document.getElementById("outputDettaglioCliente");
+  if (!box) return;
+
+  const cliente = clientiData.find(c => String(c.ID_Cliente) === String(idCliente));
+
+  if (!cliente) {
+    box.classList.remove("hidden");
+    box.innerHTML = `
+      <div class="card-ios">
+        <div class="card-title">Cliente non trovato</div>
+        <div class="card-actions">
+          <button onclick="chiudiDettaglioCliente()">Chiudi</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const storico = prenotazioniData
+    .filter(p => String(p.ID_Cliente) === String(idCliente))
+    .map(p => {
+      const lezione = lezioniData.find(l => String(l.ID_Lezione) === String(p.ID_Lezione));
+
+      return {
+        ID_Prenotazione: p.ID_Prenotazione,
+        ID_Lezione: p.ID_Lezione,
+        Data: lezione ? lezione.Data : "",
+        Ora: lezione ? lezione.Ora : "",
+        Tipologia: lezione ? lezione.Tipologia : "",
+        Istruttore: lezione ? lezione.Istruttore : "",
+        lezioneTrovata: !!lezione
+      };
+    })
+    .sort((a, b) => {
+      const dataOraA = `${a.Data || ""} ${a.Ora || ""}`;
+      const dataOraB = `${b.Data || ""} ${b.Ora || ""}`;
+      return dataOraB.localeCompare(dataOraA);
+    });
+
+  box.classList.remove("hidden");
+
+  box.innerHTML = `
+    <div class="card-ios">
+
+      <div class="card-title">
+        📅 Prenotazioni Cliente
+      </div>
+
+      <div class="card-sub">
+        <strong>Cliente:</strong> ${safe(cliente.Nome)} ${safe(cliente.Cognome)}
+      </div>
+
+      <div class="card-sub">
+        <strong>ID Cliente:</strong> ${safe(cliente.ID_Cliente)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Totale prenotazioni:</strong> ${storico.length}
+      </div>
+
+      <div style="margin-top:12px;">
+        ${
+          storico.length
+            ? storico.map(s => `
+                <div class="lesson-client-row">
+                  <strong>📅 ${s.lezioneTrovata ? safe(s.Data) : "⚠️ NO LEZIONE"} ${safe(s.Ora)}</strong><br>
+                  ${safe(s.Tipologia)}<br>
+                  👤 ${safe(s.Istruttore)}<br>
+                  <span style="font-size:12px; color:#666;">
+                    ID_Prenotazione: ${safe(s.ID_Prenotazione)}<br>
+                    ID_Lezione: ${safe(s.ID_Lezione)}
+                  </span>
+                </div>
+              `).join("")
+            : `
+                <div class="lesson-client-row">
+                  Nessuna prenotazione trovata per questo cliente.
+                </div>
+              `
+        }
+      </div>
+
+      <div class="card-actions">
+        <button onclick="mostraSchedaCliente('${escapeQuote(cliente.ID_Cliente)}')">🔎 Scheda</button>
+        <button onclick="chiudiDettaglioCliente()">Chiudi</button>
+      </div>
+
+    </div>
+  `;
+
+  box.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+function chiudiDettaglioCliente() {
+  const box = document.getElementById("outputDettaglioCliente");
   if (!box) return;
 
   box.innerHTML = "";
