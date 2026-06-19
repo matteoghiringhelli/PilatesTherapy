@@ -1111,6 +1111,9 @@ function renderLezioniMobileSafe() {
       const data = cells[1].innerText;
       const ora = cells[2].innerText;
       const tipologia = cells[3].innerText;
+      let colore = "#34c759"; // verde
+      if (prenotati >= max) colore = "#ff3b30";
+      else if (prenotati > 0) colore = "#ffcc00";
       const istruttore = cells[4].innerText;
       const max = cells[5].innerText;
       const prenotati = cells[6].innerText;
@@ -1124,9 +1127,11 @@ function renderLezioniMobileSafe() {
       📅 ${data} - ${ora}
     </div>
 
-    <div class="card-sub">
-      ${tipologia}
-    </div>
+    
+<div class="card-sub" style="color:${colore}; font-weight:600;">
+  ${tipologia}
+</div>
+
 
     <div class="card-sub">
       👤 ${istruttore}
@@ -1245,6 +1250,7 @@ function renderPrenotazioniMobileSafe() {
           </div>
           <div>📅 ${data} - ${ora}</div>
           <div>${tipologia}</div>
+
 
           <div style="margin-top:10px;">
             ${azioni}
