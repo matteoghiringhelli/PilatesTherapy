@@ -223,7 +223,56 @@
   font-weight: 500;
 }
 
-    
+    /* ===== DETTAGLIO LEZIONE STILE APP ===== */
+
+.lesson-detail {
+  border-radius: 18px;
+  padding: 16px;
+  margin: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+
+.lesson-detail-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.lesson-detail-sub {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 6px;
+}
+
+.lesson-detail-section {
+  margin-top: 14px;
+}
+
+.lesson-detail-section-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.lesson-client-row {
+  padding: 8px;
+  border-radius: 10px;
+  background: #f2f2f7;
+  margin-bottom: 6px;
+}
+
+.lesson-detail-actions {
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lesson-detail-actions button {
+  flex: 1;
+  background: #f2f2f7;
+  font-weight: 500;
+}
     
   </style>
 </head>
@@ -326,6 +375,7 @@
       <div class="table-container">
         <div id="outputLezioni"></div>
       </div>
+      <div id="dettaglioLezioneBox" class="hidden"></div>
     </div>
   </div>
 
