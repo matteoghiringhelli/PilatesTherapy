@@ -1,346 +1,94 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Studio Pilates</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Studio Pilates</title>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      color: #222;
-      background-color: #ffffff;
-    }
+<style>
 
-    h1 {
-      margin-bottom: 10px;
-    }
+body { font-family: Arial; margin: 15px; }
+button { padding: 6px 10px; margin: 3px; }
 
-    h2 {
-      margin-top: 0;
-      margin-bottom: 10px;
-    }
+.hidden { display: none; }
 
-    h3 {
-      margin-top: 20px;
-      margin-bottom: 10px;
-    }
+/* ===== TABELLE ===== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
 
-    .top-actions {
-      margin-bottom: 16px;
-    }
+th, td {
+  border: 1px solid #ccc;
+  padding: 6px;
+}
 
-    .section {
-      margin-top: 30px;
-      padding-top: 18px;
-      border-top: 2px solid #eeeeee;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    .form-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 8px;
-      margin-bottom: 8px;
-      align-items: center;
-    }
-
-    .filters-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 10px;
-      margin-bottom: 12px;
-      align-items: center;
-      padding: 10px;
-      background: #f7f7f7;
-      border: 1px solid #dddddd;
-      border-radius: 6px;
-    }
-
-    input,
-    select {
-      padding: 8px;
-      min-width: 180px;
-      border: 1px solid #cccccc;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-
-    button {
-      padding: 8px 12px;
-      margin: 4px 4px 4px 0;
-      cursor: pointer;
-      border: 1px solid #999999;
-      border-radius: 4px;
-      background-color: #f5f5f5;
-      font-size: 14px;
-    }
-
-    button:hover {
-      background-color: #e9e9e9;
-    }
-
-    button:disabled {
-      cursor: not-allowed;
-      opacity: 0.5;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 14px;
-      font-size: 14px;
-    }
-
-    th,
-    td {
-      border: 1px solid #cccccc;
-      padding: 7px;
-      text-align: left;
-      vertical-align: top;
-    }
-
-    th {
-      background-color: #f2f2f2;
-      font-weight: bold;
-    }
-
-    #status {
-      font-weight: bold;
-      min-height: 24px;
-      margin: 12px 0;
-    }
-
-    .muted {
-      color: #666666;
-      font-size: 13px;
-      margin-top: 4px;
-    }
-
-    .table-container {
-      width: 100%;
-      overflow-x: auto;
-    }
-
-    .filter-label {
-      font-weight: bold;
-      margin-right: 6px;
-    }
-  </style>
-  
-/* ===== CARD VIEW MOBILE ===== */
-
+/* ===== CARD MOBILE ===== */
 .card-container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
-.lesson-card {
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  padding: 12px;
-  background: #ffffff;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+.card {
+  border: 1px solid #ccc;
+  padding: 10px;
+  border-radius: 8px;
 }
 
-.lesson-header {
-  font-weight: bold;
-  font-size: 16px;
-  margin-bottom: 6px;
-}
-
-.lesson-sub {
-  font-size: 14px;
-  color: #555;
-  margin-bottom: 6px;
-}
-
-.lesson-actions {
-  margin-top: 10px;
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-/* ===== MOBILE ONLY ===== */
-
+/* MOBILE */
 @media (max-width: 768px) {
-  table {
-    display: none;
-  }
+  table { display: none; }
 }
-  
+
+</style>
 </head>
 
 <body>
 
-  <h1>Dashboard Studio Pilates</h1>
+<h1>Dashboard Studio Pilates</h1>
 
-  <div class="top-actions">
-    <button onclick="logout()">Logout</button>
-  </div>
+<button onclick="logout()">Logout</button>
 
-  <p id="status"></p>
+<p id="status"></p>
 
-  <!-- ===================== CLIENTI ===================== -->
-  <div class="section">
-    <h2>Clienti</h2>
-
-    <button onclick="toggleClienti()">Apri / Chiudi Clienti</button>
-
-    <div id="clientiSection" class="hidden">
-      <button onclick="loadClienti()">Ricarica Clienti</button>
-
-      <h3>Aggiungi Cliente</h3>
-
-      <div class="form-row">
-        <input id="new_nome" placeholder="Nome">
-        <input id="new_cognome" placeholder="Cognome">
-        <input id="new_telefono" placeholder="Telefono">
-        <input id="new_email" placeholder="Email">
-      </div>
-
-      <div class="form-row">
-        <input id="new_indirizzo" placeholder="Indirizzo">
-        <input id="new_citta" placeholder="Città">
-        <input id="new_cap" placeholder="CAP">
-        <input id="new_cf" placeholder="Codice Fiscale">
-      </div>
-
-      <button onclick="aggiungiCliente()">Salva Cliente</button>
-
-      <div class="table-container">
-        <div id="outputClienti"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===================== LEZIONI ===================== -->
-  <div class="section">
-    <h2>Lezioni</h2>
-
-    <button onclick="toggleLezioni()">Apri / Chiudi Lezioni</button>
-
-    <div id="lezioniSection" class="hidden">
-      <button onclick="loadLezioni()">Ricarica Lezioni</button>
-
-      <h3>Aggiungi Lezione</h3>
-
-      <div class="form-row">
-        <input id="new_data" type="date">
-
-        <select id="new_ora">
-          <option value="">Ora</option>
-        </select>
-
-        <select id="new_tipologia">
-          <option value="">Tipologia</option>
-          <option value="Privata">Privata</option>
-          <option value="Duetto">Duetto</option>
-          <option value="Mini-Gruppo">Mini-Gruppo</option>
-        </select>
-
-        <input id="new_istruttore" placeholder="Istruttore">
-      </div>
-
-      <p class="muted">
-        Max partecipanti automatico: Privata = 1, Duetto = 2, Mini-Gruppo = 4.
-      </p>
-
-      <button onclick="aggiungiLezione()">Salva Lezione</button>
-
-      <h3>Filtri Lezioni</h3>
-
-      <div class="filters-row">
-        <span class="filter-label">Mostra:</span>
-        <button onclick="setFiltroLezioni('tutte')">Tutte</button>
-        <button onclick="setFiltroLezioni('oggi')">Oggi</button>
-        <button onclick="setFiltroLezioni('settimana')">Questa settimana</button>
-        <button onclick="setFiltroLezioni('future')">Future</button>
-        <button onclick="setFiltroLezioni('passate')">Passate</button>
-
-        <span class="filter-label">Data specifica:</span>
-        <input id="filtro_lezioni_data" type="date" onchange="setFiltroLezioniData()">
-        <button onclick="resetFiltroLezioni()">Reset filtro</button>
-      </div>
-
-      <div class="table-container">
-        <div id="outputLezioni"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===================== PRENOTAZIONI ===================== -->
-  <div class="section">
-    <h2>Prenotazioni</h2>
-
-    <button onclick="togglePrenotazioni()">Apri / Chiudi Prenotazioni</button>
-
-    <div id="prenotazioniSection" class="hidden">
-      <button onclick="loadPrenotazioni()">Ricarica Prenotazioni</button>
-
-      <h3>Aggiungi Prenotazione</h3>
-
-      <div class="form-row">
-        <select id="select_cliente">
-          <option value="">Seleziona cliente</option>
-        </select>
-
-        <select id="select_lezione">
-          <option value="">Seleziona lezione</option>
-        </select>
-
-        <button onclick="prenota()">Prenota</button>
-      </div>
-
-      <h3>Filtri Prenotazioni</h3>
-
-      <h3>Ricerca Cliente</h3>
-
-<div class="filters-row">
-  <span class="filter-label">Nome/Cognome:</span>
-  <input id="search_prenotazioni" placeholder="Cerca cliente..." oninput="applySearchPrenotazioni()">
-  <button onclick="resetSearchPrenotazioni()">Reset ricerca</button>
+<!-- CLIENTI -->
+<h2 onclick="toggleClienti()">Clienti</h2>
+<div id="clientiSection" class="hidden">
+  <button onclick="loadClienti()">Ricarica</button>
+  <div id="outputClienti"></div>
 </div>
 
-      <div class="filters-row">
-        <span class="filter-label">Mostra:</span>
-        <button onclick="setFiltroPrenotazioni('tutte')">Tutte</button>
-        <button onclick="setFiltroPrenotazioni('oggi')">Oggi</button>
-        <button onclick="setFiltroPrenotazioni('settimana')">Questa settimana</button>
-        <button onclick="setFiltroPrenotazioni('future')">Future</button>
-        <button onclick="setFiltroPrenotazioni('passate')">Passate</button>
+<!-- LEZIONI -->
+<h2 onclick="toggleLezioni()">Lezioni</h2>
+<div id="lezioniSection" class="hidden">
 
-        <span class="filter-label">Data specifica:</span>
-        <input id="filtro_prenotazioni_data" type="date" onchange="setFiltroPrenotazioniData()">
-        <button onclick="resetFiltroPrenotazioni()">Reset filtro</button>
-      </div>
+  <button onclick="loadLezioni()">Ricarica</button>
 
-      <div class="table-container">
+  <div id="outputLezioni"></div>
+
+</div>
+
+<!-- PRENOTAZIONI -->
+<h2 onclick="togglePrenotazioni()">Prenotazioni</h2>
+<div id="prenotazioniSection" class="hidden">
+
+  <button onclick="loadPrenotazioni()">Ricarica</button>
+
+  <select id="select_cliente"></select>
+  <select id="select_lezione"></select>
+  <button onclick="prenota()">Prenota</button>
+
   <div id="outputPrenotazioni"></div>
+
+  <h3>Storico Cliente</h3>
+  <div id="outputStoricoCliente"></div>
+
 </div>
 
-<h3>Storico Cliente</h3>
-
-<div class="table-container">
-  <div id="outputStoricoCliente">
-    <p class="muted">Clicca sul nome di un cliente nella tabella prenotazioni per vedere il suo storico.</p>
-  </div>
-</div>
-
-
-    </div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
 
 </body>
 </html>
