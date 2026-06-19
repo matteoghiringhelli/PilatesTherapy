@@ -1043,6 +1043,7 @@ function mostraPrenotazioniLezione(idLezione) {
     .filter(p => String(p.ID_Lezione) === String(idLezione))
     .map(p => {
       const cliente = clientiData.find(c => String(c.ID_Cliente) === String(p.ID_Cliente));
+
       return {
         nome: cliente ? cliente.Nome + " " + cliente.Cognome : "Cliente non trovato",
         id: p.ID_Prenotazione
@@ -1070,11 +1071,10 @@ function mostraPrenotazioniLezione(idLezione) {
       }
     </table>
   `;
+}
 
- function renderLezioniMobileSafe() {
-
+function renderLezioniMobileSafe() {
   try {
-
     if (window.innerWidth > 768) return;
 
     const out = document.getElementById("outputLezioni");
@@ -1089,10 +1089,10 @@ function mostraPrenotazioniLezione(idLezione) {
     const cards = [];
 
     for (let i = 1; i < rows.length; i++) {
-
       const cells = rows[i].querySelectorAll("td");
       if (!cells || cells.length < 9) continue;
 
+      const idLezione = cells[0].innerText;
       const data = cells[1].innerText;
       const ora = cells[2].innerText;
       const tipologia = cells[3].innerText;
@@ -1103,21 +1103,48 @@ function mostraPrenotazioniLezione(idLezione) {
       const azioni = cells[8].innerHTML;
 
       cards.push(`
-        <div style="border:1px solid #ccc; padding:12px; border-radius:10px; margin-bottom:12px;">
-          <div><b>📅 ${data} - ${ora}</b></div>
-          <div>${tipologia}</div>
-          <div>👤 ${istruttore}</div>
-          <div>👥 ${prenotati}/${max} | Rimasti: ${rimasti}</div>
-          <div style="margin-top:10px;">${azioni}</div>
+        <div style="
+          border:1px solid #ccc;
+          padding:12px;
+          border-radius:10px;
+          margin-bottom:12px;
+          background:#ffffff;
+          box-shadow:0 2px 4px rgba(0,0,0,0.05);
+        ">
+          <div style="font-weight:bold; font-size:16px; margin-bottom:6px;">
+            📅 ${data} - ${ora}
+          </div>
+
+          <div style="margin-bottom:5px;">
+            ${tipologia}
+          </div>
+
+          <div style="margin-bottom:5px; color:#555;">
+            👤 ${istruttore}
+          </div>
+
+          <div style="margin-bottom:8px;">
+            👥 ${prenotati}/${max} | Rimasti: ${rimasti}
+          </div>
+
+          <div style="margin-top:10px;">
+            ${azioni}
+          </div>
         </div>
       `);
     }
 
     if (cards.length > 0) {
-      out.innerHTML = cards.join("");
+      out.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          ${cards.join("")}
+        </div>
+      `;
     }
 
   } catch (err) {
     console.error("Errore renderLezioniMobileSafe:", err);
   }
 }
+
+console.log("APP JS CARICATO OK");
