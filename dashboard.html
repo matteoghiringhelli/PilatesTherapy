@@ -47,6 +47,20 @@
       gap: 8px;
       margin-top: 8px;
       margin-bottom: 8px;
+      align-items: center;
+    }
+
+    .filters-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+      margin-bottom: 12px;
+      align-items: center;
+      padding: 10px;
+      background: #f7f7f7;
+      border: 1px solid #dddddd;
+      border-radius: 6px;
     }
 
     input,
@@ -70,6 +84,11 @@
 
     button:hover {
       background-color: #e9e9e9;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
     }
 
     table {
@@ -107,6 +126,11 @@
     .table-container {
       width: 100%;
       overflow-x: auto;
+    }
+
+    .filter-label {
+      font-weight: bold;
+      margin-right: 6px;
     }
   </style>
 </head>
@@ -188,6 +212,21 @@
 
       <button onclick="aggiungiLezione()">Salva Lezione</button>
 
+      <h3>Filtri Lezioni</h3>
+
+      <div class="filters-row">
+        <span class="filter-label">Mostra:</span>
+        <button onclick="setFiltroLezioni('tutte')">Tutte</button>
+        <button onclick="setFiltroLezioni('oggi')">Oggi</button>
+        <button onclick="setFiltroLezioni('settimana')">Questa settimana</button>
+        <button onclick="setFiltroLezioni('future')">Future</button>
+        <button onclick="setFiltroLezioni('passate')">Passate</button>
+
+        <span class="filter-label">Data specifica:</span>
+        <input id="filtro_lezioni_data" type="date" onchange="setFiltroLezioniData()">
+        <button onclick="resetFiltroLezioni()">Reset filtro</button>
+      </div>
+
       <div class="table-container">
         <div id="outputLezioni"></div>
       </div>
@@ -215,6 +254,21 @@
         </select>
 
         <button onclick="prenota()">Prenota</button>
+      </div>
+
+      <h3>Filtri Prenotazioni</h3>
+
+      <div class="filters-row">
+        <span class="filter-label">Mostra:</span>
+        <button onclick="setFiltroPrenotazioni('tutte')">Tutte</button>
+        <button onclick="setFiltroPrenotazioni('oggi')">Oggi</button>
+        <button onclick="setFiltroPrenotazioni('settimana')">Questa settimana</button>
+        <button onclick="setFiltroPrenotazioni('future')">Future</button>
+        <button onclick="setFiltroPrenotazioni('passate')">Passate</button>
+
+        <span class="filter-label">Data specifica:</span>
+        <input id="filtro_prenotazioni_data" type="date" onchange="setFiltroPrenotazioniData()">
+        <button onclick="resetFiltroPrenotazioni()">Reset filtro</button>
       </div>
 
       <div class="table-container">
