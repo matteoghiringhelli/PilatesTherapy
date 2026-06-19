@@ -402,6 +402,7 @@ async function loadLezioni() {
 
   paginaLezioni = 1;
   renderLezioni();
+  renderLezioniMobileSafe();
   renderSelectLezioni();
 }
 
@@ -1069,4 +1070,68 @@ function mostraPrenotazioniLezione(idLezione) {
       }
     </table>
   `;
+
+  function renderLezioniMobileSafe() {
+
+  if (window.innerWidth > 768) return;
+
+  const out = document.getElementById("outputLezioni");
+  if (!out) return;
+
+  const table = out.querySelector("table");
+  if (!table) return;
+
+  const rows = Array.from(table.querySelectorAll("tr")).slice(1); // skip header
+
+  const cards = rows.map(row => {
+    const cells = row.querySelectorAll("td");
+
+    if (cells.length < 9) return ""; // protezione
+
+    const id = cells[0].innerText;
+    const data = cells[1].innerText;
+    const ora = cells[2].innerText;
+    const tipologia = cells[3].innerText;
+    const istruttore = cells[4].innerText;
+    const max = cells[5].innerText;
+    const prenotati = cells[6].innerText;
+    const rimasti = cells[7].innerText;
+    const azioniHTML = cells[8].innerHTML; // ✅ mantiene i bottoni ORIGINALI
+
+    return `
+      <div style="
+        border:1px solid #ccc;
+        padding:12px;
+        border-radius:10px;
+        margin-bottom:12px;
+        background:white;
+      ">
+
+        <div style="font-weight:bold; font-size:16px;">
+          📅 ${data} - ${ora}
+        </div>
+
+        <div style="margin-top:5px;">
+          ${tipologia}
+        </div>
+
+        <div style="margin-top:5px; color:#555;">
+          👤 ${istruttore}
+        </div>
+
+        <div style="margin-top:5px;">
+          👥 ${prenotati}/${max} | Rimasti: ${rimasti}
+        </div>
+
+        <div style="margin-top:10px;">
+          ${azioniHTML}
+        </div>
+
+      </div>
+    `;
+  }).join("");
+
+  out.innerHTML = `<div>${cards}</div>`;
+}
+
 }
