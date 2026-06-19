@@ -26,6 +26,7 @@ let filtroLezioniData = "";
 
 let filtroPrenotazioni = "tutte";
 let filtroPrenotazioniData = "";
+let searchPrenotazioni = "";
 
 window.addEventListener("DOMContentLoaded", async () => {
   try {
@@ -882,4 +883,22 @@ function escapeAttr(value) {
     .replaceAll('"', "&quot;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
+}
+
+function applySearchPrenotazioni() {
+  const input = document.getElementById("search_prenotazioni");
+  searchPrenotazioni = input ? input.value.toLowerCase().trim() : "";
+
+  paginaPrenotazioni = 1;
+  renderPrenotazioni();
+}
+
+function resetSearchPrenotazioni() {
+  searchPrenotazioni = "";
+
+  const input = document.getElementById("search_prenotazioni");
+  if (input) input.value = "";
+
+  paginaPrenotazioni = 1;
+  renderPrenotazioni();
 }
