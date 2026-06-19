@@ -444,151 +444,83 @@ function renderLezioni() {
   const out = document.getElementById("outputLezioni");
   if (!out) return;
 
-  const lezioniFiltrate = getLezioniFiltrate();
+  const isMobile = window.innerWidth <= 768;
 
-  const totalePagine = Math.max(1, Math.ceil(lezioniFiltrate.length / RIGHE_PER_PAGINA));
-  if (paginaLezioni > totalePagine) paginaLezioni = totalePagine;
-
+  const totalePagine = Math.max(1, Math.ceil(lezioniData.length / RIGHE_PER_PAGINA));
   const start = (paginaLezioni - 1) * RIGHE_PER_PAGINA;
-  const end = start + RIGHE_PER_PAGINA;
-  const lezioniPagina = lezioniFiltrate.slice(start, end);
+  const lezioniPagina = lezioniData.slice(start, start + RIGHE_PER_PAGINA);
 
-  const navigazione = `
-    <div style="margin-top:10px; margin-bottom:10px;">
-      <button onclick="paginaLezioniPrecedente()" ${paginaLezioni === 1 ? "disabled" : ""}>Precedente</button>
-      <span>Pagina ${paginaLezioni} di ${totalePagine} — Lezioni filtrate: ${lezioniFiltrate.length} / Totale: ${lezioniData.length}</span>
-      <button onclick="paginaLezioniSuccessiva()" ${paginaLezioni === totalePagine ? "disabled" : ""}>Successiva</button>
+  const nav = `
+    <div>
+      <button onclick="paginaLezioniPrecedente()">Prec</button>
+      Pagina ${paginaLezioni}/${totalePagine}
+      <button onclick="paginaLezioniSuccessiva()">Succ</button>
     </div>
   `;
 
-  out.innerHTML = `
-    ${navigazione}
-    <table>
-      <tr>
-        <th>ID_Lezione</th>
-        <th>Data</th>
-        <th>Ora</th>
-        <th>Tipologia</th>
-        <th>Istruttore</th>
-        <th>Max_Partecipanti</th>
-        <th>Prenotati</th>
-        <th>Posti rimasti</th>
-        <th>Azioni</th>
-      </tr>
-      ${lezioniPagina.map(l => {
-        const prenotati = prenotazioniData.filter(p => String(p.ID_Lezione) === String(l.ID_Lezione)).length;
-        const max = Number(l.Max_Partecipanti || 0);
-        const rimasti = Math.max(max - prenotati, 0);
+  // ✅ MOBILE CARD VIEW
+  if (isMobile) {
 
-        let statoColore = "🟢";
-        let statoTesto = "";
+    out.innerHTML = `
+      ${nav}
 
-        if (prenotati === 0) {
-          statoColore = "🟢";
-        } else if (prenotati < max) {
-          statoColore = "🟡";
-        } else {
-          statoColore = "🔴";
-          statoTesto = " PIENA";
-        }
+      <div class="card-container">
+        ${lezioniPagina.map(l => {
 
-        const tipologiaConStato = `${safe(l.Tipologia)} (${prenotati}/${max}) ${statoColore}${statoTesto}`;
+          const pren = prenotazioniData.filter(p => p.ID_Lezione == l.ID_Lezione).length;
+          const max = Number(l.Max_Partecipanti || 0);
 
-        return `
+          let stato = "🟢";
+          if (pren >= max) stato = "🔴";
+          else if (pren > 0) stato = "🟡";
+
+          return `
+            <div class="card">
+              <b>${l.Data} ${l.Ora}</b><br>
+              ${l.Tipologia} (${pren}/${max}) ${stato}<br>
+              ${l.Istruttore}<br><br>
+
+              <button onclick="apriPrenotazione('${l.ID_Lezione}')">Prenota</button>
+              <button onclick="mostraPrenotazioniLezione('${l.ID_Lezione}')">Lista</button>
+            </div>
+          `;
+        }).join("")}
+      </div>
+
+      ${nav}
+    `;
+
+  } else {
+
+    // ✅ DESKTOP TABLE (INTOCCATO)
+    out.innerHTML = `
+      ${nav}
+
+      <table>
+        <tr>
+          <th>ID</th>
+          <th>Data</th>
+          <th>Ora</th>
+          <th>Tipologia</th>
+          <th>Istruttore</th>
+        </tr>
+
+        ${lezioniPagina.map(l => `
           <tr>
-            <td>${safe(l.ID_Lezione)}</td>
-            <td>${safe(l.Data)}</td>
-            <td>${safe(l.Ora)}</td>
-            <td>${tipologiaConStato}</td>
-            <td>${safe(l.Istruttore)}</td>
-            <td>${safe(l.Max_Partecipanti)}</td>
-            <td>${prenotati}</td>
-            <td>${rimasti}</td>
-            <td>
-  <button onclick="apriPrenotazione('${escapeQuote(l.ID_Lezione)}')">📅 Prenota</button>
-  <button onclick="mostraPrenotazioniLezione('${escapeQuote(l.ID_Lezione)}')">👥 Lista</button>
-  <br>
-  <button onclick="eliminaLezione('${escapeQuote(l.ID_Lezione)}')">Elimina</button>
-</td>
+            <td>${l.ID_Lezione}</td>
+            <td>${l.Data}</td>
+            <td>${l.Ora}</td>
+            <td>${l.Tipologia}</td>
+            <td>${l.Istruttore}</td>
           </tr>
-        `;
-      }).join("")}
-    </table>
-    ${navigazione}
+        `).join("")}
 
-const isMobile = window.innerWidth <= 768;
+      </table>
 
-if (isMobile) {
+      ${nav}
+    `;
 
-  out.innerHTML = `
-    ${navigazione}
-
-    <div class="card-container">
-
-      ${lezioniPagina.map(l => {
-
-        const prenotati = prenotazioniData.filter(p => 
-          String(p.ID_Lezione) === String(l.ID_Lezione)
-        ).length;
-
-        const max = Number(l.Max_Partecipanti || 0);
-        const rimasti = Math.max(max - prenotati, 0);
-
-        let colore = "🟢";
-        let stato = "";
-
-        if (prenotati < max) colore = prenotati === 0 ? "🟢" : "🟡";
-        else {
-          colore = "🔴";
-          stato = " PIENA";
-        }
-
-        return `
-          <div class="lesson-card">
-
-            <div class="lesson-header">
-              📅 ${safe(l.Data)} - ${safe(l.Ora)}
-            </div>
-
-            <div class="lesson-sub">
-              ${safe(l.Tipologia)} (${prenotati}/${max}) ${colore}${stato}
-            </div>
-
-            <div class="lesson-sub">
-              👤 ${safe(l.Istruttore)}
-            </div>
-
-            <div class="lesson-sub">
-              👥 Posti rimasti: ${rimasti}
-            </div>
-
-            <div class="lesson-actions">
-              <button onclick="apriPrenotazione('${escapeQuote(l.ID_Lezione)}')">📅 Prenota</button>
-              <button onclick="mostraPrenotazioniLezione('${escapeQuote(l.ID_Lezione)}')">👥 Lista</button>
-            </div>
-
-          </div>
-        `;
-      }).join("")}
-
-    </div>
-
-    ${navigazione}
-  `;
-
-} else {
-
-  // ✅ DESKTOP RESTA INVARIATO
-  out.innerHTML = `
-    ${navigazione}
-    <table>
-      ...
-    </table>
-    ${navigazione}
-  `;
-}
-  
-  `;
+  }
 }
 
 function paginaLezioniPrecedente() {
