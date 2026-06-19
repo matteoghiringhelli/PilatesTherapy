@@ -1118,35 +1118,31 @@ function renderLezioniMobileSafe() {
       const azioni = cells[8].innerHTML;
 
       cards.push(`
-        <div style="
-          border:1px solid #ccc;
-          padding:12px;
-          border-radius:10px;
-          margin-bottom:12px;
-          background:#ffffff;
-          box-shadow:0 2px 4px rgba(0,0,0,0.05);
-        ">
-          <div style="font-weight:bold; font-size:16px; margin-bottom:6px;">
-            📅 ${data} - ${ora}
-          </div>
+  <div class="card-ios">
 
-          <div style="margin-bottom:5px;">
-            ${tipologia}
-          </div>
+    <div class="card-title">
+      📅 ${data} - ${ora}
+    </div>
 
-          <div style="margin-bottom:5px; color:#555;">
-            👤 ${istruttore}
-          </div>
+    <div class="card-sub">
+      ${tipologia}
+    </div>
 
-          <div style="margin-bottom:8px;">
-            👥 ${prenotati}/${max} | Rimasti: ${rimasti}
-          </div>
+    <div class="card-sub">
+      👤 ${istruttore}
+    </div>
 
-          <div style="margin-top:10px;">
-            ${azioni}
-          </div>
-        </div>
-      `);
+    <div class="card-row">
+      👥 ${prenotati}/${max} • Rimasti: ${rimasti}
+    </div>
+
+    <div class="card-actions">
+      ${azioni}
+    </div>
+
+  </div>
+`);
+      
     }
 
     if (cards.length > 0) {
