@@ -1123,10 +1123,10 @@ function renderLezioniMobileSafe() {
       if (Number(prenotati) >= Number(max)) colore = "#ff3b30";
       else if (Number(prenotati) > 0) colore = "#ffcc00";
       const azioni = `
-      <button onclick="mostraDettaglioLezione('${escapeQuote(idLezione)}')">🔎 Dettaglio</button>
-      <button onclick="apriPrenotazione('${escapeQuote(idLezione)}')">📅 Prenota</button>
-      <button onclick="eliminaLezione('${escapeQuote(idLezione)}')">Elimina</button>
-      ;
+  <button onclick="mostraDettaglioLezione('${escapeQuote(idLezione)}')">🔎 Dettaglio</button>
+  <button onclick="apriPrenotazione('${escapeQuote(idLezione)}')">📅 Prenota</button>
+  <button onclick="eliminaLezione('${escapeQuote(idLezione)}')">Elimina</button>
+`;
 
 
       cards.push(`
@@ -1683,6 +1683,6 @@ async function salvaModificaClienteInline(idCliente) {
   setTimeout(() => {
     mostraSchedaCliente(idCliente);
   }, 100);
-
+}
 
 console.log("APP JS CARICATO OK");
