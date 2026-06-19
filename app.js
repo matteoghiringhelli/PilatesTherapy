@@ -1111,13 +1111,13 @@ function renderLezioniMobileSafe() {
       const data = cells[1].innerText;
       const ora = cells[2].innerText;
       const tipologia = cells[3].innerText;
-      let colore = "#34c759"; // verde
-      if (prenotati >= max) colore = "#ff3b30";
-      else if (prenotati > 0) colore = "#ffcc00";
       const istruttore = cells[4].innerText;
       const max = cells[5].innerText;
       const prenotati = cells[6].innerText;
       const rimasti = cells[7].innerText;
+      let colore = "#34c759"; // verde
+      if (Number(prenotati) >= Number(max)) colore = "#ff3b30";
+      else if (Number(prenotati) > 0) colore = "#ffcc00";
       const azioni = cells[8].innerHTML;
 
       cards.push(`
