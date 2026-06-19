@@ -756,7 +756,15 @@ function renderPrenotazioni() {
           <tr>
             <td>${safe(p.ID_Prenotazione)}</td>
             <td>${safe(p.ID_Cliente)}</td>
-            <td>${cliente ? `${safe(cliente.Nome)} ${safe(cliente.Cognome)}` : ""}</td>
+            <td>
+              ${
+                cliente
+                  ? `<button onclick="mostraStoricoCliente('${escapeQuote(cliente.ID_Cliente)}')">
+                      ${safe(cliente.Nome)} ${safe(cliente.Cognome)}
+                    </button>`
+                  : ""
+              }
+            </td>
             <td>${safe(p.ID_Lezione)}</td>
             <td>${lezione ? safe(lezione.Data) : "⚠️ NO LEZIONE"}</td>
             <td>${lezione ? safe(lezione.Ora) : ""}</td>
@@ -866,6 +874,93 @@ async function eliminaPrenotazione(id) {
 
   await loadPrenotazioni();
   setStatus("Prenotazione eliminata correttamente ✅", "ok");
+}
+
+function mostraStoricoCliente(idCliente) {
+  const out = document.getElementById("outputStoricoCliente");
+  if (!out) return;
+
+  const cliente = clientiData.find(c => String(c.ID_Cliente) === String(idCliente));
+
+  if (!cliente) {
+    out.innerHTML = `<p class="muted">Cliente non trovato.</p>`;
+    return;
+  }
+
+  const storico = prenotazioniData
+    .filter(p => String(p.ID_Cliente) === String(idCliente))
+    .map(p => {
+      const lezione = lezioniData.find(l => String(l.ID_Lezione) === String(p.ID_Lezione));
+
+      return {
+        ID_Prenotazione: p.ID_Prenotazione,
+        ID_Cliente: p.ID_Cliente,
+        ID_Lezione: p.ID_Lezione,
+        Data: lezione ? lezione.Data : "",
+        Ora: lezione ? lezione.Ora : "",
+        Tipologia: lezione ? lezione.Tipologia : "",
+        Istruttore: lezione ? lezione.Istruttore : "",
+        lezioneTrovata: !!lezione
+      };
+    })
+    .sort((a, b) => {
+      const dataOraA = `${a.Data || ""} ${a.Ora || ""}`;
+      const dataOraB = `${b.Data || ""} ${b.Ora || ""}`;
+      return dataOraB.localeCompare(dataOraA);
+    });
+
+  out.innerHTML = `
+    <div style="margin-top:10px; margin-bottom:10px;">
+      <strong>Cliente:</strong> ${safe(cliente.Nome)} ${safe(cliente.Cognome)}<br>
+      <strong>ID_Cliente:</strong> ${safe(cliente.ID_Cliente)}<br>
+      <strong>Telefono:</strong> ${safe(cliente.Telefono)}<br>
+      <strong>Email:</strong> ${safe(cliente.Email)}<br>
+      <strong>Totale prenotazioni:</strong> ${storico.length}
+      <br>
+      <button onclick="resetStoricoCliente()">Chiudi storico</button>
+    </div>
+
+    <table>
+      <tr>
+        <th>ID_Prenotazione</th>
+        <th>ID_Lezione</th>
+        <th>Data</th>
+        <th>Ora</th>
+        <th>Tipologia</th>
+        <th>Istruttore</th>
+        <th>Stato</th>
+      </tr>
+
+      ${
+        storico.length
+          ? storico.map(s => `
+              <tr>
+                <td>${safe(s.ID_Prenotazione)}</td>
+                <td>${safe(s.ID_Lezione)}</td>
+                <td>${s.lezioneTrovata ? safe(s.Data) : "⚠️ NO LEZIONE"}</td>
+                <td>${safe(s.Ora)}</td>
+                <td>${safe(s.Tipologia)}</td>
+                <td>${safe(s.Istruttore)}</td>
+                <td>${s.lezioneTrovata ? "OK" : "Lezione non trovata"}</td>
+              </tr>
+            `).join("")
+          : `
+              <tr>
+                <td colspan="7">Nessuna prenotazione trovata per questo cliente.</td>
+              </tr>
+            `
+      }
+    </table>
+  `;
+}
+
+function resetStoricoCliente() {
+  const out = document.getElementById("outputStoricoCliente");
+  if (!out) return;
+
+  out.innerHTML = `
+    <p class="muted">Clicca sul nome di un cliente nella tabella prenotazioni per vedere il suo storico.</p>
+  `;
 }
 
 /* ===================== AUTH ===================== */
