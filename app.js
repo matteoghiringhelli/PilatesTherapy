@@ -515,6 +515,79 @@ function renderLezioni() {
       }).join("")}
     </table>
     ${navigazione}
+
+const isMobile = window.innerWidth <= 768;
+
+if (isMobile) {
+
+  out.innerHTML = `
+    ${navigazione}
+
+    <div class="card-container">
+
+      ${lezioniPagina.map(l => {
+
+        const prenotati = prenotazioniData.filter(p => 
+          String(p.ID_Lezione) === String(l.ID_Lezione)
+        ).length;
+
+        const max = Number(l.Max_Partecipanti || 0);
+        const rimasti = Math.max(max - prenotati, 0);
+
+        let colore = "🟢";
+        let stato = "";
+
+        if (prenotati < max) colore = prenotati === 0 ? "🟢" : "🟡";
+        else {
+          colore = "🔴";
+          stato = " PIENA";
+        }
+
+        return `
+          <div class="lesson-card">
+
+            <div class="lesson-header">
+              📅 ${safe(l.Data)} - ${safe(l.Ora)}
+            </div>
+
+            <div class="lesson-sub">
+              ${safe(l.Tipologia)} (${prenotati}/${max}) ${colore}${stato}
+            </div>
+
+            <div class="lesson-sub">
+              👤 ${safe(l.Istruttore)}
+            </div>
+
+            <div class="lesson-sub">
+              👥 Posti rimasti: ${rimasti}
+            </div>
+
+            <div class="lesson-actions">
+              <button onclick="apriPrenotazione('${escapeQuote(l.ID_Lezione)}')">📅 Prenota</button>
+              <button onclick="mostraPrenotazioniLezione('${escapeQuote(l.ID_Lezione)}')">👥 Lista</button>
+            </div>
+
+          </div>
+        `;
+      }).join("")}
+
+    </div>
+
+    ${navigazione}
+  `;
+
+} else {
+
+  // ✅ DESKTOP RESTA INVARIATO
+  out.innerHTML = `
+    ${navigazione}
+    <table>
+      ...
+    </table>
+    ${navigazione}
+  `;
+}
+  
   `;
 }
 
