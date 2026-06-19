@@ -517,6 +517,11 @@ function renderLezioni() {
     </table>
     ${navigazione}
   `;
+
+setTimeout(() => {
+  renderLezioniMobileSafe();
+}, 50);
+
 }
 
 function paginaLezioniPrecedente() {
