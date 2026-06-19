@@ -252,6 +252,11 @@ function renderClienti() {
       `).join("")}
     </table>
   `;
+  
+setTimeout(() => {
+  renderClientiMobileSafe();
+}, 50);
+
 }
 
 function renderSelectClienti() {
@@ -788,6 +793,11 @@ function renderPrenotazioni() {
     </table>
     ${navigazione}
   `;
+  
+  setTimeout(() => {
+  renderPrenotazioniMobileSafe();
+}, 50);
+  
 }
 
 function paginaPrenotazioniPrecedente() {
@@ -1151,5 +1161,110 @@ function renderLezioniMobileSafe() {
     console.error("Errore renderLezioniMobileSafe:", err);
   }
 }
+
+function renderClientiMobileSafe() {
+
+  try {
+
+    if (window.innerWidth > 768) return;
+
+    const out = document.getElementById("outputClienti");
+    if (!out) return;
+
+    const table = out.querySelector("table");
+    if (!table) return;
+
+    const rows = table.querySelectorAll("tr");
+    if (!rows || rows.length <= 1) return;
+
+    const cards = [];
+
+    for (let i = 1; i < rows.length; i++) {
+
+      const cells = rows[i].querySelectorAll("td");
+      if (!cells || cells.length < 11) continue;
+
+      const id = cells[0].innerText;
+      const nome = cells[1].innerText;
+      const cognome = cells[2].innerText;
+      const telefono = cells[3].innerText;
+      const email = cells[4].innerText;
+      const azioni = cells[10].innerHTML;
+
+      cards.push(`
+        <div style="border:1px solid #ccc; padding:12px; border-radius:10px; margin-bottom:12px;">
+          <div style="font-weight:bold;">
+            ${nome} ${cognome}
+          </div>
+          <div>📞 ${telefono}</div>
+          <div>📧 ${email}</div>
+          <div style="margin-top:10px;">
+            ${azioni}
+          </div>
+        </div>
+      `);
+    }
+
+    if (cards.length > 0) {
+      out.innerHTML = cards.join("");
+    }
+
+  } catch (err) {
+    console.error("Errore renderClientiMobileSafe:", err);
+  }
+}
+
+function renderPrenotazioniMobileSafe() {
+
+  try {
+
+    if (window.innerWidth > 768) return;
+
+    const out = document.getElementById("outputPrenotazioni");
+    if (!out) return;
+
+    const table = out.querySelector("table");
+    if (!table) return;
+
+    const rows = table.querySelectorAll("tr");
+    if (!rows || rows.length <= 1) return;
+
+    const cards = [];
+
+    for (let i = 1; i < rows.length; i++) {
+
+      const cells = rows[i].querySelectorAll("td");
+      if (!cells || cells.length < 9) continue;
+
+      const cliente = cells[2].innerText;
+      const data = cells[4].innerText;
+      const ora = cells[5].innerText;
+      const tipologia = cells[6].innerText;
+      const azioni = cells[8].innerHTML;
+
+      cards.push(`
+        <div style="border:1px solid #ccc; padding:12px; border-radius:10px; margin-bottom:12px;">
+          <div style="font-weight:bold;">
+            ${cliente}
+          </div>
+          <div>📅 ${data} - ${ora}</div>
+          <div>${tipologia}</div>
+
+          <div style="margin-top:10px;">
+            ${azioni}
+          </div>
+        </div>
+      `);
+    }
+
+    if (cards.length > 0) {
+      out.innerHTML = cards.join("");
+    }
+
+  } catch (err) {
+    console.error("Errore renderPrenotazioniMobileSafe:", err);
+  }
+}
+
 
 console.log("APP JS CARICATO OK");
