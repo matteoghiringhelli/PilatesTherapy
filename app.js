@@ -1,9 +1,10 @@
 const SUPABASE_URL = "https://xxutsiiejegkgvlkgqrr.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4dXRzaWllamVna2d2bGtncXJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNTUxNjgsImV4cCI6MjA5NjgzMTE2OH0.EACUhY2OGCZVswkXdygd98I0yRMT5WQz_oNeHQgdhsU";
 
+
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const APP_VERSION = "v-pagination-2026-06-18";
+const APP_VERSION = "v-step4-filtri-data-2026-06-19";
 
 const MAX_PARTECIPANTI = {
   "Privata": 1,
@@ -19,6 +20,12 @@ let prenotazioniData = [];
 
 let paginaLezioni = 1;
 let paginaPrenotazioni = 1;
+
+let filtroLezioni = "tutte";
+let filtroLezioniData = "";
+
+let filtroPrenotazioni = "tutte";
+let filtroPrenotazioniData = "";
 
 window.addEventListener("DOMContentLoaded", async () => {
   try {
@@ -115,7 +122,76 @@ async function fetchAllRows(tableName, columns = "*", orderColumn = null, ascend
   return { data: allRows, error: null };
 }
 
-// ===================== CLIENTI =====================
+/* ===================== DATE UTILS ===================== */
+
+function getTodayString() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function getWeekRangeStrings() {
+  const now = new Date();
+  const day = now.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + diffToMonday);
+
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+
+  return {
+    start: formatDateLocal(monday),
+    end: formatDateLocal(sunday)
+  };
+}
+
+function formatDateLocal(date) {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function isDateInCurrentWeek(dateString) {
+  if (!dateString) return false;
+  const range = getWeekRangeStrings();
+  return dateString >= range.start && dateString <= range.end;
+}
+
+function filtraPerData(dateString, tipoFiltro, dataSpecifica) {
+  const oggi = getTodayString();
+
+  if (tipoFiltro === "tutte") return true;
+  if (!dateString) return false;
+
+  if (tipoFiltro === "oggi") {
+    return dateString === oggi;
+  }
+
+  if (tipoFiltro === "settimana") {
+    return isDateInCurrentWeek(dateString);
+  }
+
+  if (tipoFiltro === "future") {
+    return dateString >= oggi;
+  }
+
+  if (tipoFiltro === "passate") {
+    return dateString < oggi;
+  }
+
+  if (tipoFiltro === "data") {
+    return dateString === dataSpecifica;
+  }
+
+  return true;
+}
+
+/* ===================== CLIENTI ===================== */
 
 async function loadClienti() {
   const { data, error } = await fetchAllRows(
@@ -299,7 +375,7 @@ function pulisciFormCliente() {
   });
 }
 
-// ===================== LEZIONI =====================
+/* ===================== LEZIONI ===================== */
 
 async function loadLezioni() {
   const { data, error } = await fetchAllRows(
@@ -328,21 +404,58 @@ async function loadLezioni() {
   renderSelectLezioni();
 }
 
+function getLezioniFiltrate() {
+  return lezioniData.filter(l => filtraPerData(l.Data, filtroLezioni, filtroLezioniData));
+}
+
+function setFiltroLezioni(tipo) {
+  filtroLezioni = tipo;
+  filtroLezioniData = "";
+
+  const input = document.getElementById("filtro_lezioni_data");
+  if (input) input.value = "";
+
+  paginaLezioni = 1;
+  renderLezioni();
+}
+
+function setFiltroLezioniData() {
+  const input = document.getElementById("filtro_lezioni_data");
+  filtroLezioniData = input ? input.value : "";
+  filtroLezioni = filtroLezioniData ? "data" : "tutte";
+
+  paginaLezioni = 1;
+  renderLezioni();
+}
+
+function resetFiltroLezioni() {
+  filtroLezioni = "tutte";
+  filtroLezioniData = "";
+
+  const input = document.getElementById("filtro_lezioni_data");
+  if (input) input.value = "";
+
+  paginaLezioni = 1;
+  renderLezioni();
+}
+
 function renderLezioni() {
   const out = document.getElementById("outputLezioni");
   if (!out) return;
 
-  const totalePagine = Math.max(1, Math.ceil(lezioniData.length / RIGHE_PER_PAGINA));
+  const lezioniFiltrate = getLezioniFiltrate();
+
+  const totalePagine = Math.max(1, Math.ceil(lezioniFiltrate.length / RIGHE_PER_PAGINA));
   if (paginaLezioni > totalePagine) paginaLezioni = totalePagine;
 
   const start = (paginaLezioni - 1) * RIGHE_PER_PAGINA;
   const end = start + RIGHE_PER_PAGINA;
-  const lezioniPagina = lezioniData.slice(start, end);
+  const lezioniPagina = lezioniFiltrate.slice(start, end);
 
   const navigazione = `
     <div style="margin-top:10px; margin-bottom:10px;">
       <button onclick="paginaLezioniPrecedente()" ${paginaLezioni === 1 ? "disabled" : ""}>Precedente</button>
-      <span>Pagina ${paginaLezioni} di ${totalePagine} — Totale lezioni: ${lezioniData.length}</span>
+      <span>Pagina ${paginaLezioni} di ${totalePagine} — Lezioni filtrate: ${lezioniFiltrate.length} / Totale: ${lezioniData.length}</span>
       <button onclick="paginaLezioniSuccessiva()" ${paginaLezioni === totalePagine ? "disabled" : ""}>Successiva</button>
     </div>
   `;
@@ -363,36 +476,29 @@ function renderLezioni() {
       </tr>
       ${lezioniPagina.map(l => {
         const prenotati = prenotazioniData.filter(p => String(p.ID_Lezione) === String(l.ID_Lezione)).length;
-        const rimasti = Math.max(Number(l.Max_Partecipanti || 0) - prenotati, 0);
+        const max = Number(l.Max_Partecipanti || 0);
+        const rimasti = Math.max(max - prenotati, 0);
+
+        let statoColore = "🟢";
+        let statoTesto = "";
+
+        if (prenotati === 0) {
+          statoColore = "🟢";
+        } else if (prenotati < max) {
+          statoColore = "🟡";
+        } else {
+          statoColore = "🔴";
+          statoTesto = " PIENA";
+        }
+
+        const tipologiaConStato = `${safe(l.Tipologia)} (${prenotati}/${max}) ${statoColore}${statoTesto}`;
 
         return `
           <tr>
             <td>${safe(l.ID_Lezione)}</td>
             <td>${safe(l.Data)}</td>
             <td>${safe(l.Ora)}</td>
-            <td>
-  ${
-    (() => {
-      const prenotati = prenotazioniData.filter(p => String(p.ID_Lezione) === String(l.ID_Lezione)).length;
-      const max = Number(l.Max_Partecipanti || 0);
-
-      let colore = "🟢";
-      let stato = "";
-
-      if (prenotati === 0) {
-        colore = "🟢";
-      } else if (prenotati < max) {
-        colore = "🟡";
-      } else {
-        colore = "🔴";
-        stato = " PIENA";
-      }
-
-      return `${safe(l.Tipologia)} (${prenotati}/${max}) ${colore}${stato}`;
-    })()
-  }
-</td>
-
+            <td>${tipologiaConStato}</td>
             <td>${safe(l.Istruttore)}</td>
             <td>${safe(l.Max_Partecipanti)}</td>
             <td>${prenotati}</td>
@@ -416,7 +522,7 @@ function paginaLezioniPrecedente() {
 }
 
 function paginaLezioniSuccessiva() {
-  const totalePagine = Math.max(1, Math.ceil(lezioniData.length / RIGHE_PER_PAGINA));
+  const totalePagine = Math.max(1, Math.ceil(getLezioniFiltrate().length / RIGHE_PER_PAGINA));
   if (paginaLezioni < totalePagine) {
     paginaLezioni++;
     renderLezioni();
@@ -427,10 +533,10 @@ function renderSelectLezioni() {
   const sel = document.getElementById("select_lezione");
   if (!sel) return;
 
-  sel.innerHTML = '<option value="">Seleziona lezione</option>' + 
+  sel.innerHTML =
+    '<option value="">Seleziona lezione</option>' +
     lezioniData.map(l => {
-
-      const prenotati = prenotazioniData.filter(p => 
+      const prenotati = prenotazioniData.filter(p =>
         String(p.ID_Lezione) === String(l.ID_Lezione)
       ).length;
 
@@ -442,8 +548,8 @@ function renderSelectLezioni() {
           value="${escapeAttr(l.ID_Lezione)}" 
           ${piena ? "disabled style='color:red;'" : ""}
         >
-          ${safe(l.Data)} ${safe(l.Ora)} - ${safe(l.Tipologia)} 
-          (${prenotati}/${max}) 
+          ${safe(l.Data)} ${safe(l.Ora)} - ${safe(l.Tipologia)}
+          (${prenotati}/${max})
           ${piena ? "🔴 PIENA" : ""}
         </option>
       `;
@@ -523,7 +629,7 @@ function pulisciFormLezione() {
   });
 }
 
-// ===================== PRENOTAZIONI =====================
+/* ===================== PRENOTAZIONI ===================== */
 
 async function loadPrenotazioni() {
   const { data, error } = await fetchAllRows(
@@ -551,21 +657,62 @@ async function loadPrenotazioni() {
   renderSelectLezioni();
 }
 
+function getPrenotazioniFiltrate() {
+  return prenotazioniData.filter(p => {
+    const lezione = lezioniData.find(l => String(l.ID_Lezione) === String(p.ID_Lezione));
+    const dataLezione = lezione ? lezione.Data : "";
+    return filtraPerData(dataLezione, filtroPrenotazioni, filtroPrenotazioniData);
+  });
+}
+
+function setFiltroPrenotazioni(tipo) {
+  filtroPrenotazioni = tipo;
+  filtroPrenotazioniData = "";
+
+  const input = document.getElementById("filtro_prenotazioni_data");
+  if (input) input.value = "";
+
+  paginaPrenotazioni = 1;
+  renderPrenotazioni();
+}
+
+function setFiltroPrenotazioniData() {
+  const input = document.getElementById("filtro_prenotazioni_data");
+  filtroPrenotazioniData = input ? input.value : "";
+  filtroPrenotazioni = filtroPrenotazioniData ? "data" : "tutte";
+
+  paginaPrenotazioni = 1;
+  renderPrenotazioni();
+}
+
+function resetFiltroPrenotazioni() {
+  filtroPrenotazioni = "tutte";
+  filtroPrenotazioniData = "";
+
+  const input = document.getElementById("filtro_prenotazioni_data");
+  if (input) input.value = "";
+
+  paginaPrenotazioni = 1;
+  renderPrenotazioni();
+}
+
 function renderPrenotazioni() {
   const out = document.getElementById("outputPrenotazioni");
   if (!out) return;
 
-  const totalePagine = Math.max(1, Math.ceil(prenotazioniData.length / RIGHE_PER_PAGINA));
+  const prenotazioniFiltrate = getPrenotazioniFiltrate();
+
+  const totalePagine = Math.max(1, Math.ceil(prenotazioniFiltrate.length / RIGHE_PER_PAGINA));
   if (paginaPrenotazioni > totalePagine) paginaPrenotazioni = totalePagine;
 
   const start = (paginaPrenotazioni - 1) * RIGHE_PER_PAGINA;
   const end = start + RIGHE_PER_PAGINA;
-  const prenotazioniPagina = prenotazioniData.slice(start, end);
+  const prenotazioniPagina = prenotazioniFiltrate.slice(start, end);
 
   const navigazione = `
     <div style="margin-top:10px; margin-bottom:10px;">
       <button onclick="paginaPrenotazioniPrecedente()" ${paginaPrenotazioni === 1 ? "disabled" : ""}>Precedente</button>
-      <span>Pagina ${paginaPrenotazioni} di ${totalePagine} — Totale prenotazioni: ${prenotazioniData.length}</span>
+      <span>Pagina ${paginaPrenotazioni} di ${totalePagine} — Prenotazioni filtrate: ${prenotazioniFiltrate.length} / Totale: ${prenotazioniData.length}</span>
       <button onclick="paginaPrenotazioniSuccessiva()" ${paginaPrenotazioni === totalePagine ? "disabled" : ""}>Successiva</button>
     </div>
   `;
@@ -617,7 +764,7 @@ function paginaPrenotazioniPrecedente() {
 }
 
 function paginaPrenotazioniSuccessiva() {
-  const totalePagine = Math.max(1, Math.ceil(prenotazioniData.length / RIGHE_PER_PAGINA));
+  const totalePagine = Math.max(1, Math.ceil(getPrenotazioniFiltrate().length / RIGHE_PER_PAGINA));
   if (paginaPrenotazioni < totalePagine) {
     paginaPrenotazioni++;
     renderPrenotazioni();
@@ -704,14 +851,14 @@ async function eliminaPrenotazione(id) {
   setStatus("Prenotazione eliminata correttamente ✅", "ok");
 }
 
-// ===================== AUTH =====================
+/* ===================== AUTH ===================== */
 
 async function logout() {
   await supabaseClient.auth.signOut();
   window.location.href = "/index.html";
 }
 
-// ===================== UTILS =====================
+/* ===================== UTILS ===================== */
 
 function safe(value) {
   if (value === null || value === undefined) return "";
@@ -736,4 +883,3 @@ function escapeAttr(value) {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
 }
-
