@@ -427,11 +427,26 @@ function renderSelectLezioni() {
   const sel = document.getElementById("select_lezione");
   if (!sel) return;
 
-  sel.innerHTML =
-    '<option value="">Seleziona lezione</option>' +
+  sel.innerHTML = '<option value="">Seleziona lezione</option>' + 
     lezioniData.map(l => {
-      const prenotati = prenotazioniData.filter(p => String(p.ID_Lezione) === String(l.ID_Lezione)).length;
-      return `<option value="${escapeAttr(l.ID_Lezione)}">${safe(l.Data)} ${safe(l.Ora)} - ${safe(l.Tipologia)} (${prenotati}/${safe(l.Max_Partecipanti)})</option>`;
+
+      const prenotati = prenotazioniData.filter(p => 
+        String(p.ID_Lezione) === String(l.ID_Lezione)
+      ).length;
+
+      const max = Number(l.Max_Partecipanti || 0);
+      const piena = prenotati >= max;
+
+      return `
+        <option 
+          value="${escapeAttr(l.ID_Lezione)}" 
+          ${piena ? "disabled style='color:red;'" : ""}
+        >
+          ${safe(l.Data)} ${safe(l.Ora)} - ${safe(l.Tipologia)} 
+          (${prenotati}/${max}) 
+          ${piena ? "🔴 PIENA" : ""}
+        </option>
+      `;
     }).join("");
 }
 
