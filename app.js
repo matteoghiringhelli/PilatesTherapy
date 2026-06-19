@@ -343,6 +343,7 @@ async function modificaCliente(id) {
 
   await loadClienti();
   await loadPrenotazioni();
+  mostraSchedaCliente(id);
   setStatus("Cliente modificato correttamente ✅", "ok");
 }
 
@@ -1460,6 +1461,7 @@ function mostraSchedaCliente(idCliente) {
       </div>
 
       <div class="card-actions">
+        <button onclick="modificaCliente('${escapeQuote(cliente.ID_Cliente)}')">✏️ Modifica</button>
         <button onclick="mostraPrenotazioniCliente('${escapeQuote(cliente.ID_Cliente)}')">📅 Prenotazioni</button>
         <button onclick="chiudiDettaglioCliente()">Chiudi</button>
       </div>
