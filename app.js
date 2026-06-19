@@ -505,8 +505,11 @@ function renderLezioni() {
             <td>${prenotati}</td>
             <td>${rimasti}</td>
             <td>
-              <button onclick="eliminaLezione('${escapeQuote(l.ID_Lezione)}')">Elimina</button>
-            </td>
+  <button onclick="apriPrenotazione('${escapeQuote(l.ID_Lezione)}')">📅 Prenota</button>
+  <button onclick="mostraPrenotazioniLezione('${escapeQuote(l.ID_Lezione)}')">👥 Lista</button>
+  <br>
+  <button onclick="eliminaLezione('${escapeQuote(l.ID_Lezione)}')">Elimina</button>
+</td>
           </tr>
         `;
       }).join("")}
@@ -1012,4 +1015,58 @@ function resetSearchPrenotazioni() {
 
   paginaPrenotazioni = 1;
   renderPrenotazioni();
+}
+
+function apriPrenotazione(idLezione) {
+  const select = document.getElementById("select_lezione");
+  const section = document.getElementById("prenotazioniSection");
+
+  if (select) select.value = idLezione;
+
+  if (section && section.classList.contains("hidden")) {
+    section.classList.remove("hidden");
+  }
+
+  window.scrollTo({
+    top: section.offsetTop - 20,
+    behavior: "smooth"
+  });
+}
+
+function mostraPrenotazioniLezione(idLezione) {
+  const out = document.getElementById("outputStoricoCliente"); // riusiamo lo stesso blocco
+
+  if (!out) return;
+
+  const lista = prenotazioniData
+    .filter(p => String(p.ID_Lezione) === String(idLezione))
+    .map(p => {
+      const cliente = clientiData.find(c => String(c.ID_Cliente) === String(p.ID_Cliente));
+      return {
+        nome: cliente ? cliente.Nome + " " + cliente.Cognome : "Cliente non trovato",
+        id: p.ID_Prenotazione
+      };
+    });
+
+  out.innerHTML = `
+    <h4>Prenotazioni Lezione ${safe(idLezione)}</h4>
+
+    <table>
+      <tr>
+        <th>ID_Prenotazione</th>
+        <th>Cliente</th>
+      </tr>
+
+      ${
+        lista.length
+          ? lista.map(x => `
+              <tr>
+                <td>${safe(x.id)}</td>
+                <td>${safe(x.nome)}</td>
+              </tr>
+            `).join("")
+          : `<tr><td colspan="2">Nessuna prenotazione</td></tr>`
+      }
+    </table>
+  `;
 }
