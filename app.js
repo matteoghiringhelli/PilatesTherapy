@@ -1167,9 +1167,7 @@ function renderLezioniMobileSafe() {
 }
 
 function renderClientiMobileSafe() {
-
   try {
-
     if (window.innerWidth > 768) return;
 
     const out = document.getElementById("outputClienti");
@@ -1184,7 +1182,6 @@ function renderClientiMobileSafe() {
     const cards = [];
 
     for (let i = 1; i < rows.length; i++) {
-
       const cells = rows[i].querySelectorAll("td");
       if (!cells || cells.length < 11) continue;
 
@@ -1195,28 +1192,29 @@ function renderClientiMobileSafe() {
       const email = cells[4].innerText;
       const azioni = cells[10].innerHTML;
 
-      cards.push(
+      cards.push(`
         <div class="card-ios">
-        <div class="card-title">
-        ${nome} ${cognome}
-      </div>
 
-        <div class="card-sub">
-        📞 ${telefono}
-      </div>
+          <div class="card-title">
+            ${nome} ${cognome}
+          </div>
 
-        <div class="card-sub">
-        📧 ${email}
-      </div>
+          <div class="card-sub">
+            📞 ${telefono}
+          </div>
 
-        <div class="card-actions">
-        <button onclick="mostraSchedaCliente('${escapeQuote(id)}')">🔎 Scheda</button>
-        <button onclick="mostraPrenotazioniCliente('${escapeQuote(id)}')">📅 Prenotazioni</button>
-      ${azioni}
-      </div>
+          <div class="card-sub">
+            📧 ${email}
+          </div>
+
+          <div class="card-actions">
+            <button onclick="mostraSchedaCliente('${escapeQuote(id)}')">🔎 Scheda</button>
+            <button onclick="mostraPrenotazioniCliente('${escapeQuote(id)}')">📅 Prenotazioni</button>
+            ${azioni}
+          </div>
 
         </div>
-`);
+      `);
     }
 
     if (cards.length > 0) {
