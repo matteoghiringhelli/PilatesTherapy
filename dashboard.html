@@ -391,6 +391,27 @@ body {
     padding-left: 12px;
   }
 }
+
+/* ===== FORM FIELD LABELS ===== */
+
+.field-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  margin-left: 2px;
+}
+
+.field-block input,
+.field-block select {
+  min-width: 220px;
+}
     
   </style>
 </head>
@@ -587,65 +608,122 @@ body {
     <!-- ✅ FORM INTELLIGENTE PACCHETTI -->
     <div id="nuovoPacchettoBox" class="hidden">
 
-      <h3>Aggiungi Pacchetto</h3>
+  <h3>Aggiungi Pacchetto</h3>
 
-      <div class="form-row">
-        <select id="pac_cliente" onchange="aggiornaAnteprimaPacchetto()">
-          <option value="">Seleziona cliente</option>
-        </select>
+  <div class="form-row">
 
-        <select id="pac_tipo" onchange="aggiornaAnteprimaPacchetto()">
-          <option value="">Tipo pacchetto</option>
-        </select>
-      </div>
+    <label class="field-block">
+      <span class="field-label">Cliente</span>
+      <select id="pac_cliente" onchange="aggiornaAnteprimaPacchetto()">
+        <option value="">Seleziona cliente</option>
+      </select>
+    </label>
 
-      <div class="form-row">
-        <input id="pac_lezioni_base" placeholder="Lezioni Base" readonly>
-        <input id="pac_lezioni_add" type="number" min="0" value="0" placeholder="Lezioni Add" oninput="aggiornaAnteprimaPacchetto()">
-        <input id="pac_lezioni_totali" placeholder="Lezioni Totali" readonly>
-      </div>
+    <label class="field-block">
+      <span class="field-label">Tipo Pacchetto</span>
+      <select id="pac_tipo" onchange="aggiornaAnteprimaPacchetto()">
+        <option value="">Tipo pacchetto</option>
+      </select>
+    </label>
 
-      <div class="form-row">
-        <input id="pac_prezzo" type="number" step="0.01" min="0" placeholder="Prezzo" oninput="aggiornaAnteprimaPacchetto()">
+  </div>
 
-        <select id="pac_flag_pagato" onchange="aggiornaAnteprimaPacchetto()">
-          <option value="Si">Pagato: Si</option>
-          <option value="No">Pagato: No</option>
-        </select>
+  <div class="form-row">
 
-        <input id="pac_da_pagare" placeholder="Da Pagare" readonly>
-      </div>
+    <label class="field-block">
+      <span class="field-label">Lezioni Base</span>
+      <input id="pac_lezioni_base" placeholder="Lezioni Base" readonly>
+    </label>
 
-      <div class="form-row">
-        <select id="pac_flag_c" onchange="aggiornaAnteprimaPacchetto()">
-          <option value="Si">Flag C: Si</option>
-          <option value="No">Flag C: No</option>
-        </select>
+    <label class="field-block">
+      <span class="field-label">Lezioni Add</span>
+      <input id="pac_lezioni_add" type="number" min="0" value="0" placeholder="Lezioni Add" oninput="aggiornaAnteprimaPacchetto()">
+    </label>
 
-        <input id="pac_fattura_nr" placeholder="Fattura Nr">
-        <input id="pac_data_fattura" type="date" placeholder="Data Fattura">
-      </div>
+    <label class="field-block">
+      <span class="field-label">Lezioni Totali</span>
+      <input id="pac_lezioni_totali" placeholder="Lezioni Totali" readonly>
+    </label>
 
-      <div class="form-row">
-        <input id="pac_valido_da" type="date" onchange="aggiornaAnteprimaPacchetto()">
-        <input id="pac_valido_a" placeholder="Valido A" readonly>
+  </div>
 
-        <select id="pac_stato">
-          <option value="">Stato vuoto / valido</option>
-          <option value="Chiuso">Chiuso</option>
-        </select>
-      </div>
+  <div class="form-row">
 
-      <div class="form-row">
-        <button onclick="aggiungiPacchetto()">💾 Salva Pacchetto</button>
-        <button onclick="toggleNuovoPacchetto()">Annulla</button>
-      </div>
+    <label class="field-block">
+      <span class="field-label">Prezzo</span>
+      <input id="pac_prezzo" type="number" step="0.01" min="0" placeholder="Prezzo" oninput="aggiornaAnteprimaPacchetto()">
+    </label>
 
-      <p class="muted">
-        Lezioni Base, Lezioni Totali e Valido A vengono calcolati automaticamente dal Tipo Pacchetto.
-      </p>
+    <label class="field-block">
+      <span class="field-label">Pagato</span>
+      <select id="pac_flag_pagato" onchange="daPagareManuale = false; aggiornaAnteprimaPacchetto()">
+        <option value="Si">Si</option>
+        <option value="No">No</option>
+      </select>
+    </label>
 
-    </div>
+    <label class="field-block">
+      <span class="field-label">Da Pagare</span>
+      <input id="pac_da_pagare" type="number" step="0.01" min="0" placeholder="Da Pagare" oninput="segnaDaPagareManuale()">
+    </label>
+
+  </div>
+
+  <div class="form-row">
+
+    <label class="field-block">
+      <span class="field-label">Flag C</span>
+      <select id="pac_flag_c" onchange="aggiornaAnteprimaPacchetto()">
+        <option value="Si">Si</option>
+        <option value="No">No</option>
+      </select>
+    </label>
+
+    <label class="field-block">
+      <span class="field-label">Fattura Nr</span>
+      <input id="pac_fattura_nr" placeholder="Fattura Nr">
+    </label>
+
+    <label class="field-block">
+      <span class="field-label">Data Fattura</span>
+      <input id="pac_data_fattura" type="date">
+    </label>
+
+  </div>
+
+  <div class="form-row">
+
+    <label class="field-block">
+      <span class="field-label">Valido Da</span>
+      <input id="pac_valido_da" type="date" onchange="aggiornaAnteprimaPacchetto()">
+    </label>
+
+    <label class="field-block">
+      <span class="field-label">Valido A</span>
+      <input id="pac_valido_a" placeholder="Valido A" readonly>
+    </label>
+
+    <label class="field-block">
+      <span class="field-label">Stato</span>
+      <select id="pac_stato">
+        <option value="">Valido / vuoto</option>
+        <option value="Chiuso">Chiuso</option>
+      </select>
+    </label>
+
+  </div>
+
+  <div class="form-row">
+    <button onclick="aggiungiPacchetto()">💾 Salva Pacchetto</button>
+    <button onclick="toggleNuovoPacchetto()">Annulla</button>
+  </div>
+
+  <p class="muted">
+    Lezioni Base, Lezioni Totali e Valido A vengono calcolati automaticamente dal Tipo Pacchetto.
+    Se Pagato = No, Da Pagare viene proposto uguale al Prezzo ma puoi modificarlo.
+  </p>
+
+</div>
 
     <div class="table-container">
       <div id="outputPacchetti"></div>
@@ -680,7 +758,7 @@ body {
 </div>
   
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="app.js?v=pacchetti2"/script>
+  <script src="app.js?v=pacchetti3"></script>
   
   <script>
     if ("serviceWorker" in navigator) {
