@@ -415,12 +415,12 @@ body {
     <button onclick="toggleClienti()">Apri / Chiudi Clienti</button>
 
     <div id="clientiSection" class="hidden">
-      <button onclick="loadClienti()">Ricarica Clienti</button>
-
-      <button onclick="toggleNuovoCliente()">➕ Nuovo Cliente</button>
+      <div class="form-row">
+  <button onclick="loadClienti()">Ricarica Clienti</button>
+  <button onclick="toggleNuovoCliente()">➕ Aggiungi Cliente</button>
+</div>
 
 <div id="nuovoClienteBox" class="hidden">
-
   <h3>Aggiungi Cliente</h3>
 
   <div class="form-row">
@@ -437,7 +437,11 @@ body {
     <input id="new_cf" placeholder="Codice Fiscale">
   </div>
 
-  <button onclick="aggiungiCliente()">Salva Cliente</button>
+  <div class="form-row">
+    <button onclick="aggiungiCliente()">Salva Cliente</button>
+    <button onclick="toggleNuovoCliente()">Annulla</button>
+  </div>
+</div>
 
 </div>
 
