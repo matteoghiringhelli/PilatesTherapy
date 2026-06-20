@@ -276,9 +276,14 @@
 
     /* ===== UX STEP 1: TRANSIZIONI APP ===== */
 
+
 .app-view {
-  will-change: transform, opacity;
+  position: relative;
+  z-index: 200;
+  background: #f2f2f7;
+  min-height: 100vh;
 }
+
 
 .view-enter {
   animation: viewEnter 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
