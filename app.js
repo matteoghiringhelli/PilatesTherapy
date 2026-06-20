@@ -192,6 +192,55 @@ function filtraPerData(dateString, tipoFiltro, dataSpecifica) {
   return true;
 }
 
+/* ===================== UX ANIMAZIONI ===================== */
+
+function isMobile() {
+  return window.innerWidth <= 768;
+}
+
+function animateView(container, html, direction = "forward") {
+  if (!container) return;
+
+  // desktop → niente animazioni
+  if (!isMobile()) {
+    container.innerHTML = html;
+    container.classList.remove("hidden");
+    return;
+  }
+
+  container.classList.remove("hidden");
+  container.classList.add("app-view");
+
+  container.innerHTML = html;
+
+  requestAnimationFrame(() => {
+    container.classList.remove("view-enter", "view-exit", "view-back-enter");
+    container.classList.add(
+      direction === "back" ? "view-back-enter" : "view-enter"
+    );
+  });
+
+  container.scrollIntoView({ behavior: "smooth" });
+}
+
+function closeAnimated(container) {
+  if (!container) return;
+
+  if (!isMobile()) {
+    container.innerHTML = "";
+    container.classList.add("hidden");
+    return;
+  }
+
+  container.classList.add("view-exit");
+
+  setTimeout(() => {
+    container.innerHTML = "";
+    container.classList.add("hidden");
+    container.classList.remove("view-exit");
+  }, 180);
+}
+
 /* ===================== CLIENTI ===================== */
 
 async function loadClienti() {
@@ -1290,17 +1339,52 @@ function mostraDettaglioLezione(idLezione) {
   if (!box) return;
 
   const lezione = lezioniData.find(l => String(l.ID_Lezione) === String(idLezione));
+  if (!lezione) return;
 
-  if (!lezione) {
-    box.classList.remove("hidden");
-    box.innerHTML = `
-      <div class="lesson-detail">
-        <div class="lesson-detail-title">Lezione non trovata</div>
-        <button onclick="chiudiDettaglioLezione()">Chiudi</button>
+  const prenotazioniLezione = prenotazioniData.filter(p =>
+    String(p.ID_Lezione) === String(idLezione)
+  );
+
+  const max = Number(lezione.Max_Partecipanti || 0);
+  const prenotati = prenotazioniLezione.length;
+
+  const clientiHtml = prenotazioniLezione.map(p => {
+    const cliente = clientiData.find(c => c.ID_Cliente == p.ID_Cliente);
+    return `
+      <div class="lesson-client-row">
+        ${cliente ? cliente.Nome + " " + cliente.Cognome : "Cliente"}
       </div>
     `;
-    return;
-  }
+  }).join("");
+
+  animateView(box, `
+    <div class="app-toolbar">
+      <button class="app-back-btn" onclick="chiudiDettaglioLezione()">← Lezioni</button>
+    </div>
+
+    <div class="lesson-detail">
+      <div class="lesson-detail-title">
+        ${lezione.Data} - ${lezione.Ora}
+      </div>
+
+      <div class="lesson-detail-sub">
+        ${lezione.Tipologia} (${prenotati}/${max})
+      </div>
+
+      <div class="lesson-detail-sub">
+        👤 ${lezione.Istruttore}
+      </div>
+
+      <div class="lesson-detail-section">
+        ${clientiHtml || "Nessun cliente"}
+      </div>
+
+      <div class="lesson-detail-actions">
+        <button onclick="chiudiDettaglioLezione()">Chiudi</button>
+      </div>
+    </div>
+  `);
+}
 
   const prenotazioniLezione = prenotazioniData.filter(p =>
     String(p.ID_Lezione) === String(idLezione)
@@ -1391,30 +1475,35 @@ function mostraDettaglioLezione(idLezione) {
 
 function chiudiDettaglioLezione() {
   const box = document.getElementById("dettaglioLezioneBox");
-  if (!box) return;
-
-  box.innerHTML = "";
-  box.classList.add("hidden");
+  closeAnimated(box);
 }
 
 function mostraSchedaCliente(idCliente) {
   const box = document.getElementById("outputClienti");
-  if (!box) return;
 
-  const cliente = clientiData.find(c => String(c.ID_Cliente) === String(idCliente));
+  const cliente = clientiData.find(c => c.ID_Cliente == idCliente);
+  if (!cliente) return;
 
-  if (!cliente) {
-    box.classList.remove("hidden");
-    box.innerHTML = `
-      <div class="card-ios">
-        <div class="card-title">Cliente non trovato</div>
-        <div class="card-actions">
-          <button onclick="chiudiDettaglioCliente()">Chiudi</button>
-        </div>
+  animateView(box, `
+    <div class="app-toolbar">
+      <button class="app-back-btn" onclick="chiudiDettaglioCliente()">← Clienti</button>
+    </div>
+
+    <div class="card-ios">
+      <div class="card-title">
+        ${cliente.Nome} ${cliente.Cognome}
       </div>
-    `;
-    return;
-  }
+
+      <div class="card-sub">📞 ${cliente.Telefono}</div>
+      <div class="card-sub">📧 ${cliente.Email}</div>
+
+      <div class="card-actions">
+        <button onclick="mostraModificaClienteInline('${cliente.ID_Cliente}')">✏️ Modifica</button>
+        <button onclick="chiudiDettaglioCliente()">Chiudi</button>
+      </div>
+    </div>
+  `);
+}
 
   box.classList.remove("hidden");
 
@@ -1578,11 +1667,16 @@ function mostraPrenotazioniCliente(idCliente) {
 }
 
 function chiudiDettaglioCliente() {
-  const box = document.getElementById("outputClienti");
-  if (!box) return;
+  renderClienti();
 
- renderClienti();
+  const box = document.getElementById("outputClienti");
+
+  if (isMobile()) {
+    box.classList.add("view-back-enter");
+    setTimeout(() => box.classList.remove("view-back-enter"), 250);
+  }
 }
+
 
 function mostraModificaClienteInline(idCliente) {
   const box = document.getElementById("outputClienti");
