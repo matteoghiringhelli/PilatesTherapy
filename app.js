@@ -1806,6 +1806,12 @@ function scrollToSection(sectionId) {
 
 let pacchettiData = [];
 
+let daPagareManuale = false;
+
+function segnaDaPagareManuale() {
+  daPagareManuale = true;
+}
+
 const TIPI_PACCHETTO = {
   "Privata - 1": {
     Tipologia: "Privata",
@@ -1979,7 +1985,13 @@ function aggiornaAnteprimaPacchetto() {
   const validoAInput = document.getElementById("pac_valido_a");
 
   const lezioniBase = tipo ? Number(tipo.Lezioni_Base || 0) : 0;
-  const lezioniAdd = Number(lezioniAddInput?.value || 0);
+
+  let lezioniAdd = Number(lezioniAddInput?.value || 0);
+  if (lezioniAdd < 0) {
+    lezioniAdd = 0;
+    if (lezioniAddInput) lezioniAddInput.value = "0";
+  }
+
   const lezioniTotali = lezioniBase + lezioniAdd;
 
   if (lezioniBaseInput) lezioniBaseInput.value = tipo ? lezioniBase : "";
@@ -1989,7 +2001,19 @@ function aggiornaAnteprimaPacchetto() {
   const flagPagato = flagPagatoInput?.value || "Si";
 
   if (daPagareInput) {
-    daPagareInput.value = flagPagato === "Si" ? "0" : String(prezzo);
+    if (flagPagato === "Si") {
+      daPagareInput.value = "0";
+      daPagareInput.readOnly = true;
+      daPagareInput.required = false;
+      daPagareManuale = false;
+    } else {
+      daPagareInput.readOnly = false;
+      daPagareInput.required = true;
+
+      if (!daPagareManuale) {
+        daPagareInput.value = String(prezzo);
+      }
+    }
   }
 
   if (validoAInput) {
@@ -2040,7 +2064,10 @@ async function aggiungiPacchetto() {
   const Prezzo = Number(document.getElementById("pac_prezzo")?.value || 0);
   const Flag_Pagato = document.getElementById("pac_flag_pagato")?.value || "Si";
   const Flag_C = document.getElementById("pac_flag_c")?.value || "Si";
-  const Da_Pagare = Number(document.getElementById("pac_da_pagare")?.value || 0);
+
+  const daPagareRaw = document.getElementById("pac_da_pagare")?.value;
+  const Da_Pagare = Flag_Pagato === "Si" ? 0 : Number(daPagareRaw || 0);
+
   const Fattura_Nr = document.getElementById("pac_fattura_nr")?.value.trim() || "";
   const Data_Fattura = document.getElementById("pac_data_fattura")?.value || "";
   const Valido_Da = document.getElementById("pac_valido_da")?.value || "";
@@ -2062,6 +2089,23 @@ async function aggiungiPacchetto() {
     return;
   }
 
+  if (Lezioni_Add < 0) {
+    setStatus("Lezioni Add non può essere negativo", "err");
+    return;
+  }
+
+  if (Flag_Pagato === "No") {
+    if (daPagareRaw === "" || daPagareRaw === null || daPagareRaw === undefined) {
+      setStatus("Da Pagare è obbligatorio quando Pagato = No", "err");
+      return;
+    }
+
+    if (Da_Pagare < 0) {
+      setStatus("Da Pagare non può essere negativo", "err");
+      return;
+    }
+  }
+
   if (Flag_C === "No" && !Fattura_Nr) {
     setStatus("Fattura Nr obbligatoria quando Flag C = No", "err");
     return;
@@ -2079,7 +2123,7 @@ async function aggiungiPacchetto() {
     Flag_C,
     Da_Pagare,
     Fattura_Nr: Flag_C === "No" ? Fattura_Nr : "",
-    Data_Fattura,
+    Data_Fattura: Data_Fattura || null,
     Valido_Da,
     Valido_A,
     Stato
@@ -2106,11 +2150,12 @@ async function aggiungiPacchetto() {
 }
 
 function pulisciFormPacchetto() {
+  daPagareManuale = false;
+
   [
     "pac_cliente",
     "pac_tipo",
     "pac_lezioni_base",
-    "pac_lezioni_add",
     "pac_lezioni_totali",
     "pac_prezzo",
     "pac_da_pagare",
@@ -2122,19 +2167,24 @@ function pulisciFormPacchetto() {
   ].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-
-    if (id === "pac_lezioni_add") {
-      el.value = "0";
-    } else {
-      el.value = "";
-    }
+    el.value = "";
   });
+
+  const lezioniAdd = document.getElementById("pac_lezioni_add");
+  if (lezioniAdd) lezioniAdd.value = "0";
 
   const flagPagato = document.getElementById("pac_flag_pagato");
   if (flagPagato) flagPagato.value = "Si";
 
   const flagC = document.getElementById("pac_flag_c");
   if (flagC) flagC.value = "Si";
+
+  const daPagare = document.getElementById("pac_da_pagare");
+  if (daPagare) {
+    daPagare.value = "0";
+    daPagare.readOnly = true;
+    daPagare.required = false;
+  }
 }
 
 function renderPacchetti() {
