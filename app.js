@@ -90,6 +90,17 @@ function togglePrenotazioni() {
   el.classList.toggle("hidden");
 }
 
+function toggleNuovoCliente() {
+  const box = document.getElementById("nuovoClienteBox");
+  if (!box) return;
+
+  box.classList.toggle("hidden");
+
+  if (!box.classList.contains("hidden")) {
+    box.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
 async function reloadAll() {
   await loadClienti();
   await loadLezioni();
@@ -361,6 +372,7 @@ async function aggiungiCliente() {
   if (!payload.Nome || !payload.Cognome) {
     setStatus("Nome e Cognome sono obbligatori", "err");
     return;
+  document.getElementById("nuovoClienteBox")?.classList.add("hidden");
   }
 
   const { error } = await supabaseClient.from("clienti").insert([payload]);
