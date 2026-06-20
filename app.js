@@ -1400,24 +1400,32 @@ function mostraSchedaCliente(idCliente) {
   if (!cliente) return;
 
   animateView(box, `
-    <div class="app-toolbar">
-      <button class="app-back-btn" onclick="chiudiDettaglioCliente()">← Clienti</button>
-    </div>
+  <div class="app-toolbar">
+    <button class="app-back-btn" onclick="chiudiDettaglioCliente()">← Clienti</button>
+  </div>
 
+  <div style="padding: 12px 12px 80px 12px;">
+  
     <div class="card-ios">
       <div class="card-title">
         ${cliente.Nome} ${cliente.Cognome}
       </div>
 
-      <div class="card-sub">📞 ${cliente.Telefono}</div>
-      <div class="card-sub">📧 ${cliente.Email}</div>
+      <div class="card-sub">📞 ${cliente.Telefono || "-"}</div>
+      <div class="card-sub">📧 ${cliente.Email || "-"}</div>
+      <div class="card-sub">🏠 ${cliente.Indirizzo || "-"}</div>
+      <div class="card-sub">📍 ${cliente["Cittá"] || "-"}</div>
+      <div class="card-sub">📮 ${cliente.CAP || "-"}</div>
+      <div class="card-sub">🧾 ${cliente.Codice_Fiscale || "-"}</div>
 
       <div class="card-actions">
         <button onclick="mostraModificaClienteInline('${cliente.ID_Cliente}')">✏️ Modifica</button>
         <button onclick="chiudiDettaglioCliente()">Chiudi</button>
       </div>
     </div>
-  `);
+
+  </div>
+`);
 }
 
 
