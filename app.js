@@ -1420,69 +1420,7 @@ function mostraSchedaCliente(idCliente) {
   `);
 }
 
-  box.classList.remove("hidden");
 
-  box.innerHTML = `
-    <div class="card-ios">
-
-      <div class="card-title">
-        🔎 Scheda Cliente
-      </div>
-
-      <div class="card-sub">
-        <strong>ID Cliente:</strong> ${safe(cliente.ID_Cliente)}
-      </div>
-
-      <div class="card-sub">
-        <strong>Nome:</strong> ${safe(cliente.Nome)}
-      </div>
-
-      <div class="card-sub">
-        <strong>Cognome:</strong> ${safe(cliente.Cognome)}
-      </div>
-
-      <div class="card-sub">
-        <strong>Telefono:</strong> ${safe(cliente.Telefono)}
-      </div>
-
-      <div class="card-sub">
-        <strong>Email:</strong> ${safe(cliente.Email)}
-      </div>
-
-      <div class="card-sub">
-        <strong>Indirizzo:</strong> ${safe(cliente.Indirizzo)}
-      </div>
-
-      <div class="card-sub">
-        <strong>Città:</strong> ${safe(cliente["Cittá"])}
-      </div>
-
-      <div class="card-sub">
-        <strong>CAP:</strong> ${safe(cliente.CAP)}
-      </div>
-
-      <div class="card-sub">
-        <strong>Codice Fiscale:</strong> ${safe(cliente.Codice_Fiscale)}
-      </div>
-
-      <div class="card-sub">
-        <strong>Data Registrazione:</strong> ${safe(cliente.Data_Registrazione)}
-      </div>
-
-      <div class="card-actions">
-        <button onclick="mostraModificaClienteInline('${escapeQuote(cliente.ID_Cliente)}')">✏️ Modifica</button>
-        <button onclick="mostraPrenotazioniCliente('${escapeQuote(cliente.ID_Cliente)}')">📅 Prenotazioni</button>
-        <button onclick="chiudiDettaglioCliente()">Chiudi</button>
-      </div>
-
-    </div>
-  `;
-
-  box.scrollIntoView({
-    behavior: "smooth",
-    block: "start"
-  });
-}
 
 function mostraPrenotazioniCliente(idCliente) {
   const box = document.getElementById("outputClienti");
