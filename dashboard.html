@@ -573,6 +573,26 @@ body {
     </div>
   </div>
 
+<!-- ===================== PACCHETTI ===================== -->
+<div class="section">
+  <h2>Pacchetti</h2>
+
+  <div id="pacchettiSection" class="hidden">
+
+    <div class="form-row">
+      <button onclick="loadPacchetti()">Ricarica Pacchetti</button>
+    </div>
+
+    <!-- FUTURO: form aggiunta pacchetto -->
+
+    <div class="table-container">
+      <div id="outputPacchetti"></div>
+    </div>
+
+  </div>
+</div>
+``
+
 <!-- ===================== FOOTER MENU APP ===================== -->
 <div class="app-footer">
   <button id="tabClienti" class="footer-tab" onclick="vaiTab('clienti')">
@@ -589,6 +609,13 @@ body {
     <span>📝</span>
     Prenotazioni
   </button>
+
+  
+  <button id="tabPacchetti" class="footer-tab" onclick="vaiTab('pacchetti')">
+    <span>🎟️</span>
+    Pacchetti
+  </button>
+
 </div>
   
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
