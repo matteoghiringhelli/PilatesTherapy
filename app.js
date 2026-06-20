@@ -1726,13 +1726,15 @@ function vaiTab(tab) {
   const clientiSection = document.getElementById("clientiSection");
   const lezioniSection = document.getElementById("lezioniSection");
   const prenotazioniSection = document.getElementById("prenotazioniSection");
+  const pacchettiSection = document.getElementById("pacchettiSection");
 
   const tabClienti = document.getElementById("tabClienti");
   const tabLezioni = document.getElementById("tabLezioni");
   const tabPrenotazioni = document.getElementById("tabPrenotazioni");
+  const tabPacchetti = document.getElementById("tabPacchetti");
 
   // reset active tab
-  [tabClienti, tabLezioni, tabPrenotazioni].forEach(btn => {
+  [tabClienti, tabLezioni, tabPrenotazioni, tabPacchetti].forEach(btn => {
     if (btn) btn.classList.remove("active");
   });
 
@@ -1740,6 +1742,7 @@ function vaiTab(tab) {
   if (clientiSection) clientiSection.classList.add("hidden");
   if (lezioniSection) lezioniSection.classList.add("hidden");
   if (prenotazioniSection) prenotazioniSection.classList.add("hidden");
+  if (pacchettiSection) pacchettiSection.classList.add("hidden");
 
   // chiude eventuali dettagli aperti per evitare sovrapposizioni
   const dettaglioLezioneBox = document.getElementById("dettaglioLezioneBox");
@@ -1782,6 +1785,14 @@ function vaiTab(tab) {
 
     scrollToSection("prenotazioniSection");
   }
+
+  if (tab === "pacchetti") {
+    if (pacchettiSection) pacchettiSection.classList.remove("hidden");
+    if (tabPacchetti) tabPacchetti.classList.add("active");
+
+    renderPacchetti();
+    scrollToSection("pacchettiSection");
+}
 }
 
 function scrollToSection(sectionId) {
@@ -1794,6 +1805,68 @@ function scrollToSection(sectionId) {
       block: "start"
     });
   }, 80);
+}
+
+/* ===================== PACCHETTI ===================== */
+
+let pacchettiData = [];
+
+async function loadPacchetti() {
+  const { data, error } = await fetchAllRows(
+    "pacchetti",
+    "*",
+    "ID_Pacchetto",
+    false
+  );
+
+  if (error) {
+    console.error("Errore loadPacchetti:", error);
+    setStatus("Errore caricamento pacchetti", "err");
+    return;
+  }
+
+  pacchettiData = data || [];
+
+  renderPacchetti();
+}
+
+function renderPacchetti() {
+  const out = document.getElementById("outputPacchetti");
+  if (!out) return;
+
+  if (!pacchettiData.length) {
+    out.innerHTML = `<p class="muted">Nessun pacchetto trovato.</p>`;
+    return;
+  }
+
+  out.innerHTML = `
+    <table>
+      <tr>
+        <th>ID</th>
+        <th>Cliente</th>
+        <th>Tipo</th>
+        <th>Lezioni Totali</th>
+        <th>Pagato</th>
+        <th>Valido Da</th>
+        <th>Valido A</th>
+      </tr>
+      ${pacchettiData.map(p => {
+        const cliente = clientiData.find(c => c.ID_Cliente == p.ID_Cliente);
+
+        return `
+          <tr>
+            <td>${safe(p.ID_Pacchetto)}</td>
+            <td>${cliente ? safe(cliente.Nome + " " + cliente.Cognome) : "-"}</td>
+            <td>${safe(p.Tipo_Pacchetto)}</td>
+            <td>${safe(p.Lezioni_Totali)}</td>
+            <td>${p.Flag_Pagato === "Si" ? "✅" : "❌"}</td>
+            <td>${safe(p.Valido_Da)}</td>
+            <td>${safe(p.Valido_A)}</td>
+          </tr>
+        `;
+      }).join("")}
+    </table>
+  `;
 }
 
 console.log("APP JS CARICATO OK");
