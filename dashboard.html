@@ -417,30 +417,29 @@ body {
     <div id="clientiSection" class="hidden">
       <button onclick="loadClienti()">Ricarica Clienti</button>
 
-      <h3>Aggiungi Cliente</h3>
+      <button onclick="toggleNuovoCliente()">➕ Nuovo Cliente</button>
 
-      <div class="form-row">
-        <input id="new_nome" placeholder="Nome">
-        <input id="new_cognome" placeholder="Cognome">
-        <input id="new_telefono" placeholder="Telefono">
-        <input id="new_email" placeholder="Email">
-      </div>
+<div id="nuovoClienteBox" class="hidden">
 
-      <div class="form-row">
-        <input id="new_indirizzo" placeholder="Indirizzo">
-        <input id="new_citta" placeholder="Città">
-        <input id="new_cap" placeholder="CAP">
-        <input id="new_cf" placeholder="Codice Fiscale">
-      </div>
+  <h3>Aggiungi Cliente</h3>
 
-      <button onclick="aggiungiCliente()">Salva Cliente</button>
-
-      <div class="table-container">
-        <div id="outputClienti"></div>
-      </div>
-      <div id="outputDettaglioCliente" class="hidden"></div>
-    </div>
+  <div class="form-row">
+    <input id="new_nome" placeholder="Nome">
+    <input id="new_cognome" placeholder="Cognome">
+    <input id="new_telefono" placeholder="Telefono">
+    <input id="new_email" placeholder="Email">
   </div>
+
+  <div class="form-row">
+    <input id="new_indirizzo" placeholder="Indirizzo">
+    <input id="new_citta" placeholder="Città">
+    <input id="new_cap" placeholder="CAP">
+    <input id="new_cf" placeholder="Codice Fiscale">
+  </div>
+
+  <button onclick="aggiungiCliente()">Salva Cliente</button>
+
+</div>
 
   <!-- ===================== LEZIONI ===================== -->
   <div class="section">
