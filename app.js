@@ -1771,20 +1771,21 @@ function vaiTab(tab) {
   }
 
   if (tab === "prenotazioni") {
-    if (prenotazioniSection) prenotazioniSection.classList.remove("hidden");
-    if (tabPrenotazioni) tabPrenotazioni.classList.add("active");
+  if (prenotazioniSection) prenotazioniSection.classList.remove("hidden");
+  if (tabPrenotazioni) tabPrenotazioni.classList.add("active");
 
-    renderPrenotazioni();
+  loadPrenotazioni(); // ✅ fondamentale
 
-    scrollToSection("prenotazioniSection");
-  }
+  scrollToSection("prenotazioniSection");
+}
 
   if (tab === "pacchetti") {
-    if (pacchettiSection) pacchettiSection.classList.remove("hidden");
-    if (tabPacchetti) tabPacchetti.classList.add("active");
+  if (pacchettiSection) pacchettiSection.classList.remove("hidden");
+  if (tabPacchetti) tabPacchetti.classList.add("active");
 
-    renderPacchetti();
-    scrollToSection("pacchettiSection");
+  loadPacchetti(); // ✅
+
+  scrollToSection("pacchettiSection");
 }
 }
 
