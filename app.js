@@ -123,6 +123,7 @@ async function reloadAll() {
   await loadClienti();
   await loadLezioni();
   await loadPrenotazioni();
+  await loadPacchetti();
 }
 
 async function fetchAllRows(tableName, columns = "*", orderColumn = null, ascending = true) {
@@ -1805,6 +1806,79 @@ function scrollToSection(sectionId) {
 
 let pacchettiData = [];
 
+const TIPI_PACCHETTO = {
+  "Privata - 1": {
+    Tipologia: "Privata",
+    Lezioni_Base: 1,
+    Scadenza_Mesi: 3
+  },
+  "Privata - 10": {
+    Tipologia: "Privata",
+    Lezioni_Base: 10,
+    Scadenza_Mesi: 3
+  },
+  "Privata - 20": {
+    Tipologia: "Privata",
+    Lezioni_Base: 20,
+    Scadenza_Mesi: 6
+  },
+  "Privata BW - 20": {
+    Tipologia: "Privata",
+    Lezioni_Base: 20,
+    Scadenza_Mesi: 3
+  },
+  "Duetto - 1": {
+    Tipologia: "Duetto",
+    Lezioni_Base: 1,
+    Scadenza_Mesi: 1
+  },
+  "Duetto - 10": {
+    Tipologia: "Duetto",
+    Lezioni_Base: 10,
+    Scadenza_Mesi: 3
+  },
+  "Duetto - 20": {
+    Tipologia: "Duetto",
+    Lezioni_Base: 20,
+    Scadenza_Mesi: 6
+  },
+  "Duetto BW - 20": {
+    Tipologia: "Duetto",
+    Lezioni_Base: 20,
+    Scadenza_Mesi: 3
+  },
+  "Mini-Gruppo - 1": {
+    Tipologia: "Mini-Gruppo",
+    Lezioni_Base: 1,
+    Scadenza_Mesi: 1
+  },
+  "Mini-Gruppo - 10": {
+    Tipologia: "Mini-Gruppo",
+    Lezioni_Base: 10,
+    Scadenza_Mesi: 3
+  },
+  "Mini-Gruppo - 20": {
+    Tipologia: "Mini-Gruppo",
+    Lezioni_Base: 20,
+    Scadenza_Mesi: 6
+  },
+  "Mini-Gruppo BW - 20": {
+    Tipologia: "Mini-Gruppo",
+    Lezioni_Base: 20,
+    Scadenza_Mesi: 3
+  },
+  "Mini-Gruppo - 40": {
+    Tipologia: "Mini-Gruppo",
+    Lezioni_Base: 40,
+    Scadenza_Mesi: 12
+  },
+  "Mini-Gruppo BW - 40": {
+    Tipologia: "Mini-Gruppo",
+    Lezioni_Base: 40,
+    Scadenza_Mesi: 6
+  }
+};
+
 async function loadPacchetti() {
   const { data, error } = await fetchAllRows(
     "pacchetti",
@@ -1815,13 +1889,252 @@ async function loadPacchetti() {
 
   if (error) {
     console.error("Errore loadPacchetti:", error);
-    setStatus("Errore caricamento pacchetti", "err");
+    setStatus(`Errore caricamento pacchetti: ${error.message}`, "err");
     return;
   }
 
   pacchettiData = data || [];
 
+  renderSelectPacchettoClienti();
+  renderSelectTipiPacchetto();
   renderPacchetti();
+}
+
+function renderSelectPacchettoClienti() {
+  const sel = document.getElementById("pac_cliente");
+  if (!sel) return;
+
+  sel.innerHTML =
+    '<option value="">Seleziona cliente</option>' +
+    clientiData.map(c =>
+      `<option value="${escapeAttr(c.ID_Cliente)}">${safe(c.Nome)} ${safe(c.Cognome)}</option>`
+    ).join("");
+}
+
+function renderSelectTipiPacchetto() {
+  const sel = document.getElementById("pac_tipo");
+  if (!sel) return;
+
+  sel.innerHTML =
+    '<option value="">Tipo pacchetto</option>' +
+    Object.keys(TIPI_PACCHETTO).map(tipo =>
+      `<option value="${escapeAttr(tipo)}">${safe(tipo)}</option>`
+    ).join("");
+}
+
+function toggleNuovoPacchetto() {
+  const box = document.getElementById("nuovoPacchettoBox");
+  if (!box) return;
+
+  renderSelectPacchettoClienti();
+  renderSelectTipiPacchetto();
+
+  box.classList.toggle("hidden");
+
+  if (!box.classList.contains("hidden")) {
+    preparaNuovoPacchetto();
+    box.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+}
+
+function preparaNuovoPacchetto() {
+  const validoDa = document.getElementById("pac_valido_da");
+  if (validoDa && !validoDa.value) {
+    validoDa.value = getTodayString();
+  }
+
+  const lezioniAdd = document.getElementById("pac_lezioni_add");
+  if (lezioniAdd && lezioniAdd.value === "") {
+    lezioniAdd.value = "0";
+  }
+
+  aggiornaAnteprimaPacchetto();
+}
+
+function aggiungiMesiAData(dateString, mesi) {
+  if (!dateString) return "";
+
+  const d = new Date(`${dateString}T00:00:00`);
+  d.setMonth(d.getMonth() + Number(mesi || 0));
+
+  return formatDateLocal(d);
+}
+
+function aggiornaAnteprimaPacchetto() {
+  const tipoValue = document.getElementById("pac_tipo")?.value || "";
+  const tipo = TIPI_PACCHETTO[tipoValue];
+
+  const lezioniBaseInput = document.getElementById("pac_lezioni_base");
+  const lezioniAddInput = document.getElementById("pac_lezioni_add");
+  const lezioniTotaliInput = document.getElementById("pac_lezioni_totali");
+  const prezzoInput = document.getElementById("pac_prezzo");
+  const flagPagatoInput = document.getElementById("pac_flag_pagato");
+  const daPagareInput = document.getElementById("pac_da_pagare");
+  const flagCInput = document.getElementById("pac_flag_c");
+  const fatturaNrInput = document.getElementById("pac_fattura_nr");
+  const validoDaInput = document.getElementById("pac_valido_da");
+  const validoAInput = document.getElementById("pac_valido_a");
+
+  const lezioniBase = tipo ? Number(tipo.Lezioni_Base || 0) : 0;
+  const lezioniAdd = Number(lezioniAddInput?.value || 0);
+  const lezioniTotali = lezioniBase + lezioniAdd;
+
+  if (lezioniBaseInput) lezioniBaseInput.value = tipo ? lezioniBase : "";
+  if (lezioniTotaliInput) lezioniTotaliInput.value = tipo ? lezioniTotali : "";
+
+  const prezzo = Number(prezzoInput?.value || 0);
+  const flagPagato = flagPagatoInput?.value || "Si";
+
+  if (daPagareInput) {
+    daPagareInput.value = flagPagato === "Si" ? "0" : String(prezzo);
+  }
+
+  if (validoAInput) {
+    validoAInput.value = tipo && validoDaInput?.value
+      ? aggiungiMesiAData(validoDaInput.value, tipo.Scadenza_Mesi)
+      : "";
+  }
+
+  const flagC = flagCInput?.value || "Si";
+
+  if (fatturaNrInput) {
+    if (flagC === "No") {
+      fatturaNrInput.disabled = false;
+      fatturaNrInput.placeholder = "Fattura Nr obbligatoria";
+    } else {
+      fatturaNrInput.disabled = true;
+      fatturaNrInput.value = "";
+      fatturaNrInput.placeholder = "Fattura Nr non richiesta";
+    }
+  }
+}
+
+function generaNuovoIdPacchetto() {
+  const numeri = pacchettiData
+    .map(p => String(p.ID_Pacchetto || ""))
+    .filter(id => /^PC\d+$/.test(id))
+    .map(id => Number(id.replace("PC", "")))
+    .filter(n => !Number.isNaN(n));
+
+  if (!numeri.length) {
+    return "PC000001";
+  }
+
+  const prossimoNumero = Math.max(...numeri) + 1;
+  return "PC" + String(prossimoNumero).padStart(6, "0");
+}
+
+async function aggiungiPacchetto() {
+  aggiornaAnteprimaPacchetto();
+
+  const ID_Cliente = document.getElementById("pac_cliente")?.value || "";
+  const Tipo_Pacchetto = document.getElementById("pac_tipo")?.value || "";
+  const tipo = TIPI_PACCHETTO[Tipo_Pacchetto];
+
+  const Lezioni_Base = Number(document.getElementById("pac_lezioni_base")?.value || 0);
+  const Lezioni_Add = Number(document.getElementById("pac_lezioni_add")?.value || 0);
+  const Lezioni_Totali = Number(document.getElementById("pac_lezioni_totali")?.value || 0);
+  const Prezzo = Number(document.getElementById("pac_prezzo")?.value || 0);
+  const Flag_Pagato = document.getElementById("pac_flag_pagato")?.value || "Si";
+  const Flag_C = document.getElementById("pac_flag_c")?.value || "Si";
+  const Da_Pagare = Number(document.getElementById("pac_da_pagare")?.value || 0);
+  const Fattura_Nr = document.getElementById("pac_fattura_nr")?.value.trim() || "";
+  const Data_Fattura = document.getElementById("pac_data_fattura")?.value || "";
+  const Valido_Da = document.getElementById("pac_valido_da")?.value || "";
+  const Valido_A = document.getElementById("pac_valido_a")?.value || "";
+  const Stato = document.getElementById("pac_stato")?.value || "";
+
+  if (!ID_Cliente) {
+    setStatus("Seleziona un cliente per il pacchetto", "err");
+    return;
+  }
+
+  if (!Tipo_Pacchetto || !tipo) {
+    setStatus("Seleziona un tipo pacchetto valido", "err");
+    return;
+  }
+
+  if (!Valido_Da || !Valido_A) {
+    setStatus("Inserisci una data di inizio validità", "err");
+    return;
+  }
+
+  if (Flag_C === "No" && !Fattura_Nr) {
+    setStatus("Fattura Nr obbligatoria quando Flag C = No", "err");
+    return;
+  }
+
+  const payload = {
+    ID_Pacchetto: generaNuovoIdPacchetto(),
+    ID_Cliente,
+    Tipo_Pacchetto,
+    Lezioni_Base,
+    Lezioni_Add,
+    Lezioni_Totali,
+    Prezzo,
+    Flag_Pagato,
+    Flag_C,
+    Da_Pagare,
+    Fattura_Nr: Flag_C === "No" ? Fattura_Nr : "",
+    Data_Fattura,
+    Valido_Da,
+    Valido_A,
+    Stato
+  };
+
+  const { error } = await supabaseClient
+    .from("pacchetti")
+    .insert([payload]);
+
+  if (error) {
+    console.error("Errore aggiungiPacchetto:", error);
+    setStatus(`Errore salvataggio pacchetto: ${error.message}`, "err");
+    return;
+  }
+
+  pulisciFormPacchetto();
+
+  const box = document.getElementById("nuovoPacchettoBox");
+  if (box) box.classList.add("hidden");
+
+  await loadPacchetti();
+
+  setStatus("Pacchetto salvato correttamente ✅", "ok");
+}
+
+function pulisciFormPacchetto() {
+  [
+    "pac_cliente",
+    "pac_tipo",
+    "pac_lezioni_base",
+    "pac_lezioni_add",
+    "pac_lezioni_totali",
+    "pac_prezzo",
+    "pac_da_pagare",
+    "pac_fattura_nr",
+    "pac_data_fattura",
+    "pac_valido_da",
+    "pac_valido_a",
+    "pac_stato"
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    if (id === "pac_lezioni_add") {
+      el.value = "0";
+    } else {
+      el.value = "";
+    }
+  });
+
+  const flagPagato = document.getElementById("pac_flag_pagato");
+  if (flagPagato) flagPagato.value = "Si";
+
+  const flagC = document.getElementById("pac_flag_c");
+  if (flagC) flagC.value = "Si";
 }
 
 function renderPacchetti() {
@@ -1836,34 +2149,53 @@ function renderPacchetti() {
   out.innerHTML = `
     <table>
       <tr>
-        <th>ID</th>
+        <th>ID_Pacchetto</th>
         <th>Cliente</th>
-        <th>Tipo</th>
-        <th>Lezioni Totali</th>
-        <th>Pagato</th>
-        <th>Valido Da</th>
-        <th>Valido A</th>
+        <th>ID_Cliente</th>
+        <th>Tipo_Pacchetto</th>
+        <th>Lezioni_Base</th>
+        <th>Lezioni_Add</th>
+        <th>Lezioni_Totali</th>
+        <th>Prezzo</th>
+        <th>Flag_Pagato</th>
+        <th>Flag_C</th>
+        <th>Da_Pagare</th>
+        <th>Fattura_Nr</th>
+        <th>Data_Fattura</th>
+        <th>Valido_Da</th>
+        <th>Valido_A</th>
+        <th>Stato</th>
       </tr>
       ${pacchettiData.map(p => {
-        const cliente = clientiData.find(c => c.ID_Cliente == p.ID_Cliente);
+        const cliente = clientiData.find(c => String(c.ID_Cliente) === String(p.ID_Cliente));
 
         return `
           <tr>
             <td>${safe(p.ID_Pacchetto)}</td>
             <td>${cliente ? safe(cliente.Nome + " " + cliente.Cognome) : "-"}</td>
+            <td>${safe(p.ID_Cliente)}</td>
             <td>${safe(p.Tipo_Pacchetto)}</td>
+            <td>${safe(p.Lezioni_Base)}</td>
+            <td>${safe(p.Lezioni_Add)}</td>
             <td>${safe(p.Lezioni_Totali)}</td>
-            <td>${p.Flag_Pagato === "Si" ? "✅" : "❌"}</td>
+            <td>${safe(p.Prezzo)}</td>
+            <td>${safe(p.Flag_Pagato)}</td>
+            <td>${safe(p.Flag_C)}</td>
+            <td>${safe(p.Da_Pagare)}</td>
+            <td>${safe(p.Fattura_Nr)}</td>
+            <td>${safe(p.Data_Fattura)}</td>
             <td>${safe(p.Valido_Da)}</td>
             <td>${safe(p.Valido_A)}</td>
+            <td>${safe(p.Stato)}</td>
           </tr>
         `;
       }).join("")}
     </table>
   `;
+
   setTimeout(() => {
-  renderPacchettiMobileSafe();
-}, 50);
+    renderPacchettiMobileSafe();
+  }, 50);
 }
 
 function renderPacchettiMobileSafe() {
@@ -1883,15 +2215,24 @@ function renderPacchettiMobileSafe() {
 
     for (let i = 1; i < rows.length; i++) {
       const cells = rows[i].querySelectorAll("td");
-      if (!cells || cells.length < 7) continue;
+      if (!cells || cells.length < 16) continue;
 
-      const id = cells[0].innerText;
+      const idPacchetto = cells[0].innerText;
       const cliente = cells[1].innerText;
-      const tipo = cells[2].innerText;
-      const lezioni = cells[3].innerText;
-      const pagato = cells[4].innerText;
-      const validoDa = cells[5].innerText;
-      const validoA = cells[6].innerText;
+      const idCliente = cells[2].innerText;
+      const tipo = cells[3].innerText;
+      const base = cells[4].innerText;
+      const add = cells[5].innerText;
+      const totali = cells[6].innerText;
+      const prezzo = cells[7].innerText;
+      const pagato = cells[8].innerText;
+      const flagC = cells[9].innerText;
+      const daPagare = cells[10].innerText;
+      const fatturaNr = cells[11].innerText;
+      const dataFattura = cells[12].innerText;
+      const validoDa = cells[13].innerText;
+      const validoA = cells[14].innerText;
+      const stato = cells[15].innerText;
 
       cards.push(`
         <div class="card-ios">
@@ -1904,19 +2245,35 @@ function renderPacchettiMobileSafe() {
           </div>
 
           <div class="card-sub">
-            📊 Lezioni: ${lezioni}
+            🆔 Pacchetto: ${idPacchetto}
           </div>
 
           <div class="card-sub">
-            ${pagato.includes("✅") ? "✅ Pagato" : "❌ Da pagare"}
+            ID Cliente: ${idCliente}
           </div>
 
           <div class="card-sub">
-            📅 ${validoDa} → ${validoA}
+            📊 Lezioni: ${totali} — Base: ${base} — Add: ${add}
           </div>
 
           <div class="card-sub">
-            🆔 ${id}
+            💰 Prezzo: ${prezzo} — Da pagare: ${daPagare}
+          </div>
+
+          <div class="card-sub">
+            Pagato: ${pagato} — Flag C: ${flagC}
+          </div>
+
+          <div class="card-sub">
+            Fattura: ${fatturaNr || "-"} — Data: ${dataFattura || "-"}
+          </div>
+
+          <div class="card-sub">
+            📅 Validità: ${validoDa} → ${validoA}
+          </div>
+
+          <div class="card-sub">
+            Stato: ${stato || "Valido"}
           </div>
         </div>
       `);
