@@ -27,6 +27,7 @@ let filtroLezioniData = "";
 let filtroPrenotazioni = "tutte";
 let filtroPrenotazioniData = "";
 let searchPrenotazioni = "";
+let searchClienti = "";
 
 
 window.addEventListener("DOMContentLoaded", async () => {
@@ -102,6 +103,19 @@ function toggleNuovoCliente() {
       block: "start"
     });
   }
+}
+
+function applySearchClienti() {
+  const input = document.getElementById("search_clienti");
+  searchClienti = input ? input.value.toLowerCase().trim() : "";
+  renderClienti();
+}
+
+function resetSearchClienti() {
+  searchClienti = "";
+  const input = document.getElementById("search_clienti");
+  if (input) input.value = "";
+  renderClienti();
 }
 
 
@@ -321,7 +335,22 @@ function renderClienti() {
         <th>Data_Registrazione</th>
         <th>Azioni</th>
       </tr>
-      ${clientiData.map(c => `
+      ${clientiData
+  .filter(c => {
+    if (!searchClienti) return true;
+
+    const nome = (c.Nome || "").toLowerCase();
+    const cognome = (c.Cognome || "").toLowerCase();
+    const telefono = (c.Telefono || "").toLowerCase();
+
+    return (
+      nome.includes(searchClienti) ||
+      cognome.includes(searchClienti) ||
+      telefono.includes(searchClienti)
+    );
+  })
+  .map(c => `
+ `
         <tr>
           <td>${safe(c.ID_Cliente)}</td>
           <td>${safe(c.Nome)}</td>
