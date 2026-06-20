@@ -97,6 +97,20 @@ function toggleNuovoCliente() {
   box.classList.toggle("hidden");
 
   if (!box.classList.contains("hidden")) {
+    box.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+}
+
+function toggleNuovoCliente() {
+  const box = document.getElementById("nuovoClienteBox");
+  if (!box) return;
+
+  box.classList.toggle("hidden");
+
+  if (!box.classList.contains("hidden")) {
     box.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 }
@@ -384,8 +398,14 @@ async function aggiungiCliente() {
   }
 
   pulisciFormCliente();
-  await loadClienti();
-  setStatus("Cliente salvato correttamente ✅", "ok");
+
+const nuovoClienteBox = document.getElementById("nuovoClienteBox");
+if (nuovoClienteBox) {
+  nuovoClienteBox.classList.add("hidden");
+}
+
+await loadClienti();
+setStatus("Cliente salvato correttamente ✅", "ok");
 }
 
 async function modificaCliente(id) {
@@ -776,7 +796,7 @@ function getPrenotazioniFiltrate() {
 
     // ✅ filtro ricerca cliente
     return passaFiltroData;
-    return passaFiltroData && passaRicerca;
+    
   });
 }
 
