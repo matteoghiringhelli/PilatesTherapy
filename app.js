@@ -320,6 +320,22 @@ function renderClienti() {
   const out = document.getElementById("outputClienti");
   if (!out) return;
 
+  const clientiFiltrati = clientiData.filter(c => {
+    if (!searchClienti) return true;
+
+    const nome = (c.Nome || "").toLowerCase();
+    const cognome = (c.Cognome || "").toLowerCase();
+    const telefono = (c.Telefono || "").toLowerCase();
+    const email = (c.Email || "").toLowerCase();
+
+    return (
+      nome.includes(searchClienti) ||
+      cognome.includes(searchClienti) ||
+      telefono.includes(searchClienti) ||
+      email.includes(searchClienti)
+    );
+  });
+
   out.innerHTML = `
     <table>
       <tr>
@@ -335,46 +351,40 @@ function renderClienti() {
         <th>Data_Registrazione</th>
         <th>Azioni</th>
       </tr>
-      ${clientiData
-  .filter(c => {
-    if (!searchClienti) return true;
-
-    const nome = (c.Nome || "").toLowerCase();
-    const cognome = (c.Cognome || "").toLowerCase();
-    const telefono = (c.Telefono || "").toLowerCase();
-
-    return (
-      nome.includes(searchClienti) ||
-      cognome.includes(searchClienti) ||
-      telefono.includes(searchClienti)
-    );
-  })
-  .map(c => `
- `
-        <tr>
-          <td>${safe(c.ID_Cliente)}</td>
-          <td>${safe(c.Nome)}</td>
-          <td>${safe(c.Cognome)}</td>
-          <td>${safe(c.Telefono)}</td>
-          <td>${safe(c.Email)}</td>
-          <td>${safe(c.Indirizzo)}</td>
-          <td>${safe(c["Cittá"])}</td>
-          <td>${safe(c.CAP)}</td>
-          <td>${safe(c.Codice_Fiscale)}</td>
-          <td>${safe(c.Data_Registrazione)}</td>
-          <td>
-            <button onclick="modificaCliente('${escapeQuote(c.ID_Cliente)}')">Modifica</button>
-            <button onclick="eliminaCliente('${escapeQuote(c.ID_Cliente)}')">Elimina</button>
-          </td>
-        </tr>
-      `).join("")}
+      ${
+        clientiFiltrati.length
+          ? clientiFiltrati.map(c => `
+              <tr>
+                <td>${safe(c.ID_Cliente)}</td>
+                <td>${safe(c.Nome)}</td>
+                <td>${safe(c.Cognome)}</td>
+                <td>${safe(c.Telefono)}</td>
+                <td>${safe(c.Email)}</td>
+                <td>${safe(c.Indirizzo)}</td>
+                <td>${safe(c["Cittá"])}</td>
+                <td>${safe(c.CAP)}</td>
+                <td>${safe(c.Codice_Fiscale)}</td>
+                <td>${safe(c.Data_Registrazione)}</td>
+                <td>
+                  <button onclick="mostraSchedaCliente('${escapeQuote(c.ID_Cliente)}')">🔎 Scheda</button>
+                  <button onclick="mostraPrenotazioniCliente('${escapeQuote(c.ID_Cliente)}')">📅 Prenotazioni</button>
+                  <button onclick="modificaCliente('${escapeQuote(c.ID_Cliente)}')">Modifica</button>
+                  <button onclick="eliminaCliente('${escapeQuote(c.ID_Cliente)}')">Elimina</button>
+                </td>
+              </tr>
+            `).join("")
+          : `
+              <tr>
+                <td colspan="11">Nessun cliente trovato.</td>
+              </tr>
+            `
+      }
     </table>
   `;
-  
-setTimeout(() => {
-  renderClientiMobileSafe();
-}, 50);
 
+  setTimeout(() => {
+    renderClientiMobileSafe();
+  }, 50);
 }
 
 function renderSelectClienti() {
@@ -402,11 +412,11 @@ async function aggiungiCliente() {
     Data_Registrazione: new Date().toISOString().split("T")[0]
   };
 
-  if (!payload.Nome || !payload.Cognome) {
-    setStatus("Nome e Cognome sono obbligatori", "err");
-    return;
-  document.getElementById("nuovoClienteBox")?.classList.add("hidden");
-  }
+if (!payload.Nome || !payload.Cognome) {
+  setStatus("Nome e Cognome sono obbligatori", "err");
+  return;
+}
+
 
   const { error } = await supabaseClient.from("clienti").insert([payload]);
 
