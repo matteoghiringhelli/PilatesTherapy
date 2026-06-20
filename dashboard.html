@@ -416,6 +416,15 @@ body {
 
     <div id="clientiSection">
 
+      <div class="filters-row">
+  <input 
+    id="search_clienti" 
+    placeholder="🔍 Cerca cliente..." 
+    oninput="applySearchClienti()"
+  >
+  <button onclick="resetSearchClienti()">Reset</button>
+</div>
+
       <div class="form-row">
   <button onclick="loadClienti()">Ricarica Clienti</button>
   <button onclick="toggleNuovoCliente()">➕ Aggiungi Cliente</button>
