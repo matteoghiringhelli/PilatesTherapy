@@ -1861,6 +1861,78 @@ function renderPacchetti() {
       }).join("")}
     </table>
   `;
+  setTimeout(() => {
+  renderPacchettiMobileSafe();
+}, 50);
+}
+
+function renderPacchettiMobileSafe() {
+  try {
+    if (window.innerWidth > 768) return;
+
+    const out = document.getElementById("outputPacchetti");
+    if (!out) return;
+
+    const table = out.querySelector("table");
+    if (!table) return;
+
+    const rows = table.querySelectorAll("tr");
+    if (!rows || rows.length <= 1) return;
+
+    const cards = [];
+
+    for (let i = 1; i < rows.length; i++) {
+      const cells = rows[i].querySelectorAll("td");
+      if (!cells || cells.length < 7) continue;
+
+      const id = cells[0].innerText;
+      const cliente = cells[1].innerText;
+      const tipo = cells[2].innerText;
+      const lezioni = cells[3].innerText;
+      const pagato = cells[4].innerText;
+      const validoDa = cells[5].innerText;
+      const validoA = cells[6].innerText;
+
+      cards.push(`
+        <div class="card-ios">
+          <div class="card-title">
+            🎟️ ${tipo}
+          </div>
+
+          <div class="card-sub">
+            👤 ${cliente}
+          </div>
+
+          <div class="card-sub">
+            📊 Lezioni: ${lezioni}
+          </div>
+
+          <div class="card-sub">
+            ${pagato.includes("✅") ? "✅ Pagato" : "❌ Da pagare"}
+          </div>
+
+          <div class="card-sub">
+            📅 ${validoDa} → ${validoA}
+          </div>
+
+          <div class="card-sub">
+            🆔 ${id}
+          </div>
+        </div>
+      `);
+    }
+
+    if (cards.length > 0) {
+      out.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          ${cards.join("")}
+        </div>
+      `;
+    }
+
+  } catch (err) {
+    console.error("Errore renderPacchettiMobileSafe:", err);
+  }
 }
 
 console.log("APP JS CARICATO OK");
