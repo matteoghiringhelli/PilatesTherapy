@@ -763,13 +763,7 @@ function getPrenotazioniFiltrate() {
     const passaFiltroData = filtraPerData(dataLezione, filtroPrenotazioni, filtroPrenotazioniData);
 
     // ✅ filtro ricerca cliente
-    let passaRicerca = true;
-
-    if (searchPrenotazioni && cliente) {
-      const nomeCompleto = `${cliente.Nome || ""} ${cliente.Cognome || ""}`.toLowerCase();
-      passaRicerca = nomeCompleto.includes(searchPrenotazioni);
-    }
-
+    return passaFiltroData;
     return passaFiltroData && passaRicerca;
   });
 }
