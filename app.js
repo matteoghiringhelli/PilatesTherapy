@@ -265,6 +265,24 @@ async function loadClienti() {
   }
 
   clientiData = data || [];
+  
+  // ✅ ORDINA PER Nome → Cognome
+clientiData.sort((a, b) => {
+  const nomeA = (a.Nome || "").toLowerCase();
+  const nomeB = (b.Nome || "").toLowerCase();
+
+  if (nomeA < nomeB) return -1;
+  if (nomeA > nomeB) return 1;
+
+  const cognomeA = (a.Cognome || "").toLowerCase();
+  const cognomeB = (b.Cognome || "").toLowerCase();
+
+  if (cognomeA < cognomeB) return -1;
+  if (cognomeA > cognomeB) return 1;
+
+  return 0;
+});
+
   renderClienti();
   renderSelectClienti();
 }
