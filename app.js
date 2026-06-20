@@ -28,11 +28,18 @@ let filtroPrenotazioni = "tutte";
 let filtroPrenotazioniData = "";
 let searchPrenotazioni = "";
 
+
 window.addEventListener("DOMContentLoaded", async () => {
   try {
     console.log("APP VERSION:", APP_VERSION);
     generaOrari();
     await reloadAll();
+
+    // apertura iniziale stile app
+    setTimeout(() => {
+      vaiTab("clienti");
+    }, 150);
+
     setStatus("Dashboard caricata correttamente ✅ - " + APP_VERSION, "ok");
   } catch (error) {
     console.error("Errore inizializzazione:", error);
@@ -1638,6 +1645,82 @@ async function salvaModificaClienteInline(idCliente) {
   setTimeout(() => {
     mostraSchedaCliente(idCliente);
   }, 100);
+}
+
+/* ===================== FOOTER MENU APP ===================== */
+
+function vaiTab(tab) {
+  const clientiSection = document.getElementById("clientiSection");
+  const lezioniSection = document.getElementById("lezioniSection");
+  const prenotazioniSection = document.getElementById("prenotazioniSection");
+
+  const tabClienti = document.getElementById("tabClienti");
+  const tabLezioni = document.getElementById("tabLezioni");
+  const tabPrenotazioni = document.getElementById("tabPrenotazioni");
+
+  // reset active tab
+  [tabClienti, tabLezioni, tabPrenotazioni].forEach(btn => {
+    if (btn) btn.classList.remove("active");
+  });
+
+  // chiude tutte le sezioni principali
+  if (clientiSection) clientiSection.classList.add("hidden");
+  if (lezioniSection) lezioniSection.classList.add("hidden");
+  if (prenotazioniSection) prenotazioniSection.classList.add("hidden");
+
+  // chiude eventuali dettagli aperti per evitare sovrapposizioni
+  const dettaglioLezioneBox = document.getElementById("dettaglioLezioneBox");
+  if (dettaglioLezioneBox) {
+    dettaglioLezioneBox.innerHTML = "";
+    dettaglioLezioneBox.classList.add("hidden");
+  }
+
+  const outputStoricoCliente = document.getElementById("outputStoricoCliente");
+  if (outputStoricoCliente) {
+    outputStoricoCliente.innerHTML = `
+      <p class="muted">Clicca sul nome di un cliente nella tabella prenotazioni per vedere il suo storico.</p>
+    `;
+  }
+
+  // apre la sezione scelta
+  if (tab === "clienti") {
+    if (clientiSection) clientiSection.classList.remove("hidden");
+    if (tabClienti) tabClienti.classList.add("active");
+
+    renderClienti();
+
+    scrollToSection("clientiSection");
+  }
+
+  if (tab === "lezioni") {
+    if (lezioniSection) lezioniSection.classList.remove("hidden");
+    if (tabLezioni) tabLezioni.classList.add("active");
+
+    renderLezioni();
+
+    scrollToSection("lezioniSection");
+  }
+
+  if (tab === "prenotazioni") {
+    if (prenotazioniSection) prenotazioniSection.classList.remove("hidden");
+    if (tabPrenotazioni) tabPrenotazioni.classList.add("active");
+
+    renderPrenotazioni();
+
+    scrollToSection("prenotazioniSection");
+  }
+}
+
+function scrollToSection(sectionId) {
+  const section = document.getElementById(sectionId);
+  if (!section) return;
+
+  setTimeout(() => {
+    section.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }, 80);
 }
 
 console.log("APP JS CARICATO OK");
