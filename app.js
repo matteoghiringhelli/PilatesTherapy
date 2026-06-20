@@ -1328,28 +1328,19 @@ function renderClientiMobileSafe() {
       const azioni = cells[10].innerHTML;
 
       cards.push(`
-        <div class="card-ios">
+  <div class="card-ios">
+    <div class="card-title">
+      ${nome} ${cognome}
+    </div>
 
-          <div class="card-title">
-            ${nome} ${cognome}
-          </div>
+    <div class="card-sub">📞 ${telefono}</div>
+    <div class="card-sub">📧 ${email}</div>
 
-          <div class="card-sub">
-            📞 ${telefono}
-          </div>
-
-          <div class="card-sub">
-            📧 ${email}
-          </div>
-
-          <div class="card-actions">
-            <button onclick="mostraSchedaCliente('${escapeQuote(id)}')">🔎 Scheda</button>
-            <button onclick="mostraPrenotazioniCliente('${escapeQuote(id)}')">📅 Prenotazioni</button>
-            ${azioni}
-          </div>
-
-        </div>
-      `);
+    <div class="card-actions">
+      ${azioni}
+    </div>
+  </div>
+`);
     }
 
     if (cards.length > 0) {
