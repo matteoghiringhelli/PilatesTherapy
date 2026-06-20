@@ -1733,10 +1733,12 @@ function vaiTab(tab) {
   const tabPrenotazioni = document.getElementById("tabPrenotazioni");
   const tabPacchetti = document.getElementById("tabPacchetti");
 
+
   // reset active tab
   [tabClienti, tabLezioni, tabPrenotazioni, tabPacchetti].forEach(btn => {
     if (btn) btn.classList.remove("active");
-  });
+    });
+
 
   // chiude tutte le sezioni principali
   if (clientiSection) clientiSection.classList.add("hidden");
