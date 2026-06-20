@@ -327,6 +327,70 @@
   color: #007aff;
   font-weight: 600;
 }
+
+/* ===== FOOTER MENU STILE APP ===== */
+
+body {
+  padding-bottom: 90px;
+}
+
+.app-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 74px;
+  background: rgba(255, 255, 255, 0.94);
+  border-top: 1px solid #d1d1d6;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 999;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.footer-tab {
+  flex: 1;
+  height: 58px;
+  border: none;
+  background: transparent;
+  color: #7a7a7a;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 0;
+}
+
+.footer-tab span {
+  font-size: 22px;
+  line-height: 22px;
+}
+
+.footer-tab.active {
+  color: #007aff;
+  background: transparent;
+}
+
+.footer-tab:active {
+  transform: scale(0.96);
+}
+
+/* Mobile: nascondiamo un po' i vecchi toggle perché ora c'è il footer */
+@media (max-width: 768px) {
+  .section > button {
+    display: none;
+  }
+
+  .top-actions {
+    padding-left: 12px;
+  }
+}
     
   </style>
 </head>
@@ -496,6 +560,24 @@
     </div>
   </div>
 
+<!-- ===================== FOOTER MENU APP ===================== -->
+<div class="app-footer">
+  <button id="tabClienti" class="footer-tab" onclick="vaiTab('clienti')">
+    <span>👥</span>
+    Clienti
+  </button>
+
+  <button id="tabLezioni" class="footer-tab" onclick="vaiTab('lezioni')">
+    <span>📅</span>
+    Lezioni
+  </button>
+
+  <button id="tabPrenotazioni" class="footer-tab" onclick="vaiTab('prenotazioni')">
+    <span>📝</span>
+    Prenotazioni
+  </button>
+</div>
+  
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="app.js?v=ux1"></script>
 
