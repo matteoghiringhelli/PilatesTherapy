@@ -104,16 +104,6 @@ function toggleNuovoCliente() {
   }
 }
 
-function toggleNuovoCliente() {
-  const box = document.getElementById("nuovoClienteBox");
-  if (!box) return;
-
-  box.classList.toggle("hidden");
-
-  if (!box.classList.contains("hidden")) {
-    box.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-}
 
 async function reloadAll() {
   await loadClienti();
