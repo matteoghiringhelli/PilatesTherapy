@@ -1828,11 +1828,8 @@ function mostraSchedaCliente(idCliente) {
       <div class="card-actions">
         <button onclick="mostraModificaClienteInline('${cliente.ID_Cliente}')">✏️ Modifica</button>
         <button onclick="eliminaCliente('${escapeQuote(cliente.ID_Cliente)}')">🗑️ Elimina</button>
-        <button onclick="chiudiDettaglioCliente()">Indietro</button>
-      </div>
         <button onclick="inviaWhatsAppCliente('${escapeQuote(cliente.ID_Cliente)}')">📲 WhatsApp</button>
-        <button onclick="mostraModificaClienteInline('${cliente.ID_Cliente}')">✏️ Modifica</button>
-        <button onclick="chiudiDettaglioCliente()">Chiudi</button>
+        <button onclick="chiudiDettaglioCliente()">← Indietro</button>
       </div>
     </div>
 
@@ -1927,11 +1924,9 @@ function mostraPrenotazioniCliente(idCliente) {
         }
       </div>
 
-      <div class="card-actions">
-        <button onclick="inviaWhatsAppCliente('${escapeQuote(cliente.ID_Cliente)}')">📲 WhatsApp</button>
-        <button onclick="mostraSchedaCliente('${escapeQuote(cliente.ID_Cliente)}')">🔎 Scheda</button>
-        <button onclick="chiudiDettaglioCliente()">Chiudi</button>
-      </div>
+      <div class="app-toolbar">
+        <button class="app-back-btn" onclick="chiudiDettaglioCliente()">← Indietro</button>
+      </div
 
     </div>
   `;
@@ -2481,7 +2476,7 @@ function aggiornaAnteprimaPacchetto() {
   if (fatturaNrInput) {
     if (flagC === "No") {
       fatturaNrInput.disabled = false;
-      fatturaNrInput.placeholder = "Fattura Nr obbligatoria";
+      fatturaNrInput.placeholder = "Fattura Nr (opzionale)";
     } else {
       fatturaNrInput.disabled = true;
       fatturaNrInput.value = "";
@@ -2837,25 +2832,14 @@ function getAvvisiReportPacchetto(pacchetto) {
       tipo: "rosso",
       testo: "Pacchetto esaurito"
     });
-  } else if (lezioniTotali > 3 && saldo <= 3) {
+  } else if (saldo <= 2 && saldo > 0) {
     avvisi.push({
       tipo: "giallo",
       testo: `Lezioni residue basse: ${saldo}`
     });
   }
 
-  if (isPacchettoScaduto(pacchetto)) {
-    avvisi.push({
-      tipo: "rosso",
-      testo: `Pacchetto scaduto il ${pacchetto.Valido_A}`
-    });
-  } else if (giorniScadenza !== null && giorniScadenza <= 14) {
-    avvisi.push({
-      tipo: "giallo",
-      testo: `Scadenza vicina: ${giorniScadenza} giorni`
-    });
-  }
-
+  
   if (daPagare > 0) {
     avvisi.push({
       tipo: "blu",
