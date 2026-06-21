@@ -1617,8 +1617,9 @@ function renderClientiMobileSafe() {
     <div class="card-sub">📧 ${email}</div>
 
     <div class="card-actions">
-    ${azioni}
-    <button onclick="mostraPacchettiCliente('${escapeQuote(id)}')">🎟️ Pacchetti</button>
+      <button onclick="inviaWhatsAppCliente('${escapeQuote(id)}')">📲 WhatsApp</button>
+      ${azioni}
+      <button onclick="mostraPacchettiCliente('${escapeQuote(id)}')">🎟️ Pacchetti</button>
     </div>
 
   </div>
