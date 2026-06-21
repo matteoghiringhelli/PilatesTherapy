@@ -711,6 +711,135 @@ function renderSelectLezioni() {
     }).join("");
 }
 
+/* ===================== PACCHETTI PER PRENOTAZIONI ===================== */
+
+function getTipologiaPacchetto(tipoPacchetto) {
+  const info = TIPI_PACCHETTO[tipoPacchetto];
+  return info ? info.Tipologia : "";
+}
+
+function contaPrenotazioniPacchetto(idPacchetto) {
+  return prenotazioniData.filter(p =>
+    String(p.ID_Pacchetto || "") === String(idPacchetto || "")
+  ).length;
+}
+
+function getLezioniResiduePacchetto(pacchetto) {
+  const totali = Number(pacchetto.Lezioni_Totali || 0);
+  const usate = contaPrenotazioniPacchetto(pacchetto.ID_Pacchetto);
+  return totali - usate;
+}
+
+function pacchettoCompatibilePerLezione(pacchetto, lezione) {
+  if (!pacchetto || !lezione) return false;
+
+  const stato = String(pacchetto.Stato || "").toLowerCase();
+  if (stato === "chiuso") return false;
+
+  const tipologiaPacchetto = getTipologiaPacchetto(pacchetto.Tipo_Pacchetto);
+
+  return String(tipologiaPacchetto) === String(lezione.Tipologia);
+}
+
+function getAvvisiPacchettoPrenotazione(pacchetto, lezione) {
+  const avvisi = [];
+
+  if (!pacchetto || !lezione) return avvisi;
+
+  const residuo = getLezioniResiduePacchetto(pacchetto);
+
+  if (lezione.Data && pacchetto.Valido_A && String(lezione.Data) > String(pacchetto.Valido_A)) {
+    avvisi.push("pacchetto scaduto");
+  }
+
+  if (residuo <= 0) {
+    avvisi.push(`lezioni residue ${residuo}`);
+  }
+
+  return avvisi;
+}
+
+function getPacchettiCompatibiliPerPrenotazione(idCliente, idLezione) {
+  const lezione = lezioniData.find(l =>
+    String(l.ID_Lezione) === String(idLezione)
+  );
+
+  if (!idCliente || !lezione) return [];
+
+  return pacchettiData
+    .filter(p =>
+      String(p.ID_Cliente) === String(idCliente) &&
+      pacchettoCompatibilePerLezione(p, lezione)
+    )
+    .sort((a, b) => {
+      const residuoA = getLezioniResiduePacchetto(a);
+      const residuoB = getLezioniResiduePacchetto(b);
+
+      // Prima quelli con più residuo, poi quelli con scadenza più vicina
+      if (residuoB !== residuoA) return residuoB - residuoA;
+
+      const aDate = String(a.Valido_A || "");
+      const bDate = String(b.Valido_A || "");
+      return aDate.localeCompare(bDate);
+    });
+}
+
+function aggiornaPacchettiPrenotazione() {
+  const selectCliente = document.getElementById("select_cliente");
+  const selectLezione = document.getElementById("select_lezione");
+  const selectPacchetto = document.getElementById("select_pacchetto");
+
+  if (!selectPacchetto) return;
+
+  const idCliente = selectCliente ? selectCliente.value : "";
+  const idLezione = selectLezione ? selectLezione.value : "";
+
+  if (!idCliente || !idLezione) {
+    selectPacchetto.innerHTML = `
+      <option value="">Seleziona prima cliente e lezione</option>
+    `;
+    return;
+  }
+
+  const lezione = lezioniData.find(l =>
+    String(l.ID_Lezione) === String(idLezione)
+  );
+
+  const pacchettiCompatibili = getPacchettiCompatibiliPerPrenotazione(idCliente, idLezione);
+
+  if (!pacchettiCompatibili.length) {
+    selectPacchetto.innerHTML = `
+      <option value="">Nessun pacchetto compatibile trovato</option>
+    `;
+    setStatus("Nessun pacchetto compatibile trovato per cliente e tipologia lezione", "err");
+    return;
+  }
+
+  selectPacchetto.innerHTML =
+    '<option value="">Seleziona pacchetto</option>' +
+    pacchettiCompatibili.map(p => {
+      const residue = getLezioniResiduePacchetto(p);
+      const avvisi = getAvvisiPacchettoPrenotazione(p, lezione);
+      const warning = avvisi.length ? ` ⚠️ ${avvisi.join(" / ")}` : "";
+
+      return `
+        <option value="${escapeAttr(p.ID_Pacchetto)}">
+          ${safe(p.ID_Pacchetto)} - ${safe(p.Tipo_Pacchetto)} - residue: ${residue} - valido A: ${safe(p.Valido_A)}${warning}
+        </option>
+      `;
+    }).join("");
+
+  selectPacchetto.value = pacchettiCompatibili[0].ID_Pacchetto;
+
+  const avvisiPrimo = getAvvisiPacchettoPrenotazione(pacchettiCompatibili[0], lezione);
+
+  if (avvisiPrimo.length) {
+    setStatus(`Attenzione: ${avvisiPrimo.join(" / ")}. Puoi comunque registrare la prenotazione.`, "err");
+  } else {
+    setStatus("Pacchetto compatibile proposto automaticamente ✅", "ok");
+  }
+}
+
 async function aggiungiLezione() {
   const Tipologia = document.getElementById("new_tipologia")?.value || "";
 
@@ -952,9 +1081,15 @@ function paginaPrenotazioniSuccessiva() {
 async function prenota() {
   const idCliente = document.getElementById("select_cliente")?.value || "";
   const idLezione = document.getElementById("select_lezione")?.value || "";
+  const idPacchetto = document.getElementById("select_pacchetto")?.value || "";
 
   if (!idCliente || !idLezione) {
     setStatus("Seleziona cliente e lezione", "err");
+    return;
+  }
+
+  if (!idPacchetto) {
+    setStatus("Seleziona un pacchetto per questa prenotazione", "err");
     return;
   }
 
@@ -975,11 +1110,40 @@ async function prenota() {
     return;
   }
 
-  const count = prenotazioniData.filter(p => String(p.ID_Lezione) === String(idLezione)).length;
+  const count = prenotazioniData.filter(p =>
+    String(p.ID_Lezione) === String(idLezione)
+  ).length;
 
   if (count >= Number(lezione.Max_Partecipanti || 0)) {
     setStatus("Lezione piena", "err");
     return;
+  }
+
+  const pacchetto = pacchettiData.find(p =>
+    String(p.ID_Pacchetto) === String(idPacchetto)
+  );
+
+  if (!pacchetto) {
+    setStatus("Pacchetto non trovato", "err");
+    return;
+  }
+
+  if (!pacchettoCompatibilePerLezione(pacchetto, lezione)) {
+    setStatus("Il pacchetto selezionato non è compatibile con la tipologia della lezione", "err");
+    return;
+  }
+
+  const avvisi = getAvvisiPacchettoPrenotazione(pacchetto, lezione);
+
+  if (avvisi.length) {
+    const conferma = confirm(
+      `Attenzione: ${avvisi.join(" / ")}.\n\nVuoi registrare comunque la prenotazione?`
+    );
+
+    if (!conferma) {
+      setStatus("Prenotazione annullata", "err");
+      return;
+    }
   }
 
   const response = await supabaseClient
@@ -987,7 +1151,8 @@ async function prenota() {
     .insert([{
       ID_Prenotazione: "PR" + Date.now(),
       ID_Cliente: idCliente,
-      ID_Lezione: idLezione
+      ID_Lezione: idLezione,
+      ID_Pacchetto: idPacchetto
     }])
     .select();
 
@@ -1007,7 +1172,16 @@ async function prenota() {
   document.getElementById("select_cliente").value = "";
   document.getElementById("select_lezione").value = "";
 
+  const selectPacchetto = document.getElementById("select_pacchetto");
+  if (selectPacchetto) {
+    selectPacchetto.innerHTML = `
+      <option value="">Seleziona prima cliente e lezione</option>
+    `;
+  }
+
   await loadPrenotazioni();
+  await loadPacchetti();
+
   setStatus("Prenotazione salvata correttamente ✅", "ok");
 }
 
@@ -1807,6 +1981,11 @@ function scrollToSection(sectionId) {
 let pacchettiData = [];
 
 let daPagareManuale = false;
+let lezioniAddManuale = false;
+
+function segnaLezioniAddManuale() {
+  lezioniAddManuale = true;
+}
 
 function segnaDaPagareManuale() {
   daPagareManuale = true;
@@ -1969,7 +2148,34 @@ function aggiungiMesiAData(dateString, mesi) {
   return formatDateLocal(d);
 }
 
+function getSaldoNegativoPrecedente(idCliente, tipologia) {
+  const pacchettiCompatibili = pacchettiData.filter(p => {
+    const stato = String(p.Stato || "").toLowerCase();
+    const tipoPacchetto = getTipologiaPacchetto(p.Tipo_Pacchetto);
+
+    return (
+      String(p.ID_Cliente) === String(idCliente) &&
+      String(tipoPacchetto) === String(tipologia) &&
+      stato !== "chiuso"
+    );
+  });
+
+  let saldoNegativo = 0;
+
+  pacchettiCompatibili.forEach(p => {
+    const residuo = getLezioniResiduePacchetto(p);
+
+    if (residuo < 0) {
+      saldoNegativo += residuo;
+    }
+  });
+
+  return saldoNegativo;
+}
+
+
 function aggiornaAnteprimaPacchetto() {
+  const clienteValue = document.getElementById("pac_cliente")?.value || "";
   const tipoValue = document.getElementById("pac_tipo")?.value || "";
   const tipo = TIPI_PACCHETTO[tipoValue];
 
@@ -1983,19 +2189,38 @@ function aggiornaAnteprimaPacchetto() {
   const fatturaNrInput = document.getElementById("pac_fattura_nr");
   const validoDaInput = document.getElementById("pac_valido_da");
   const validoAInput = document.getElementById("pac_valido_a");
+  const saldoWarning = document.getElementById("pac_saldo_warning");
 
   const lezioniBase = tipo ? Number(tipo.Lezioni_Base || 0) : 0;
 
-  let lezioniAdd = Number(lezioniAddInput?.value || 0);
-  if (lezioniAdd < 0) {
-    lezioniAdd = 0;
-    if (lezioniAddInput) lezioniAddInput.value = "0";
+  let saldoNegativoDaTrasferire = 0;
+
+  if (clienteValue && tipo) {
+    saldoNegativoDaTrasferire = getSaldoNegativoPrecedente(clienteValue, tipo.Tipologia);
   }
 
+  if (lezioniAddInput && !lezioniAddManuale) {
+    lezioniAddInput.value = saldoNegativoDaTrasferire < 0
+      ? String(saldoNegativoDaTrasferire)
+      : "0";
+  }
+
+  const lezioniAdd = Number(lezioniAddInput?.value || 0);
   const lezioniTotali = lezioniBase + lezioniAdd;
 
   if (lezioniBaseInput) lezioniBaseInput.value = tipo ? lezioniBase : "";
   if (lezioniTotaliInput) lezioniTotaliInput.value = tipo ? lezioniTotali : "";
+
+  if (saldoWarning) {
+    if (saldoNegativoDaTrasferire < 0 && !lezioniAddManuale) {
+      saldoWarning.textContent =
+        `Saldo negativo precedente rilevato: ${saldoNegativoDaTrasferire}. Il nuovo pacchetto parte già rettificato.`;
+      saldoWarning.style.color = "#b00020";
+    } else {
+      saldoWarning.textContent = "";
+      saldoWarning.style.color = "";
+    }
+  }
 
   const prezzo = Number(prezzoInput?.value || 0);
   const flagPagato = flagPagatoInput?.value || "Si";
@@ -2089,11 +2314,6 @@ async function aggiungiPacchetto() {
     return;
   }
 
-  if (Lezioni_Add < 0) {
-    setStatus("Lezioni Add non può essere negativo", "err");
-    return;
-  }
-
   if (Flag_Pagato === "No") {
     if (daPagareRaw === "" || daPagareRaw === null || daPagareRaw === undefined) {
       setStatus("Da Pagare è obbligatorio quando Pagato = No", "err");
@@ -2151,6 +2371,7 @@ async function aggiungiPacchetto() {
 
 function pulisciFormPacchetto() {
   daPagareManuale = false;
+  lezioniAddManuale = false;
 
   [
     "pac_cliente",
