@@ -650,7 +650,7 @@ function renderLezioni() {
           <tr>
             <td>${safe(l.ID_Lezione)}</td>
             <td>${safe(l.Data)}</td>
-            <td>${safe(l.Ora)}</td>
+            <td>${safe((l.Ora || "").substring(0,5))}</td>
             <td>${tipologiaConStato}</td>
             <td>${safe(l.Istruttore)}</td>
             <td>${safe(l.Max_Partecipanti)}</td>
@@ -714,7 +714,7 @@ function renderSelectLezioni() {
           value="${escapeAttr(l.ID_Lezione)}"
           ${piena ? "disabled style='color:red;'" : ""}
         >
-          ${safe(l.Data)} ${safe(l.Ora)} - ${safe(l.Tipologia)}
+          ${safe(l.Data)} ${safe((l.Ora || "").substring(0,5))} - ${safe(l.Tipologia)}
           (${prenotati}/${max})
           ${piena ? "🔴 PIENA" : ""}
         </option>
@@ -1139,7 +1139,7 @@ function renderPrenotazioni() {
             <td>${safe(p.ID_Lezione)}</td>
             <td>${safe(p.ID_Pacchetto || "⚠️ NO PACCHETTO")}</td>
             <td>${lezione ? safe(lezione.Data) : "⚠️ NO LEZIONE"}</td>
-            <td>${lezione ? safe(lezione.Ora) : ""}</td>
+            <td>${lezione ? safe((lezione.Ora || "").substring(0,5)) : ""}</td>
             <td>${lezione ? safe(lezione.Tipologia) : ""}</td>
             <td>${lezione ? safe(lezione.Istruttore) : ""}</td>
             <td>
@@ -1338,6 +1338,8 @@ function mostraStoricoCliente(idCliente) {
       <strong>Telefono:</strong> ${safe(cliente.Telefono)}<br>
       <strong>Email:</strong> ${safe(cliente.Email)}<br>
       <strong>Totale prenotazioni:</strong> ${storico.length}
+      <br>
+      <button onclick="inviaWhatsAppCliente('${escapeQuote(idCliente)}')">📲 WhatsApp</button>
       <br>
       <button onclick="resetStoricoCliente()">Chiudi storico</button>
     </div>
@@ -1611,8 +1613,10 @@ function renderClientiMobileSafe() {
     <div class="card-sub">📧 ${email}</div>
 
     <div class="card-actions">
-      ${azioni}
+    ${azioni}
+    <button onclick="mostraPacchettiCliente('${escapeQuote(id)}')">🎟️ Pacchetti</button>
     </div>
+
   </div>
 `);
     }
@@ -1661,7 +1665,7 @@ function renderPrenotazioniMobileSafe() {
             ${cliente}
           </div>
 
-          <div class="card-sub">📅 ${data} - ${ora}</div>
+          <div class="card-sub">📅 ${data} - ${(ora || "").substring(0,5)}</div>
           <div class="card-sub">${tipologia}</div>
           <div class="card-sub">👤 ${istruttore}</div>
           <div class="card-sub">🎟️ Pacchetto: ${idPacchetto}</div>
@@ -1876,6 +1880,48 @@ function mostraPrenotazioniCliente(idCliente) {
   });
 }
 
+function mostraPacchettiCliente(idCliente) {
+  const box = document.getElementById("outputClienti");
+  if (!box) return;
+
+  const cliente = clientiData.find(c => String(c.ID_Cliente) === String(idCliente));
+
+  const pacchetti = pacchettiData
+    .filter(p => String(p.ID_Cliente) === String(idCliente))
+    .sort((a,b) => String(b.Valido_Da).localeCompare(String(a.Valido_Da)));
+
+  const html = pacchetti.map(p => {
+    const usate = contaPrenotazioniPacchetto(p.ID_Pacchetto);
+    const tot = Number(p.Lezioni_Totali || 0);
+    const saldo = tot - usate;
+
+    const tipologia = getTipologiaPacchetto(p.Tipo_Pacchetto);
+
+    return `
+      <div class="card-ios">
+        <div class="card-title">${tipologia}</div>
+        <div class="card-sub">📅 Inizio: ${p.Valido_Da}</div>
+        <div class="card-sub">📊 Totali: ${tot}</div>
+        <div class="card-sub">✅ Effettuate: ${usate}</div>
+        <div class="card-sub">⚖️ Saldo: ${saldo}</div>
+        <div class="card-sub">💰 Prezzo: ${p.Prezzo}</div>
+        <div class="card-sub">💸 Da Pagare: ${p.Da_Pagare}</div>
+        <div class="card-sub">📌 Stato: ${p.Stato || "Valido"}</div>
+      </div>
+    `;
+  }).join("");
+
+  box.innerHTML = `
+    <div class="card-ios">
+      <div class="card-title">Pacchetti ${cliente.Nome}</div>
+      ${html || "<p>Nessun pacchetto</p>"}
+      <div class="card-actions">
+        <button onclick="renderClienti()">← Indietro</button>
+      </div>
+    </div>
+  `;
+}
+
 function chiudiDettaglioCliente() {
   renderClienti();
 
@@ -1992,15 +2038,34 @@ async function salvaModificaClienteInline(idCliente) {
 /* ===================== FOOTER MENU APP ===================== */
 
 function vaiTab(tab) {
-  const clientiSection = document.getElementById("clientiSection");
-  const lezioniSection = document.getElementById("lezioniSection");
-  const prenotazioniSection = document.getElementById("prenotazioniSection");
-  const pacchettiSection = document.getElementById("pacchettiSection");
+  
+// tutte le sezioni
+const sections = [
+  document.querySelector("#clientiSection")?.parentElement,
+  document.querySelector("#lezioniSection")?.parentElement,
+  document.querySelector("#prenotazioniSection")?.parentElement,
+  document.querySelector("#pacchettiSection")?.parentElement
+];
 
-  const tabClienti = document.getElementById("tabClienti");
-  const tabLezioni = document.getElementById("tabLezioni");
-  const tabPrenotazioni = document.getElementById("tabPrenotazioni");
-  const tabPacchetti = document.getElementById("tabPacchetti");
+// nascondi tutte
+sections.forEach(s => {
+  if (s) s.classList.remove("active-section");
+});
+
+// attiva solo quella giusta
+if (tab === "clienti") {
+  sections[0]?.classList.add("active-section");
+}
+if (tab === "lezioni") {
+  sections[1]?.classList.add("active-section");
+}
+if (tab === "prenotazioni") {
+  sections[2]?.classList.add("active-section");
+}
+if (tab === "pacchetti") {
+  sections[3]?.classList.add("active-section");
+}
+
 
 
   // reset active tab
@@ -2665,6 +2730,41 @@ function renderPacchettiMobileSafe() {
   } catch (err) {
     console.error("Errore renderPacchettiMobileSafe:", err);
   }
+}
+
+function inviaWhatsAppCliente(idCliente) {
+  const cliente = clientiData.find(c => String(c.ID_Cliente) === String(idCliente));
+  if (!cliente) return;
+
+  const telefono = cliente.Telefono || "";
+
+  const storico = prenotazioniData
+    .filter(p => String(p.ID_Cliente) === String(idCliente));
+
+  const totale = storico.length;
+
+  const listaLezioni = storico.map(p => {
+    const l = lezioniData.find(x => String(x.ID_Lezione) === String(p.ID_Lezione));
+    if (!l) return "";
+    return `- ${l.Data} ${l.Ora.substring(0,5)}`;
+  }).join("%0A");
+
+  const pacchetti = pacchettiData
+    .filter(p => String(p.ID_Cliente) === String(idCliente))
+    .map(p => {
+      const usate = contaPrenotazioniPacchetto(p.ID_Pacchetto);
+      const tot = Number(p.Lezioni_Totali || 0);
+      const saldo = tot - usate;
+      const tipo = getTipologiaPacchetto(p.Tipo_Pacchetto);
+
+      return `- ${tipo}: ${tot} | fatte ${usate} | saldo ${saldo} | ${p.Stato || "Valido"}`;
+    }).join("%0A");
+
+  const testo = `Ciao ${cliente.Nome},%0A%0ALezioni effettuate: ${totale}%0A%0A${listaLezioni}%0A%0APacchetti:%0A${pacchetti}`;
+
+  const link = `https://wa.me/${telefono}?text=${testo}`;
+
+  window.open(link, "_blank");
 }
 
 console.log("APP JS CARICATO OK");
