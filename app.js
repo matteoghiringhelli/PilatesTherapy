@@ -1776,6 +1776,7 @@ function mostraSchedaCliente(idCliente) {
       <div class="card-sub">🧾 ${cliente.Codice_Fiscale || "-"}</div>
 
       <div class="card-actions">
+        <button onclick="inviaWhatsAppCliente('${escapeQuote(cliente.ID_Cliente)}')">📲 WhatsApp</button>
         <button onclick="mostraModificaClienteInline('${cliente.ID_Cliente}')">✏️ Modifica</button>
         <button onclick="chiudiDettaglioCliente()">Chiudi</button>
       </div>
