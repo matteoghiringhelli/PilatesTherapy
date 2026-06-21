@@ -479,6 +479,29 @@ body {
   color: #b00020;
   margin-top: 6px;
 }
+
+/* ===== REPORT PACCHETTI V2 ===== */
+
+.report-filter-btn {
+  border-radius: 999px;
+  padding: 9px 13px;
+  background: #ffffff;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.report-filter-btn.active {
+  background: #007aff;
+  color: white;
+}
+
+.report-empty {
+  padding: 12px;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #555;
+}
     
   </style>
 </head>
@@ -849,7 +872,7 @@ body {
 </div>
   
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="app.js?v=report-pacchetti-1"></script>
+  <script src="app.js?v=report-pacchetti-v2"></script>
   
   <script>
     if ("serviceWorker" in navigator) {
