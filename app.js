@@ -1645,7 +1645,6 @@ function renderClientiMobileSafe() {
       const residui = getLezioniResiduePerTipologia(id);
 
 const righeResiduo = Object.entries(residui)
-  .filter(([_, val]) => val > 0)
   .map(([tipo, val]) => `• ${tipo}: ${val}`)
   .join("<br>");
 
@@ -1926,7 +1925,7 @@ function mostraPrenotazioniCliente(idCliente) {
 
       <div class="app-toolbar">
         <button class="app-back-btn" onclick="chiudiDettaglioCliente()">← Indietro</button>
-      </div
+      </div>
 
     </div>
   `;
@@ -3073,7 +3072,7 @@ if (scelta === "2" || scelta === "3") {
   testo += `Pacchetti:\n${pacchetti || "- Nessun pacchetto registrato"}\n\n`;
 }
 
-if (scelta === "3") {
+if (scelta === "1" || scelta === "3") {
   testo += `Lista lezioni:\n${listaLezioni}`;
 }
 
