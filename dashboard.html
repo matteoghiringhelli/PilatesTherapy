@@ -417,6 +417,68 @@ body {
 .field-block select {
   min-width: 220px;
 }
+
+/* ===== REPORT PACCHETTI ===== */
+
+.report-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.report-pill {
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #ffffff;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.report-card {
+  border-radius: 18px;
+  padding: 14px;
+  margin: 10px 0;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+  border-left: 6px solid #d1d1d6;
+}
+
+.report-card.report-red {
+  border-left-color: #ff3b30;
+}
+
+.report-card.report-yellow {
+  border-left-color: #ffcc00;
+}
+
+.report-card.report-blue {
+  border-left-color: #007aff;
+}
+
+.report-card.report-green {
+  border-left-color: #34c759;
+}
+
+.report-title {
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.report-line {
+  font-size: 14px;
+  color: #444;
+  margin-bottom: 4px;
+}
+
+.report-warning {
+  font-size: 13px;
+  font-weight: 700;
+  color: #b00020;
+  margin-top: 6px;
+}
     
   </style>
 </head>
@@ -623,6 +685,12 @@ body {
     <div class="form-row">
       <button onclick="loadPacchetti()">Ricarica Pacchetti</button>
       <button onclick="toggleNuovoPacchetto()">➕ Nuovo Pacchetto</button>
+      <button onclick="toggleReportPacchetti()">📊 Report Pacchetti</button>
+    </div>
+
+    <div id="reportPacchettiBox" class="hidden">
+      <h3>Report Pacchetti</h3>
+      <div id="outputReportPacchetti"></div>
     </div>
 
     <!-- ✅ FORM INTELLIGENTE PACCHETTI -->
@@ -781,7 +849,7 @@ body {
 </div>
   
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="app.js?v=step6"></script>
+  script src="app.js?v=report-pacchetti-1"></script>
   
   <script>
     if ("serviceWorker" in navigator) {
