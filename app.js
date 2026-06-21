@@ -393,11 +393,19 @@ function renderSelectClienti() {
   const sel = document.getElementById("select_cliente");
   if (!sel) return;
 
+  const valoreCorrente = sel.value;
+
   sel.innerHTML =
     '<option value="">Seleziona cliente</option>' +
     clientiData.map(c =>
       `<option value="${escapeAttr(c.ID_Cliente)}">${safe(c.Nome)} ${safe(c.Cognome)}</option>`
     ).join("");
+
+  if (valoreCorrente) {
+    sel.value = valoreCorrente;
+  }
+
+  aggiornaPacchettiPrenotazione();
 }
 
 async function aggiungiCliente() {
@@ -689,6 +697,8 @@ function renderSelectLezioni() {
   const sel = document.getElementById("select_lezione");
   if (!sel) return;
 
+  const valoreCorrente = sel.value;
+
   sel.innerHTML =
     '<option value="">Seleziona lezione</option>' +
     lezioniData.map(l => {
@@ -700,8 +710,8 @@ function renderSelectLezioni() {
       const piena = prenotati >= max;
 
       return `
-        <option 
-          value="${escapeAttr(l.ID_Lezione)}" 
+        <option
+          value="${escapeAttr(l.ID_Lezione)}"
           ${piena ? "disabled style='color:red;'" : ""}
         >
           ${safe(l.Data)} ${safe(l.Ora)} - ${safe(l.Tipologia)}
@@ -710,13 +720,51 @@ function renderSelectLezioni() {
         </option>
       `;
     }).join("");
+
+  if (valoreCorrente) {
+    sel.value = valoreCorrente;
+  }
+
+  aggiornaPacchettiPrenotazione();
 }
 
 /* ===================== PACCHETTI PER PRENOTAZIONI ===================== */
 
+function normalizzaTesto(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replaceAll("–", "-")
+    .replaceAll("—", "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function getTipologiaPacchetto(tipoPacchetto) {
   const info = TIPI_PACCHETTO[tipoPacchetto];
-  return info ? info.Tipologia : "";
+
+  if (info && info.Tipologia) {
+    return info.Tipologia;
+  }
+
+  const testo = normalizzaTesto(tipoPacchetto);
+
+  if (testo.includes("privata")) return "Privata";
+  if (testo.includes("duetto")) return "Duetto";
+  if (testo.includes("mini-gruppo") || testo.includes("mini gruppo") || testo.includes("mini")) return "Mini-Gruppo";
+
+  return "";
+}
+
+function getTipologiaLezione(lezione) {
+  const testo = normalizzaTesto(lezione?.Tipologia || "");
+
+  if (testo.includes("privata")) return "Privata";
+  if (testo.includes("duetto")) return "Duetto";
+  if (testo.includes("mini-gruppo") || testo.includes("mini gruppo") || testo.includes("mini")) return "Mini-Gruppo";
+
+  return lezione?.Tipologia || "";
 }
 
 function contaPrenotazioniPacchetto(idPacchetto) {
@@ -734,12 +782,13 @@ function getLezioniResiduePacchetto(pacchetto) {
 function pacchettoCompatibilePerLezione(pacchetto, lezione) {
   if (!pacchetto || !lezione) return false;
 
-  const stato = String(pacchetto.Stato || "").toLowerCase();
+  const stato = normalizzaTesto(pacchetto.Stato || "");
   if (stato === "chiuso") return false;
 
   const tipologiaPacchetto = getTipologiaPacchetto(pacchetto.Tipo_Pacchetto);
+  const tipologiaLezione = getTipologiaLezione(lezione);
 
-  return String(tipologiaPacchetto) === String(lezione.Tipologia);
+  return normalizzaTesto(tipologiaPacchetto) === normalizzaTesto(tipologiaLezione);
 }
 
 function getAvvisiPacchettoPrenotazione(pacchetto, lezione) {
@@ -760,6 +809,17 @@ function getAvvisiPacchettoPrenotazione(pacchetto, lezione) {
   return avvisi;
 }
 
+function getPacchettiClienteNonChiusi(idCliente) {
+  return pacchettiData.filter(p => {
+    const stato = normalizzaTesto(p.Stato || "");
+
+    return (
+      String(p.ID_Cliente) === String(idCliente) &&
+      stato !== "chiuso"
+    );
+  });
+}
+
 function getPacchettiCompatibiliPerPrenotazione(idCliente, idLezione) {
   const lezione = lezioniData.find(l =>
     String(l.ID_Lezione) === String(idLezione)
@@ -767,18 +827,16 @@ function getPacchettiCompatibiliPerPrenotazione(idCliente, idLezione) {
 
   if (!idCliente || !lezione) return [];
 
-  return pacchettiData
-    .filter(p =>
-      String(p.ID_Cliente) === String(idCliente) &&
-      pacchettoCompatibilePerLezione(p, lezione)
-    )
+  return getPacchettiClienteNonChiusi(idCliente)
+    .filter(p => pacchettoCompatibilePerLezione(p, lezione))
     .sort((a, b) => {
       const residuoA = getLezioniResiduePacchetto(a);
       const residuoB = getLezioniResiduePacchetto(b);
 
-      // Prima quelli con più residuo, poi quelli con scadenza più vicina
+      // Prima quelli con più residuo
       if (residuoB !== residuoA) return residuoB - residuoA;
 
+      // Poi quelli con scadenza più vicina
       const aDate = String(a.Valido_A || "");
       const bDate = String(b.Valido_A || "");
       return aDate.localeCompare(bDate);
@@ -790,7 +848,10 @@ function aggiornaPacchettiPrenotazione() {
   const selectLezione = document.getElementById("select_lezione");
   const selectPacchetto = document.getElementById("select_pacchetto");
 
-  if (!selectPacchetto) return;
+  if (!selectPacchetto) {
+    console.warn("select_pacchetto non trovato nel DOM");
+    return;
+  }
 
   const idCliente = selectCliente ? selectCliente.value : "";
   const idLezione = selectLezione ? selectLezione.value : "";
@@ -806,13 +867,38 @@ function aggiornaPacchettiPrenotazione() {
     String(l.ID_Lezione) === String(idLezione)
   );
 
+  if (!lezione) {
+    selectPacchetto.innerHTML = `
+      <option value="">Lezione non trovata</option>
+    `;
+    setStatus("Lezione non trovata per aggiornare il pacchetto", "err");
+    return;
+  }
+
   const pacchettiCompatibili = getPacchettiCompatibiliPerPrenotazione(idCliente, idLezione);
+  const pacchettiCliente = getPacchettiClienteNonChiusi(idCliente);
 
   if (!pacchettiCompatibili.length) {
+    const tipologiaLezione = getTipologiaLezione(lezione);
+
     selectPacchetto.innerHTML = `
-      <option value="">Nessun pacchetto compatibile trovato</option>
+      <option value="">Nessun pacchetto ${safe(tipologiaLezione)} compatibile</option>
+      ${
+        pacchettiCliente.length
+          ? pacchettiCliente.map(p => `
+              <option value="" disabled>
+                Non compatibile: ${safe(p.ID_Pacchetto)} - ${safe(p.Tipo_Pacchetto)}
+              </option>
+            `).join("")
+          : `<option value="" disabled>Il cliente non ha pacchetti aperti</option>`
+      }
     `;
-    setStatus("Nessun pacchetto compatibile trovato per cliente e tipologia lezione", "err");
+
+    setStatus(
+      `Nessun pacchetto compatibile trovato per cliente e tipologia lezione (${tipologiaLezione})`,
+      "err"
+    );
+
     return;
   }
 
@@ -835,7 +921,10 @@ function aggiornaPacchettiPrenotazione() {
   const avvisiPrimo = getAvvisiPacchettoPrenotazione(pacchettiCompatibili[0], lezione);
 
   if (avvisiPrimo.length) {
-    setStatus(`Attenzione: ${avvisiPrimo.join(" / ")}. Puoi comunque registrare la prenotazione.`, "err");
+    setStatus(
+      `Attenzione: ${avvisiPrimo.join(" / ")}. Puoi comunque registrare la prenotazione.`,
+      "err"
+    );
   } else {
     setStatus("Pacchetto compatibile proposto automaticamente ✅", "ok");
   }
@@ -920,6 +1009,7 @@ async function loadPrenotazioni() {
   const { data, error } = await fetchAllRows(
     "prenotazioni",
     "ID_Prenotazione, ID_Cliente, ID_Lezione, ID_Pacchetto",
+    "ID_Prenotazione",
     false
   );
 
@@ -2096,6 +2186,7 @@ async function loadPacchetti() {
   renderSelectPacchettoClienti();
   renderSelectTipiPacchetto();
   renderPacchetti();
+  aggiornaPacchettiPrenotazione();
 }
 
 function renderSelectPacchettoClienti() {
