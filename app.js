@@ -664,7 +664,7 @@ function renderLezioni() {
             
             <td>
             <button onclick="mostraDettaglioLezione('${escapeQuote(l.ID_Lezione)}')">🔎 Dettaglio</button>
-            <button onclick="apriPrenotazione('${escapeQuote(l.ID_Lezione)}')">📅 Prenota</button>
+            <button onclick="mostraDettaglioLezione('${escapeQuote(l.ID_Lezione)}')">📅 Prenota</button>
             <button onclick="mostraPrenotazioniLezione('${escapeQuote(l.ID_Lezione)}')">👥 Lista</button>
             <br>
             <button onclick="eliminaLezione('${escapeQuote(l.ID_Lezione)}')">Elimina</button>
@@ -1569,7 +1569,7 @@ function renderLezioniMobileSafe() {
       else if (Number(prenotati) > 0) colore = "#ffcc00";
       const azioni = `
   <button onclick="mostraDettaglioLezione('${escapeQuote(idLezione)}')">🔎 Dettaglio</button>
-  <button onclick="apriPrenotazione('${escapeQuote(idLezione)}')">📅 Prenota</button>
+  <button onclick="mostraDettaglioLezione('${escapeQuote(idLezione)}')">📅 Prenota</button>
   <button onclick="eliminaLezione('${escapeQuote(idLezione)}')">Elimina</button>
 `;
 
@@ -1756,15 +1756,74 @@ function mostraDettaglioLezione(idLezione) {
 
   const max = Number(lezione.Max_Partecipanti || 0);
   const prenotati = prenotazioniLezione.length;
+  const postiLiberi = Math.max(max - prenotati, 0);
 
-  const clientiHtml = prenotazioniLezione.map(p => {
-    const cliente = clientiData.find(c => c.ID_Cliente == p.ID_Cliente);
-    return `
+  const clientiGiaPrenotatiHtml = prenotazioniLezione.length
+    ? prenotazioniLezione.map(p => {
+        const cliente = clientiData.find(c =>
+          String(c.ID_Cliente) === String(p.ID_Cliente)
+        );
+
+        const pacchetto = pacchettiData.find(pc =>
+          String(pc.ID_Pacchetto) === String(p.ID_Pacchetto)
+        );
+
+        return `
+          <div class="lesson-client-row">
+            <strong>${cliente ? safe(cliente.Nome + " " + cliente.Cognome) : "Cliente non trovato"}</strong><br>
+            <span style="font-size:12px; color:#666;">
+              Pacchetto: ${safe(p.ID_Pacchetto || "-")}
+              ${pacchetto ? ` — ${safe(pacchetto.Tipo_Pacchetto || "")}` : ""}
+            </span>
+            <div class="card-actions" style="margin-top:8px;">
+              <button onclick="eliminaPrenotazioneDaLezione('${escapeQuote(p.ID_Prenotazione)}', '${escapeQuote(idLezione)}')">
+                🗑️ Cancella prenotazione
+              </button>
+            </div>
+          </div>
+        `;
+      }).join("")
+    : `
       <div class="lesson-client-row">
-        ${cliente ? cliente.Nome + " " + cliente.Cognome : "Cliente"}
+        Nessun cliente ancora prenotato.
       </div>
     `;
-  }).join("");
+
+  const slotHtml = postiLiberi > 0
+    ? Array.from({ length: postiLiberi }).map((_, index) => `
+        <div class="lesson-client-row">
+          <strong>Slot ${index + 1}</strong>
+
+          <div class="form-row">
+            <label class="field-block">
+              <span class="field-label">Cliente</span>
+              <select
+                id="slot_cliente_${index}"
+                onchange="aggiornaPacchettoSlotLezione('${escapeQuote(idLezione)}', ${index})"
+              >
+                <option value="">Seleziona cliente</option>
+                ${clientiData.map(c => `
+                  <option value="${escapeAttr(c.ID_Cliente)}">
+                    ${safe(c.Nome)} ${safe(c.Cognome)}
+                  </option>
+                `).join("")}
+              </select>
+            </label>
+
+            <label class="field-block">
+              <span class="field-label">Pacchetto</span>
+              <select id="slot_pacchetto_${index}">
+                <option value="">Seleziona prima il cliente</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      `).join("")
+    : `
+      <div class="lesson-client-row">
+        🔴 Lezione piena. Non ci sono slot disponibili.
+      </div>
+    `;
 
   animateView(box, `
     <div class="app-toolbar">
@@ -1772,25 +1831,45 @@ function mostraDettaglioLezione(idLezione) {
     </div>
 
     <div class="lesson-detail">
+
       <div class="lesson-detail-title">
-        ${lezione.Data} - ${formatOraHHMM(lezione.Ora)}
+        ${safe(lezione.Data)} - ${safe(formatOraHHMM(lezione.Ora))}
       </div>
 
       <div class="lesson-detail-sub">
-        ${lezione.Tipologia} (${prenotati}/${max})
+        ${safe(lezione.Tipologia)} (${prenotati}/${max})
       </div>
 
       <div class="lesson-detail-sub">
-        👤 ${lezione.Istruttore}
+        👤 ${safe(lezione.Istruttore)}
       </div>
 
       <div class="lesson-detail-section">
-        ${clientiHtml || "Nessun cliente"}
+        <div class="lesson-detail-section-title">
+          Clienti già prenotati
+        </div>
+        ${clientiGiaPrenotatiHtml}
       </div>
 
-      <div class="lesson-detail-actions">
-        <button onclick="chiudiDettaglioLezione()">Chiudi</button>
+      <div class="lesson-detail-section">
+        <div class="lesson-detail-section-title">
+          Aggiungi prenotazioni
+        </div>
+        ${slotHtml}
       </div>
+
+      ${
+        postiLiberi > 0
+          ? `
+            <div class="lesson-detail-actions">
+              <button onclick="salvaPrenotazioniDaLezione('${escapeQuote(idLezione)}')">
+                💾 Salva prenotazioni
+              </button>
+            </div>
+          `
+          : ""
+      }
+
     </div>
   `);
 }
@@ -1800,6 +1879,214 @@ function mostraDettaglioLezione(idLezione) {
 function chiudiDettaglioLezione() {
   const box = document.getElementById("dettaglioLezioneBox");
   closeAnimated(box);
+}
+
+function aggiornaPacchettoSlotLezione(idLezione, index) {
+  const clienteSelect = document.getElementById(`slot_cliente_${index}`);
+  const pacchettoSelect = document.getElementById(`slot_pacchetto_${index}`);
+
+  if (!clienteSelect || !pacchettoSelect) return;
+
+  const idCliente = clienteSelect.value;
+
+  if (!idCliente) {
+    pacchettoSelect.innerHTML = `
+      <option value="">Seleziona prima il cliente</option>
+    `;
+    return;
+  }
+
+  const pacchettiCompatibili = getPacchettiCompatibiliPerPrenotazione(
+    idCliente,
+    idLezione
+  );
+
+  if (!pacchettiCompatibili.length) {
+    pacchettoSelect.innerHTML = `
+      <option value="">Nessun pacchetto compatibile</option>
+    `;
+    return;
+  }
+
+  pacchettoSelect.innerHTML =
+    `<option value="">Seleziona pacchetto</option>` +
+    pacchettiCompatibili.map(p => {
+      const residue = getLezioniResiduePacchetto(p);
+      const lezione = lezioniData.find(l =>
+        String(l.ID_Lezione) === String(idLezione)
+      );
+      const avvisi = getAvvisiPacchettoPrenotazione(p, lezione);
+      const warning = avvisi.length ? ` ⚠️ ${avvisi.join(" / ")}` : "";
+
+      return `
+        <option value="${escapeAttr(p.ID_Pacchetto)}">
+          ${safe(p.ID_Pacchetto)} - ${safe(p.Tipo_Pacchetto)} - residue: ${residue}${warning}
+        </option>
+      `;
+    }).join("");
+
+  pacchettoSelect.value = pacchettiCompatibili[0].ID_Pacchetto;
+}
+
+async function salvaPrenotazioniDaLezione(idLezione) {
+  const lezione = lezioniData.find(l =>
+    String(l.ID_Lezione) === String(idLezione)
+  );
+
+  if (!lezione) {
+    setStatus("Lezione non trovata", "err");
+    return;
+  }
+
+  const max = Number(lezione.Max_Partecipanti || 0);
+
+  const prenotazioniEsistenti = prenotazioniData.filter(p =>
+    String(p.ID_Lezione) === String(idLezione)
+  );
+
+  const postiLiberi = Math.max(max - prenotazioniEsistenti.length, 0);
+
+  if (postiLiberi <= 0) {
+    setStatus("Lezione piena", "err");
+    return;
+  }
+
+  const nuovePrenotazioni = [];
+
+  for (let index = 0; index < postiLiberi; index++) {
+    const clienteSelect = document.getElementById(`slot_cliente_${index}`);
+    const pacchettoSelect = document.getElementById(`slot_pacchetto_${index}`);
+
+    const idCliente = clienteSelect ? clienteSelect.value : "";
+    const idPacchetto = pacchettoSelect ? pacchettoSelect.value : "";
+
+    if (!idCliente) continue;
+
+    if (!idPacchetto) {
+      const cliente = clientiData.find(c =>
+        String(c.ID_Cliente) === String(idCliente)
+      );
+
+      setStatus(
+        `Seleziona un pacchetto per ${cliente ? cliente.Nome + " " + cliente.Cognome : "cliente selezionato"}`,
+        "err"
+      );
+      return;
+    }
+
+    nuovePrenotazioni.push({
+      ID_Cliente: idCliente,
+      ID_Pacchetto: idPacchetto
+    });
+  }
+
+  if (!nuovePrenotazioni.length) {
+    setStatus("Seleziona almeno un cliente da prenotare", "err");
+    return;
+  }
+
+  const clientiDuplicatiNellaSelezione = nuovePrenotazioni
+    .map(p => p.ID_Cliente)
+    .filter((id, index, arr) => arr.indexOf(id) !== index);
+
+  if (clientiDuplicatiNellaSelezione.length) {
+    setStatus("Hai selezionato due volte lo stesso cliente", "err");
+    return;
+  }
+
+  for (const nuova of nuovePrenotazioni) {
+    const duplicatoEsistente = prenotazioniEsistenti.find(p =>
+      String(p.ID_Cliente) === String(nuova.ID_Cliente)
+    );
+
+    if (duplicatoEsistente) {
+      const cliente = clientiData.find(c =>
+        String(c.ID_Cliente) === String(nuova.ID_Cliente)
+      );
+
+      setStatus(
+        `${cliente ? cliente.Nome + " " + cliente.Cognome : "Cliente"} è già prenotato in questa lezione`,
+        "err"
+      );
+      return;
+    }
+
+    const pacchetto = pacchettiData.find(p =>
+      String(p.ID_Pacchetto) === String(nuova.ID_Pacchetto)
+    );
+
+    if (!pacchetto) {
+      setStatus("Pacchetto non trovato", "err");
+      return;
+    }
+
+    if (!pacchettoCompatibilePerLezione(pacchetto, lezione)) {
+      setStatus("Uno dei pacchetti selezionati non è compatibile con la lezione", "err");
+      return;
+    }
+  }
+
+  const payload = nuovePrenotazioni.map((p, index) => ({
+    ID_Prenotazione: "PR" + Date.now() + "_" + index,
+    ID_Cliente: p.ID_Cliente,
+    ID_Lezione: idLezione,
+    ID_Pacchetto: p.ID_Pacchetto
+  }));
+
+  const response = await supabaseClient
+    .from("prenotazioni")
+    .insert(payload)
+    .select();
+
+  if (response.error) {
+    console.error("Errore salvaPrenotazioniDaLezione:", response.error);
+    setStatus(`Errore salvataggio prenotazioni: ${response.error.message}`, "err");
+    return;
+  }
+
+  if (!response.data || !response.data.length) {
+    setStatus("Prenotazioni non restituite da Supabase: controlla le policy RLS", "err");
+    return;
+  }
+
+  await loadPrenotazioni();
+  await loadPacchetti();
+
+  const reportBox = document.getElementById("reportPacchettiBox");
+  if (reportBox && !reportBox.classList.contains("hidden")) {
+    renderReportPacchetti();
+  }
+
+  mostraDettaglioLezione(idLezione);
+
+  setStatus("Prenotazioni salvate correttamente ✅", "ok");
+}
+
+async function eliminaPrenotazioneDaLezione(idPrenotazione, idLezione) {
+  if (!confirm("Eliminare questa prenotazione?")) return;
+
+  const { error } = await supabaseClient
+    .from("prenotazioni")
+    .delete()
+    .eq("ID_Prenotazione", idPrenotazione);
+
+  if (error) {
+    console.error("Errore eliminaPrenotazioneDaLezione:", error);
+    setStatus(`Errore eliminazione prenotazione: ${error.message}`, "err");
+    return;
+  }
+
+  await loadPrenotazioni();
+  await loadPacchetti();
+
+  const reportBox = document.getElementById("reportPacchettiBox");
+  if (reportBox && !reportBox.classList.contains("hidden")) {
+    renderReportPacchetti();
+  }
+
+  mostraDettaglioLezione(idLezione);
+
+  setStatus("Prenotazione eliminata correttamente ✅", "ok");
 }
 
 function mostraSchedaCliente(idCliente) {
@@ -2767,7 +3054,7 @@ function renderPacchettiMobileSafe() {
           </div>
 
           <div class="card-sub">
-            Stato: ${Stato || "Attivo"}
+            Stato: ${stato || "Attivo"}
           </div>
         </div>
       `);
