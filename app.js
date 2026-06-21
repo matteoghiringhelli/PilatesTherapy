@@ -122,8 +122,9 @@ function resetSearchClienti() {
 async function reloadAll() {
   await loadClienti();
   await loadLezioni();
-  await loadPrenotazioni();
   await loadPacchetti();
+  await loadPrenotazioni();
+  
 }
 
 async function fetchAllRows(tableName, columns = "*", orderColumn = null, ascending = true) {
@@ -918,8 +919,7 @@ function pulisciFormLezione() {
 async function loadPrenotazioni() {
   const { data, error } = await fetchAllRows(
     "prenotazioni",
-    "ID_Prenotazione, ID_Cliente, ID_Lezione",
-    "ID_Prenotazione",
+    "ID_Prenotazione, ID_Cliente, ID_Lezione, ID_Pacchetto",
     false
   );
 
@@ -936,9 +936,11 @@ async function loadPrenotazioni() {
   });
 
   paginaPrenotazioni = 1;
+
   renderPrenotazioni();
   renderLezioni();
   renderSelectLezioni();
+  aggiornaPacchettiPrenotazione();
 }
 
 function getPrenotazioniFiltrate() {
@@ -995,8 +997,8 @@ function renderPrenotazioni() {
   if (!out) return;
 
   const prenotazioniFiltrate = getPrenotazioniFiltrate();
-
   const totalePagine = Math.max(1, Math.ceil(prenotazioniFiltrate.length / RIGHE_PER_PAGINA));
+
   if (paginaPrenotazioni > totalePagine) paginaPrenotazioni = totalePagine;
 
   const start = (paginaPrenotazioni - 1) * RIGHE_PER_PAGINA;
@@ -1013,12 +1015,14 @@ function renderPrenotazioni() {
 
   out.innerHTML = `
     ${navigazione}
+
     <table>
       <tr>
         <th>ID_Prenotazione</th>
         <th>ID_Cliente</th>
         <th>Cliente</th>
         <th>ID_Lezione</th>
+        <th>ID_Pacchetto</th>
         <th>Data</th>
         <th>Ora</th>
         <th>Tipologia</th>
@@ -1043,6 +1047,7 @@ function renderPrenotazioni() {
               }
             </td>
             <td>${safe(p.ID_Lezione)}</td>
+            <td>${safe(p.ID_Pacchetto || "⚠️ NO PACCHETTO")}</td>
             <td>${lezione ? safe(lezione.Data) : "⚠️ NO LEZIONE"}</td>
             <td>${lezione ? safe(lezione.Ora) : ""}</td>
             <td>${lezione ? safe(lezione.Tipologia) : ""}</td>
@@ -1054,13 +1059,13 @@ function renderPrenotazioni() {
         `;
       }).join("")}
     </table>
+
     ${navigazione}
   `;
-  
+
   setTimeout(() => {
-  renderPrenotazioniMobileSafe();
-}, 50);
-  
+    renderPrenotazioniMobileSafe();
+  }, 50);
 }
 
 function paginaPrenotazioniPrecedente() {
@@ -1351,10 +1356,14 @@ function apriPrenotazione(idLezione) {
     section.classList.remove("hidden");
   }
 
-  window.scrollTo({
-    top: section.offsetTop - 20,
-    behavior: "smooth"
-  });
+  aggiornaPacchettiPrenotazione();
+
+  if (section) {
+    window.scrollTo({
+      top: section.offsetTop - 20,
+      behavior: "smooth"
+    });
+  }
 }
 
 function mostraPrenotazioniLezione(idLezione) {
@@ -1528,9 +1537,7 @@ function renderClientiMobileSafe() {
 }
 
 function renderPrenotazioniMobileSafe() {
-
   try {
-
     if (window.innerWidth > 768) return;
 
     const out = document.getElementById("outputPrenotazioni");
@@ -1545,26 +1552,32 @@ function renderPrenotazioniMobileSafe() {
     const cards = [];
 
     for (let i = 1; i < rows.length; i++) {
-
       const cells = rows[i].querySelectorAll("td");
-      if (!cells || cells.length < 9) continue;
+
+      if (!cells || cells.length < 10) continue;
 
       const cliente = cells[2].innerText;
-      const data = cells[4].innerText;
-      const ora = cells[5].innerText;
-      const tipologia = cells[6].innerText;
-      const azioni = cells[8].innerHTML;
+      const idLezione = cells[3].innerText;
+      const idPacchetto = cells[4].innerText;
+      const data = cells[5].innerText;
+      const ora = cells[6].innerText;
+      const tipologia = cells[7].innerText;
+      const istruttore = cells[8].innerText;
+      const azioni = cells[9].innerHTML;
 
       cards.push(`
-        <div style="border:1px solid #ccc; padding:12px; border-radius:10px; margin-bottom:12px;">
-          <div style="font-weight:bold;">
+        <div class="card-ios">
+          <div class="card-title">
             ${cliente}
           </div>
-          <div>📅 ${data} - ${ora}</div>
-          <div>${tipologia}</div>
 
+          <div class="card-sub">📅 ${data} - ${ora}</div>
+          <div class="card-sub">${tipologia}</div>
+          <div class="card-sub">👤 ${istruttore}</div>
+          <div class="card-sub">🎟️ Pacchetto: ${idPacchetto}</div>
+          <div class="card-sub">ID Lezione: ${idLezione}</div>
 
-          <div style="margin-top:10px;">
+          <div class="card-actions">
             ${azioni}
           </div>
         </div>
