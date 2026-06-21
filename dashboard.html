@@ -550,17 +550,32 @@ body {
 
       <h3>Aggiungi Prenotazione</h3>
 
-      <div class="form-row">
-        <select id="select_cliente">
-          <option value="">Seleziona cliente</option>
-        </select>
+<div class="form-row">
 
-        <select id="select_lezione">
-          <option value="">Seleziona lezione</option>
-        </select>
+  <label class="field-block">
+    <span class="field-label">Cliente</span>
+    <select id="select_cliente" onchange="aggiornaPacchettiPrenotazione()">
+      <option value="">Seleziona cliente</option>
+    </select>
+  </label>
 
-        <button onclick="prenota()">Prenota</button>
-      </div>
+  <label class="field-block">
+    <span class="field-label">Lezione</span>
+    <select id="select_lezione" onchange="aggiornaPacchettiPrenotazione()">
+      <option value="">Seleziona lezione</option>
+    </select>
+  </label>
+
+  <label class="field-block">
+    <span class="field-label">Pacchetto</span>
+    <select id="select_pacchetto">
+      <option value="">Seleziona prima cliente e lezione</option>
+    </select>
+  </label>
+
+  <button onclick="prenota()">Prenota</button>
+
+</div>
 
       <h3>Filtri Prenotazioni</h3>
 
@@ -761,7 +776,7 @@ body {
 </div>
   
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="app.js?v=pacchetti3"></script>
+  <script src="app.js?v=pacchetti4"></script>
   
   <script>
     if ("serviceWorker" in navigator) {
