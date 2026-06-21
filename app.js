@@ -195,6 +195,10 @@ function formatDateLocal(date) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+function formatOraHHMM(value) {
+  return String(value || "").substring(0, 5);
+}
+
 function isDateInCurrentWeek(dateString) {
   if (!dateString) return false;
   const range = getWeekRangeStrings();
@@ -1362,7 +1366,7 @@ function mostraStoricoCliente(idCliente) {
                 <td>${safe(s.ID_Prenotazione)}</td>
                 <td>${safe(s.ID_Lezione)}</td>
                 <td>${s.lezioneTrovata ? safe(s.Data) : "⚠️ NO LEZIONE"}</td>
-                <td>${safe(s.Ora)}</td>
+                <td>${safe(formatOraHHMM(s.Ora))}</td>
                 <td>${safe(s.Tipologia)}</td>
                 <td>${safe(s.Istruttore)}</td>
                 <td>${s.lezioneTrovata ? "OK" : "Lezione non trovata"}</td>
@@ -1717,7 +1721,7 @@ function mostraDettaglioLezione(idLezione) {
 
     <div class="lesson-detail">
       <div class="lesson-detail-title">
-        ${lezione.Data} - ${lezione.Ora}
+        ${lezione.Data} - ${formatOraHHMM(lezione.Ora)}
       </div>
 
       <div class="lesson-detail-sub">
@@ -1849,7 +1853,7 @@ function mostraPrenotazioniCliente(idCliente) {
           storico.length
             ? storico.map(s => `
                 <div class="lesson-client-row">
-                  <strong>📅 ${s.lezioneTrovata ? safe(s.Data) : "⚠️ NO LEZIONE"} ${safe(s.Ora)}</strong><br>
+                  <strong>📅 ${s.lezioneTrovata ? safe(s.Data) : "⚠️ NO LEZIONE"} ${safe(formatOraHHMM(s.Ora))}</strong><br>
                   ${safe(s.Tipologia)}<br>
                   👤 ${safe(s.Istruttore)}<br>
                   <span style="font-size:12px; color:#666;">
@@ -1867,6 +1871,7 @@ function mostraPrenotazioniCliente(idCliente) {
       </div>
 
       <div class="card-actions">
+        <button onclick="inviaWhatsAppCliente('${escapeQuote(cliente.ID_Cliente)}')">📲 WhatsApp</button>
         <button onclick="mostraSchedaCliente('${escapeQuote(cliente.ID_Cliente)}')">🔎 Scheda</button>
         <button onclick="chiudiDettaglioCliente()">Chiudi</button>
       </div>
@@ -2038,49 +2043,41 @@ async function salvaModificaClienteInline(idCliente) {
 /* ===================== FOOTER MENU APP ===================== */
 
 function vaiTab(tab) {
-  
-// tutte le sezioni
-const sections = [
-  document.querySelector("#clientiSection")?.parentElement,
-  document.querySelector("#lezioniSection")?.parentElement,
-  document.querySelector("#prenotazioniSection")?.parentElement,
-  document.querySelector("#pacchettiSection")?.parentElement
-];
+  const clientiSection = document.getElementById("clientiSection");
+  const lezioniSection = document.getElementById("lezioniSection");
+  const prenotazioniSection = document.getElementById("prenotazioniSection");
+  const pacchettiSection = document.getElementById("pacchettiSection");
 
-// nascondi tutte
-sections.forEach(s => {
-  if (s) s.classList.remove("active-section");
-});
+  const tabClienti = document.getElementById("tabClienti");
+  const tabLezioni = document.getElementById("tabLezioni");
+  const tabPrenotazioni = document.getElementById("tabPrenotazioni");
+  const tabPacchetti = document.getElementById("tabPacchetti");
 
-// attiva solo quella giusta
-if (tab === "clienti") {
-  sections[0]?.classList.add("active-section");
-}
-if (tab === "lezioni") {
-  sections[1]?.classList.add("active-section");
-}
-if (tab === "prenotazioni") {
-  sections[2]?.classList.add("active-section");
-}
-if (tab === "pacchetti") {
-  sections[3]?.classList.add("active-section");
-}
+  const clientiWrapper = clientiSection?.parentElement;
+  const lezioniWrapper = lezioniSection?.parentElement;
+  const prenotazioniWrapper = prenotazioniSection?.parentElement;
+  const pacchettiWrapper = pacchettiSection?.parentElement;
 
+  const wrappers = [
+    clientiWrapper,
+    lezioniWrapper,
+    prenotazioniWrapper,
+    pacchettiWrapper
+  ];
 
+  wrappers.forEach(wrapper => {
+    if (wrapper) wrapper.classList.remove("active-section");
+  });
 
-  // reset active tab
   [tabClienti, tabLezioni, tabPrenotazioni, tabPacchetti].forEach(btn => {
     if (btn) btn.classList.remove("active");
-    });
+  });
 
-
-  // chiude tutte le sezioni principali
   if (clientiSection) clientiSection.classList.add("hidden");
   if (lezioniSection) lezioniSection.classList.add("hidden");
   if (prenotazioniSection) prenotazioniSection.classList.add("hidden");
   if (pacchettiSection) pacchettiSection.classList.add("hidden");
 
-  // chiude eventuali dettagli aperti per evitare sovrapposizioni
   const dettaglioLezioneBox = document.getElementById("dettaglioLezioneBox");
   if (dettaglioLezioneBox) {
     dettaglioLezioneBox.innerHTML = "";
@@ -2094,42 +2091,41 @@ if (tab === "pacchetti") {
     `;
   }
 
-  // apre la sezione scelta
   if (tab === "clienti") {
+    if (clientiWrapper) clientiWrapper.classList.add("active-section");
     if (clientiSection) clientiSection.classList.remove("hidden");
     if (tabClienti) tabClienti.classList.add("active");
 
     renderClienti();
-
     scrollToSection("clientiSection");
   }
 
   if (tab === "lezioni") {
+    if (lezioniWrapper) lezioniWrapper.classList.add("active-section");
     if (lezioniSection) lezioniSection.classList.remove("hidden");
     if (tabLezioni) tabLezioni.classList.add("active");
 
     renderLezioni();
-
     scrollToSection("lezioniSection");
   }
 
   if (tab === "prenotazioni") {
-  if (prenotazioniSection) prenotazioniSection.classList.remove("hidden");
-  if (tabPrenotazioni) tabPrenotazioni.classList.add("active");
+    if (prenotazioniWrapper) prenotazioniWrapper.classList.add("active-section");
+    if (prenotazioniSection) prenotazioniSection.classList.remove("hidden");
+    if (tabPrenotazioni) tabPrenotazioni.classList.add("active");
 
-  loadPrenotazioni(); // ✅ fondamentale
-
-  scrollToSection("prenotazioniSection");
-}
+    loadPrenotazioni();
+    scrollToSection("prenotazioniSection");
+  }
 
   if (tab === "pacchetti") {
-  if (pacchettiSection) pacchettiSection.classList.remove("hidden");
-  if (tabPacchetti) tabPacchetti.classList.add("active");
+    if (pacchettiWrapper) pacchettiWrapper.classList.add("active-section");
+    if (pacchettiSection) pacchettiSection.classList.remove("hidden");
+    if (tabPacchetti) tabPacchetti.classList.add("active");
 
-  loadPacchetti(); // ✅
-
-  scrollToSection("pacchettiSection");
-}
+    loadPacchetti();
+    scrollToSection("pacchettiSection");
+  }
 }
 
 function scrollToSection(sectionId) {
@@ -2734,35 +2730,68 @@ function renderPacchettiMobileSafe() {
 
 function inviaWhatsAppCliente(idCliente) {
   const cliente = clientiData.find(c => String(c.ID_Cliente) === String(idCliente));
-  if (!cliente) return;
+  if (!cliente) {
+    setStatus("Cliente non trovato per WhatsApp", "err");
+    return;
+  }
 
-  const telefono = cliente.Telefono || "";
+  const telefonoPulito = String(cliente.Telefono || "").replace(/\D/g, "");
+
+  if (!telefonoPulito) {
+    setStatus("Numero telefono mancante per WhatsApp", "err");
+    return;
+  }
 
   const storico = prenotazioniData
-    .filter(p => String(p.ID_Cliente) === String(idCliente));
+    .filter(p => String(p.ID_Cliente) === String(idCliente))
+    .map(p => {
+      const l = lezioniData.find(x => String(x.ID_Lezione) === String(p.ID_Lezione));
 
-  const totale = storico.length;
+      return {
+        Data: l ? l.Data : "",
+        Ora: l ? l.Ora : "",
+        Tipologia: l ? l.Tipologia : "",
+        lezioneTrovata: !!l
+      };
+    })
+    .sort((a, b) => {
+      const dataOraA = `${a.Data || ""} ${a.Ora || ""}`;
+      const dataOraB = `${b.Data || ""} ${b.Ora || ""}`;
+      return dataOraB.localeCompare(dataOraA);
+    });
 
-  const listaLezioni = storico.map(p => {
-    const l = lezioniData.find(x => String(x.ID_Lezione) === String(p.ID_Lezione));
-    if (!l) return "";
-    return `- ${l.Data} ${l.Ora.substring(0,5)}`;
-  }).join("%0A");
+  const listaLezioni = storico.length
+    ? storico.map(l => {
+        if (!l.lezioneTrovata) return "- Lezione non trovata";
+        return `- ${l.Data} ${formatOraHHMM(l.Ora)} - ${l.Tipologia}`;
+      }).join("\n")
+    : "- Nessuna lezione registrata";
 
   const pacchetti = pacchettiData
     .filter(p => String(p.ID_Cliente) === String(idCliente))
+    .sort((a, b) => String(b.Valido_Da || "").localeCompare(String(a.Valido_Da || "")))
     .map(p => {
       const usate = contaPrenotazioniPacchetto(p.ID_Pacchetto);
       const tot = Number(p.Lezioni_Totali || 0);
       const saldo = tot - usate;
       const tipo = getTipologiaPacchetto(p.Tipo_Pacchetto);
 
-      return `- ${tipo}: ${tot} | fatte ${usate} | saldo ${saldo} | ${p.Stato || "Valido"}`;
-    }).join("%0A");
+      return `- ${tipo}: ${tot} lezioni | fatte ${usate} | saldo ${saldo} | ${p.Stato || "Valido"}`;
+    }).join("\n");
 
-  const testo = `Ciao ${cliente.Nome},%0A%0ALezioni effettuate: ${totale}%0A%0A${listaLezioni}%0A%0APacchetti:%0A${pacchetti}`;
+  const testo = `
+Ciao ${cliente.Nome || ""},
 
-  const link = `https://wa.me/${telefono}?text=${testo}`;
+Lezioni effettuate: ${storico.length}
+
+Lista lezioni:
+${listaLezioni}
+
+Pacchetti:
+${pacchetti || "- Nessun pacchetto registrato"}
+  `.trim();
+
+  const link = `https://wa.me/${telefonoPulito}?text=${encodeURIComponent(testo)}`;
 
   window.open(link, "_blank");
 }
