@@ -636,9 +636,10 @@ body {
     </label>
 
     <label class="field-block">
-      <span class="field-label">Lezioni Add</span>
-      <input id="pac_lezioni_add" type="number" min="0" value="0" placeholder="Lezioni Add" oninput="aggiornaAnteprimaPacchetto()">
+      <span class="field-label">Lezioni Add / Rettifica</span>
+      <input id="pac_lezioni_add" type="number" value="0" placeholder="Lezioni Add / Rettifica" oninput="segnaLezioniAddManuale(); aggiornaAnteprimaPacchetto()">
     </label>
+
 
     <label class="field-block">
       <span class="field-label">Lezioni Totali</span>
@@ -646,6 +647,8 @@ body {
     </label>
 
   </div>
+
+  <p id="pac_saldo_warning" class="muted"></p>
 
   <div class="form-row">
 
