@@ -163,6 +163,42 @@ async function fetchAllRows(tableName, columns = "*", orderColumn = null, ascend
   return { data: allRows, error: null };
 }
 
+/* ===================== ID UTILS ===================== */
+
+function generaNuovoIdProgressivo(prefix, rows, fieldName) {
+  const regex = new RegExp(`^${prefix}\\d{6}$`);
+
+  const numeriValidi = (rows || [])
+    .map(row => String(row[fieldName] || ""))
+    .filter(id => regex.test(id))
+    .map(id => Number(id.replace(prefix, "")))
+    .filter(n => !Number.isNaN(n));
+
+  const prossimoNumero = numeriValidi.length
+    ? Math.max(...numeriValidi) + 1
+    : 1;
+
+  return prefix + String(prossimoNumero).padStart(6, "0");
+}
+
+function generaNuoviIdProgressivi(prefix, rows, fieldName, quantita) {
+  const regex = new RegExp(`^${prefix}\\d{6}$`);
+
+  const numeriValidi = (rows || [])
+    .map(row => String(row[fieldName] || ""))
+    .filter(id => regex.test(id))
+    .map(id => Number(id.replace(prefix, "")))
+    .filter(n => !Number.isNaN(n));
+
+  const ultimoNumero = numeriValidi.length
+    ? Math.max(...numeriValidi)
+    : 0;
+
+  return Array.from({ length: quantita }).map((_, index) => {
+    return prefix + String(ultimoNumero + index + 1).padStart(6, "0");
+  });
+}
+
 /* ===================== DATE UTILS ===================== */
 
 function getTodayString() {
@@ -415,7 +451,7 @@ function renderSelectClienti() {
 
 async function aggiungiCliente() {
   const payload = {
-    ID_Cliente: "CL" + Date.now(),
+    ID_Cliente: generaNuovoIdProgressivo("CL", clientiData, "ID_Cliente"),
     Nome: document.getElementById("new_nome")?.value.trim() || "",
     Cognome: document.getElementById("new_cognome")?.value.trim() || "",
     Telefono: document.getElementById("new_telefono")?.value.trim() || "",
@@ -963,7 +999,7 @@ async function aggiungiLezione() {
   const Tipologia = document.getElementById("new_tipologia")?.value || "";
 
   const payload = {
-    ID_Lezione: "LZ" + Date.now(),
+    ID_Lezione: generaNuovoIdProgressivo("LZ", lezioniData, "ID_Lezione"),
     Data: document.getElementById("new_data")?.value || "",
     Ora: document.getElementById("new_ora")?.value || "",
     Tipologia,
@@ -1273,7 +1309,7 @@ async function prenota() {
   const response = await supabaseClient
     .from("prenotazioni")
     .insert([{
-      ID_Prenotazione: "PR" + Date.now(),
+      ID_Prenotazione: generaNuovoIdProgressivo("PR", prenotazioniData, "ID_Prenotazione"),
       ID_Cliente: idCliente,
       ID_Lezione: idLezione,
       ID_Pacchetto: idPacchetto
@@ -2026,12 +2062,19 @@ async function salvaPrenotazioniDaLezione(idLezione) {
     }
   }
 
-  const payload = nuovePrenotazioni.map((p, index) => ({
-    ID_Prenotazione: "PR" + Date.now() + "_" + index,
-    ID_Cliente: p.ID_Cliente,
-    ID_Lezione: idLezione,
-    ID_Pacchetto: p.ID_Pacchetto
-  }));
+  const nuoviIdPrenotazione = generaNuoviIdProgressivi(
+  "PR",
+  prenotazioniData,
+  "ID_Prenotazione",
+  nuovePrenotazioni.length
+);
+
+const payload = nuovePrenotazioni.map((p, index) => ({
+  ID_Prenotazione: nuoviIdPrenotazione[index],
+  ID_Cliente: p.ID_Cliente,
+  ID_Lezione: idLezione,
+  ID_Pacchetto: p.ID_Pacchetto
+}));
 
   const response = await supabaseClient
     .from("prenotazioni")
@@ -2775,18 +2818,7 @@ function aggiornaAnteprimaPacchetto() {
 }
 
 function generaNuovoIdPacchetto() {
-  const numeri = pacchettiData
-    .map(p => String(p.ID_Pacchetto || ""))
-    .filter(id => /^PC\d+$/.test(id))
-    .map(id => Number(id.replace("PC", "")))
-    .filter(n => !Number.isNaN(n));
-
-  if (!numeri.length) {
-    return "PC000001";
-  }
-
-  const prossimoNumero = Math.max(...numeri) + 1;
-  return "PC" + String(prossimoNumero).padStart(6, "0");
+  return generaNuovoIdProgressivo("PC", pacchettiData, "ID_Pacchetto");
 }
 
 async function aggiungiPacchetto() {
