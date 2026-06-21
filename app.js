@@ -71,6 +71,7 @@ function generaOrari() {
       sel.appendChild(opt);
     }
   }
+  document.getElementById("new_istruttore").value = "Laura";
 }
 
 function toggleClienti() {
@@ -334,12 +335,11 @@ function renderClienti() {
     const telefono = (c.Telefono || "").toLowerCase();
     const email = (c.Email || "").toLowerCase();
 
-    return (
-      nome.includes(searchClienti) ||
-      cognome.includes(searchClienti) ||
-      telefono.includes(searchClienti) ||
-      email.includes(searchClienti)
-    );
+    const full = (nome + " " + cognome).toLowerCase();
+
+    return full.includes(searchClienti) ||
+       nome.includes(searchClienti) ||
+       cognome.includes(searchClienti);
   });
 
   out.innerHTML = `
@@ -822,6 +822,30 @@ function getPacchettiClienteNonChiusi(idCliente) {
       stato !== "chiuso"
     );
   });
+}
+
+function getLezioniResiduePerTipologia(idCliente) {
+  const pacchetti = pacchettiData.filter(p => 
+    String(p.ID_Cliente) === String(idCliente) &&
+    normalizzaTesto(p.Stato || "") !== "chiuso"
+  );
+
+  const risultato = {};
+
+  pacchetti.forEach(p => {
+    const tipologia = getTipologiaPacchetto(p.Tipo_Pacchetto);
+    const residue = getLezioniResiduePacchetto(p);
+
+    if (!tipologia) return;
+
+    if (!risultato[tipologia]) {
+      risultato[tipologia] = 0;
+    }
+
+    risultato[tipologia] += residue;
+  });
+
+  return risultato;
 }
 
 function getPacchettiCompatibiliPerPrenotazione(idCliente, idLezione) {
@@ -1469,11 +1493,8 @@ function apriPrenotazione(idLezione) {
   aggiornaPacchettiPrenotazione();
 
   if (section) {
-    window.scrollTo({
-      top: section.offsetTop - 20,
-      behavior: "smooth"
-    });
-  }
+  section.scrollIntoView({ behavior: "smooth" });
+}
 }
 
 function mostraPrenotazioniLezione(idLezione) {
@@ -1621,19 +1642,33 @@ function renderClientiMobileSafe() {
       const email = cells[4].innerText;
       const azioni = cells[10].innerHTML;
 
-      cards.push(`
+      const residui = getLezioniResiduePerTipologia(id);
+
+const righeResiduo = Object.entries(residui)
+  .filter(([_, val]) => val > 0)
+  .map(([tipo, val]) => `• ${tipo}: ${val}`)
+  .join("<br>");
+
+cards.push(`
   <div class="card-ios">
+
     <div class="card-title">
       ${nome} ${cognome}
     </div>
 
     <div class="card-sub">📞 ${telefono}</div>
-    <div class="card-sub">📧 ${email}</div>
+
+    ${
+      righeResiduo
+        ? `<div class="card-sub">🎯<br>${righeResiduo}</div>`
+        : ""
+    }
 
     <div class="card-actions">
-      <button onclick="inviaWhatsAppCliente('${escapeQuote(id)}')">📲 WhatsApp</button>
-      ${azioni}
+      <button onclick="mostraSchedaCliente('${escapeQuote(id)}')">🔎 Scheda</button>
       <button onclick="mostraPacchettiCliente('${escapeQuote(id)}')">🎟️ Pacchetti</button>
+      <button onclick="mostraPrenotazioniCliente('${escapeQuote(id)}')">📅 Prenotazioni</button>
+      <button onclick="inviaWhatsAppCliente('${escapeQuote(id)}')">📲 WhatsApp</button>
     </div>
 
   </div>
@@ -1791,6 +1826,10 @@ function mostraSchedaCliente(idCliente) {
       <div class="card-sub">🧾 ${cliente.Codice_Fiscale || "-"}</div>
 
       <div class="card-actions">
+        <button onclick="mostraModificaClienteInline('${cliente.ID_Cliente}')">✏️ Modifica</button>
+        <button onclick="eliminaCliente('${escapeQuote(cliente.ID_Cliente)}')">🗑️ Elimina</button>
+        <button onclick="chiudiDettaglioCliente()">Indietro</button>
+      </div>
         <button onclick="inviaWhatsAppCliente('${escapeQuote(cliente.ID_Cliente)}')">📲 WhatsApp</button>
         <button onclick="mostraModificaClienteInline('${cliente.ID_Cliente}')">✏️ Modifica</button>
         <button onclick="chiudiDettaglioCliente()">Chiudi</button>
@@ -1812,11 +1851,13 @@ function mostraPrenotazioniCliente(idCliente) {
   if (!cliente) {
     box.classList.remove("hidden");
     box.innerHTML = `
+      <div class="app-toolbar">
+        <button class="app-back-btn" onclick="chiudiDettaglioCliente()">← Indietro</button>
+      </div>
+
       <div class="card-ios">
         <div class="card-title">Cliente non trovato</div>
-        <div class="card-actions">
-          <button onclick="chiudiDettaglioCliente()">Chiudi</button>
-        </div>
+        
       </div>
     `;
     return;
@@ -1927,18 +1968,20 @@ function mostraPacchettiCliente(idCliente) {
         <div class="card-sub">⚖️ Saldo: ${saldo}</div>
         <div class="card-sub">💰 Prezzo: ${p.Prezzo}</div>
         <div class="card-sub">💸 Da Pagare: ${p.Da_Pagare}</div>
-        <div class="card-sub">📌 Stato: ${p.Stato || "Valido"}</div>
+        <div class="card-sub">📌 Stato: ${p.Stato || "Attivo"}</div>
       </div>
     `;
   }).join("");
 
   box.innerHTML = `
+    <div class="app-toolbar">
+      <button class="app-back-btn" onclick="chiudiDettaglioCliente()">← Indietro</button>
+    </div>
+
     <div class="card-ios">
       <div class="card-title">Pacchetti ${cliente.Nome}</div>
       ${html || "<p>Nessun pacchetto</p>"}
-      <div class="card-actions">
-        <button onclick="renderClienti()">← Indietro</button>
-      </div>
+      
     </div>
   `;
 }
@@ -2512,10 +2555,7 @@ async function aggiungiPacchetto() {
     }
   }
 
-  if (Flag_C === "No" && !Fattura_Nr) {
-    setStatus("Fattura Nr obbligatoria quando Flag C = No", "err");
-    return;
-  }
+
 
   const payload = {
     ID_Pacchetto: generaNuovoIdPacchetto(),
@@ -2730,7 +2770,7 @@ function renderPacchettiMobileSafe() {
           </div>
 
           <div class="card-sub">
-            Stato: ${stato || "Valido"}
+            Stato: ${Stato || "Attivo"}
           </div>
         </div>
       `);
@@ -2957,7 +2997,7 @@ function renderReportPacchetti() {
           </div>
 
           <div class="report-line">
-            📌 Stato: ${safe(p.Stato || "Valido")}
+            📌 Stato: ${safe(p.Stato || "Attivo")}
           </div>
 
           <div class="report-warning">
@@ -2988,6 +3028,12 @@ function inviaWhatsAppCliente(idCliente) {
     setStatus("Cliente non trovato per WhatsApp", "err");
     return;
   }
+
+  const scelta = prompt(
+  "Cosa vuoi inviare?\n1 = Lezioni\n2 = Pacchetti\n3 = Entrambi"
+);
+
+if (!scelta) return;
 
   const telefonoPulito = String(cliente.Telefono || "").replace(/\D/g, "");
 
@@ -3030,20 +3076,22 @@ function inviaWhatsAppCliente(idCliente) {
       const saldo = tot - usate;
       const tipo = getTipologiaPacchetto(p.Tipo_Pacchetto);
 
-      return `- ${tipo}: ${tot} lezioni | fatte ${usate} | saldo ${saldo} | ${p.Stato || "Valido"}`;
+      return `- ${tipo}: ${tot} lezioni | fatte ${usate} | saldo ${saldo} | ${p.Stato || "Attivo"}`;
     }).join("\n");
 
-  const testo = `
-Ciao ${cliente.Nome || ""},
+  let testo = `Ciao ${cliente.Nome || ""},\n\n`;
 
-Lezioni effettuate: ${storico.length}
+if (scelta === "1" || scelta === "3") {
+  testo += `Lezioni effettuate: ${storico.length}\n\n`;
+}
 
-Lista lezioni:
-${listaLezioni}
+if (scelta === "2" || scelta === "3") {
+  testo += `Pacchetti:\n${pacchetti || "- Nessun pacchetto registrato"}\n\n`;
+}
 
-Pacchetti:
-${pacchetti || "- Nessun pacchetto registrato"}
-  `.trim();
+if (scelta === "3") {
+  testo += `Lista lezioni:\n${listaLezioni}`;
+}
 
   const link = `https://wa.me/${telefonoPulito}?text=${encodeURIComponent(testo)}`;
 
