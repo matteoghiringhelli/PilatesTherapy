@@ -1281,7 +1281,12 @@ async function prenota() {
   await loadPrenotazioni();
   await loadPacchetti();
 
-  setStatus("Prenotazione salvata correttamente ✅", "ok");
+const reportBox = document.getElementById("reportPacchettiBox");
+if (reportBox && !reportBox.classList.contains("hidden")) {
+  renderReportPacchetti();
+}
+
+setStatus("Prenotazione salvata correttamente ✅", "ok");
 }
 
 async function eliminaPrenotazione(id) {
@@ -1299,7 +1304,16 @@ async function eliminaPrenotazione(id) {
   }
 
   await loadPrenotazioni();
-  setStatus("Prenotazione eliminata correttamente ✅", "ok");
+await loadPacchetti();
+
+const reportBox = document.getElementById("reportPacchettiBox");
+if (reportBox && !reportBox.classList.contains("hidden")) {
+  
+renderReportPacchetti();
+}
+
+setStatus("Prenotazione eliminata correttamente ✅", "ok");
+
 }
 
 function mostraStoricoCliente(idCliente) {
@@ -2250,6 +2264,11 @@ async function loadPacchetti() {
   renderSelectTipiPacchetto();
   renderPacchetti();
   aggiornaPacchettiPrenotazione();
+
+  const reportBox = document.getElementById("reportPacchettiBox");
+  if (reportBox && !reportBox.classList.contains("hidden")) {
+    renderReportPacchetti();
+  }
 }
 
 function renderSelectPacchettoClienti() {
@@ -2728,6 +2747,237 @@ function renderPacchettiMobileSafe() {
   } catch (err) {
     console.error("Errore renderPacchettiMobileSafe:", err);
   }
+}
+
+/* ===================== REPORT PACCHETTI ===================== */
+
+function getClienteById(idCliente) {
+  return clientiData.find(c => String(c.ID_Cliente) === String(idCliente));
+}
+
+function isPacchettoChiuso(pacchetto) {
+  return normalizzaTesto(pacchetto?.Stato || "") === "chiuso";
+}
+
+function isPacchettoScaduto(pacchetto) {
+  if (!pacchetto || !pacchetto.Valido_A) return false;
+  return String(pacchetto.Valido_A) < getTodayString();
+}
+
+function getGiorniAllaScadenza(dateString) {
+  if (!dateString) return null;
+
+  const oggi = new Date(`${getTodayString()}T00:00:00`);
+  const scadenza = new Date(`${dateString}T00:00:00`);
+
+  if (Number.isNaN(scadenza.getTime())) return null;
+
+  const diffMs = scadenza.getTime() - oggi.getTime();
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+}
+
+function getAvvisiReportPacchetto(pacchetto) {
+  const avvisi = [];
+
+  if (!pacchetto) return avvisi;
+
+  const lezioniTotali = Number(pacchetto.Lezioni_Totali || 0);
+  const lezioniEffettuate = contaPrenotazioniPacchetto(pacchetto.ID_Pacchetto);
+  const saldo = lezioniTotali - lezioniEffettuate;
+  const daPagare = Number(pacchetto.Da_Pagare || 0);
+  const giorniScadenza = getGiorniAllaScadenza(pacchetto.Valido_A);
+
+  if (saldo < 0) {
+    avvisi.push({
+      tipo: "rosso",
+      testo: `Saldo negativo: ${saldo}`
+    });
+  } else if (saldo === 0) {
+    avvisi.push({
+      tipo: "rosso",
+      testo: "Pacchetto esaurito"
+    });
+  } else if (lezioniTotali > 3 && saldo <= 3) {
+    avvisi.push({
+      tipo: "giallo",
+      testo: `Lezioni residue basse: ${saldo}`
+    });
+  }
+
+  if (isPacchettoScaduto(pacchetto)) {
+    avvisi.push({
+      tipo: "rosso",
+      testo: `Pacchetto scaduto il ${pacchetto.Valido_A}`
+    });
+  } else if (giorniScadenza !== null && giorniScadenza <= 14) {
+    avvisi.push({
+      tipo: "giallo",
+      testo: `Scadenza vicina: ${giorniScadenza} giorni`
+    });
+  }
+
+  if (daPagare > 0) {
+    avvisi.push({
+      tipo: "blu",
+      testo: `Da pagare: ${daPagare}`
+    });
+  }
+
+  return avvisi;
+}
+
+function getClasseReportPacchetto(avvisi) {
+  if (avvisi.some(a => a.tipo === "rosso")) return "report-red";
+  if (avvisi.some(a => a.tipo === "giallo")) return "report-yellow";
+  if (avvisi.some(a => a.tipo === "blu")) return "report-blue";
+  return "report-green";
+}
+
+function getReportPacchettiData() {
+  return pacchettiData
+    .filter(p => !isPacchettoChiuso(p))
+    .map(p => {
+      const cliente = getClienteById(p.ID_Cliente);
+      const lezioniTotali = Number(p.Lezioni_Totali || 0);
+      const lezioniEffettuate = contaPrenotazioniPacchetto(p.ID_Pacchetto);
+      const saldo = lezioniTotali - lezioniEffettuate;
+      const avvisi = getAvvisiReportPacchetto(p);
+      const tipologia = getTipologiaPacchetto(p.Tipo_Pacchetto);
+
+      return {
+        pacchetto: p,
+        cliente,
+        tipologia,
+        lezioniTotali,
+        lezioniEffettuate,
+        saldo,
+        avvisi
+      };
+    })
+    .filter(item => item.avvisi.length > 0)
+    .sort((a, b) => {
+      const priorita = item => {
+        if (item.avvisi.some(x => x.tipo === "rosso")) return 1;
+        if (item.avvisi.some(x => x.tipo === "giallo")) return 2;
+        if (item.avvisi.some(x => x.tipo === "blu")) return 3;
+        return 4;
+      };
+
+      const pA = priorita(a);
+      const pB = priorita(b);
+
+      if (pA !== pB) return pA - pB;
+
+      return String(a.pacchetto.Valido_A || "").localeCompare(String(b.pacchetto.Valido_A || ""));
+    });
+}
+
+function toggleReportPacchetti() {
+  const box = document.getElementById("reportPacchettiBox");
+  if (!box) return;
+
+  box.classList.toggle("hidden");
+
+  if (!box.classList.contains("hidden")) {
+    renderReportPacchetti();
+    box.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+}
+
+function renderReportPacchetti() {
+  const out = document.getElementById("outputReportPacchetti");
+  if (!out) return;
+
+  const report = getReportPacchettiData();
+
+  const totaleAperti = pacchettiData.filter(p => !isPacchettoChiuso(p)).length;
+  const alertRossi = report.filter(r => r.avvisi.some(a => a.tipo === "rosso")).length;
+  const alertGialli = report.filter(r => r.avvisi.some(a => a.tipo === "giallo")).length;
+  const daPagare = report.filter(r => r.avvisi.some(a => a.tipo === "blu")).length;
+
+  if (!report.length) {
+    out.innerHTML = `
+      <div class="report-summary">
+        <div class="report-pill">Pacchetti aperti: ${totaleAperti}</div>
+        <div class="report-pill">Criticità: 0</div>
+      </div>
+
+      <div class="card-ios">
+        <div class="card-title">✅ Nessun pacchetto critico</div>
+        <div class="card-sub">
+          Non risultano pacchetti aperti con saldo basso, saldo negativo, scadenza critica o importi da pagare.
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  out.innerHTML = `
+    <div class="report-summary">
+      <div class="report-pill">Pacchetti aperti: ${totaleAperti}</div>
+      <div class="report-pill">Criticità totali: ${report.length}</div>
+      <div class="report-pill">🔴 Rossi: ${alertRossi}</div>
+      <div class="report-pill">🟡 Gialli: ${alertGialli}</div>
+      <div class="report-pill">💰 Da pagare: ${daPagare}</div>
+    </div>
+
+    ${report.map(item => {
+      const p = item.pacchetto;
+      const clienteNome = item.cliente
+        ? `${safe(item.cliente.Nome)} ${safe(item.cliente.Cognome)}`
+        : "Cliente non trovato";
+
+      const classe = getClasseReportPacchetto(item.avvisi);
+
+      return `
+        <div class="report-card ${classe}">
+          <div class="report-title">
+            ${clienteNome}
+          </div>
+
+          <div class="report-line">
+            🎟️ ${safe(p.ID_Pacchetto)} — ${safe(p.Tipo_Pacchetto)} — ${safe(item.tipologia)}
+          </div>
+
+          <div class="report-line">
+            📅 Validità: ${safe(p.Valido_Da)} → ${safe(p.Valido_A)}
+          </div>
+
+          <div class="report-line">
+            📊 Totali: ${item.lezioniTotali} | Effettuate: ${item.lezioniEffettuate} | Saldo: ${item.saldo}
+          </div>
+
+          <div class="report-line">
+            💰 Prezzo: ${safe(p.Prezzo)} | Da pagare: ${safe(p.Da_Pagare)}
+          </div>
+
+          <div class="report-line">
+            📌 Stato: ${safe(p.Stato || "Valido")}
+          </div>
+
+          <div class="report-warning">
+            ${item.avvisi.map(a => `⚠️ ${safe(a.testo)}`).join("<br>")}
+          </div>
+
+          <div class="card-actions">
+            ${
+              item.cliente
+                ? `<button onclick="inviaWhatsAppCliente('${escapeQuote(item.cliente.ID_Cliente)}')">📲 WhatsApp</button>`
+                : ""
+            }
+            ${
+              item.cliente
+                ? `<button onclick="mostraPacchettiCliente('${escapeQuote(item.cliente.ID_Cliente)}')">🎟️ Dettaglio Pacchetti</button>`
+                : ""
+            }
+          </div>
+        </div>
+      `;
+    }).join("")}
+  `;
 }
 
 function inviaWhatsAppCliente(idCliente) {
