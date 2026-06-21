@@ -2935,8 +2935,10 @@ function renderReportPacchetti() {
       return `
         <div class="report-card ${classe}">
           <div class="report-title">
+            <button onclick="mostraPacchettiCliente('${escapeQuote(item.cliente.ID_Cliente)}')">📅 Prenotazioni</button>
             ${clienteNome}
-          </div>
+          </button>
+</div>
 
           <div class="report-line">
             🎟️ ${safe(p.ID_Pacchetto)} — ${safe(p.Tipo_Pacchetto)} — ${safe(item.tipologia)}
