@@ -28,6 +28,7 @@ let filtroPrenotazioni = "tutte";
 let filtroPrenotazioniData = "";
 let searchPrenotazioni = "";
 let searchClienti = "";
+let reportPacchettiFiltro = "da_pagare";
 
 
 window.addEventListener("DOMContentLoaded", async () => {
@@ -1644,9 +1645,11 @@ function renderClientiMobileSafe() {
 
       const residui = getLezioniResiduePerTipologia(id);
 
+
 const righeResiduo = Object.entries(residui)
   .map(([tipo, val]) => `• ${tipo}: ${val}`)
   .join("<br>");
+
 
 cards.push(`
   <div class="card-ios">
@@ -2783,7 +2786,7 @@ function renderPacchettiMobileSafe() {
   }
 }
 
-/* ===================== REPORT PACCHETTI ===================== */
+/* ===================== REPORT PACCHETTI V2 ===================== */
 
 function getClienteById(idCliente) {
   return clientiData.find(c => String(c.ID_Cliente) === String(idCliente));
@@ -2793,106 +2796,87 @@ function isPacchettoChiuso(pacchetto) {
   return normalizzaTesto(pacchetto?.Stato || "") === "chiuso";
 }
 
-function isPacchettoScaduto(pacchetto) {
-  if (!pacchetto || !pacchetto.Valido_A) return false;
-  return String(pacchetto.Valido_A) < getTodayString();
-}
+function getReportPacchettoBase(p) {
+  const cliente = getClienteById(p.ID_Cliente);
 
-function getGiorniAllaScadenza(dateString) {
-  if (!dateString) return null;
-
-  const oggi = new Date(`${getTodayString()}T00:00:00`);
-  const scadenza = new Date(`${dateString}T00:00:00`);
-
-  if (Number.isNaN(scadenza.getTime())) return null;
-
-  const diffMs = scadenza.getTime() - oggi.getTime();
-  return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-}
-
-function getAvvisiReportPacchetto(pacchetto) {
-  const avvisi = [];
-
-  if (!pacchetto) return avvisi;
-
-  const lezioniTotali = Number(pacchetto.Lezioni_Totali || 0);
-  const lezioniEffettuate = contaPrenotazioniPacchetto(pacchetto.ID_Pacchetto);
+  const lezioniTotali = Number(p.Lezioni_Totali || 0);
+  const lezioniEffettuate = contaPrenotazioniPacchetto(p.ID_Pacchetto);
   const saldo = lezioniTotali - lezioniEffettuate;
-  const daPagare = Number(pacchetto.Da_Pagare || 0);
-  const giorniScadenza = getGiorniAllaScadenza(pacchetto.Valido_A);
 
-  if (saldo < 0) {
-    avvisi.push({
-      tipo: "rosso",
-      testo: `Saldo negativo: ${saldo}`
-    });
-  } else if (saldo === 0) {
-    avvisi.push({
-      tipo: "rosso",
-      testo: "Pacchetto esaurito"
-    });
-  } else if (saldo <= 2 && saldo > 0) {
-    avvisi.push({
-      tipo: "giallo",
-      testo: `Lezioni residue basse: ${saldo}`
-    });
-  }
+  const prezzo = Number(p.Prezzo || 0);
+  const daPagare = Number(p.Da_Pagare || 0);
+  const percentualeDaPagare = prezzo > 0 ? daPagare / prezzo : 0;
 
-  
-  if (daPagare > 0) {
-    avvisi.push({
-      tipo: "blu",
-      testo: `Da pagare: ${daPagare}`
-    });
-  }
-
-  return avvisi;
+  return {
+    pacchetto: p,
+    cliente,
+    clienteNome: cliente
+      ? `${cliente.Nome || ""} ${cliente.Cognome || ""}`.trim()
+      : "Cliente non trovato",
+    tipologia: getTipologiaPacchetto(p.Tipo_Pacchetto),
+    lezioniTotali,
+    lezioniEffettuate,
+    saldo,
+    prezzo,
+    daPagare,
+    percentualeDaPagare
+  };
 }
 
-function getClasseReportPacchetto(avvisi) {
-  if (avvisi.some(a => a.tipo === "rosso")) return "report-red";
-  if (avvisi.some(a => a.tipo === "giallo")) return "report-yellow";
-  if (avvisi.some(a => a.tipo === "blu")) return "report-blue";
-  return "report-green";
-}
-
-function getReportPacchettiData() {
+function getPacchettiReportDaPagare() {
   return pacchettiData
     .filter(p => !isPacchettoChiuso(p))
-    .map(p => {
-      const cliente = getClienteById(p.ID_Cliente);
-      const lezioniTotali = Number(p.Lezioni_Totali || 0);
-      const lezioniEffettuate = contaPrenotazioniPacchetto(p.ID_Pacchetto);
-      const saldo = lezioniTotali - lezioniEffettuate;
-      const avvisi = getAvvisiReportPacchetto(p);
-      const tipologia = getTipologiaPacchetto(p.Tipo_Pacchetto);
-
-      return {
-        pacchetto: p,
-        cliente,
-        tipologia,
-        lezioniTotali,
-        lezioniEffettuate,
-        saldo,
-        avvisi
-      };
-    })
-    .filter(item => item.avvisi.length > 0)
+    .map(getReportPacchettoBase)
+    .filter(item => item.daPagare > 0)
     .sort((a, b) => {
-      const priorita = item => {
-        if (item.avvisi.some(x => x.tipo === "rosso")) return 1;
-        if (item.avvisi.some(x => x.tipo === "giallo")) return 2;
-        if (item.avvisi.some(x => x.tipo === "blu")) return 3;
-        return 4;
-      };
+      if (b.daPagare !== a.daPagare) {
+        return b.daPagare - a.daPagare;
+      }
 
-      const pA = priorita(a);
-      const pB = priorita(b);
-
-      if (pA !== pB) return pA - pB;
-
-      return String(a.pacchetto.Valido_A || "").localeCompare(String(b.pacchetto.Valido_A || ""));
+      return b.percentualeDaPagare - a.percentualeDaPagare;
     });
+}
+
+function getPacchettiReportInScadenza() {
+  return pacchettiData
+    .filter(p => !isPacchettoChiuso(p))
+    .map(getReportPacchettoBase)
+    .filter(item => item.saldo <= 2)
+    .sort((a, b) => {
+      return a.saldo - b.saldo;
+    });
+}
+
+function getPacchettiReportFattureMancanti() {
+  return pacchettiData
+    .filter(p => !isPacchettoChiuso(p))
+    .map(getReportPacchettoBase)
+    .filter(item => {
+      const p = item.pacchetto;
+
+      return (
+        String(p.Flag_C || "") === "No" &&
+        (!p.Fattura_Nr || !p.Data_Fattura)
+      );
+    })
+    .sort((a, b) => {
+      return String(b.pacchetto.Valido_Da || "").localeCompare(
+        String(a.pacchetto.Valido_Da || "")
+      );
+    });
+}
+
+function setReportPacchettiFiltro(filtro) {
+  reportPacchettiFiltro = filtro;
+  renderReportPacchetti();
+}
+
+function getReportPacchettiCorrente() {
+  if (reportPacchettiFiltro === "in_scadenza") {
+    return getPacchettiReportInScadenza();
+  }
+
+  return getPacchettiReportDaPagare();
 }
 
 function toggleReportPacchetti() {
@@ -2903,6 +2887,7 @@ function toggleReportPacchetti() {
 
   if (!box.classList.contains("hidden")) {
     renderReportPacchetti();
+
     box.scrollIntoView({
       behavior: "smooth",
       block: "start"
@@ -2910,81 +2895,96 @@ function toggleReportPacchetti() {
   }
 }
 
-function renderReportPacchetti() {
-  const out = document.getElementById("outputReportPacchetti");
-  if (!out) return;
+function renderReportPacchettiCard(item, tipoReport) {
+  const p = item.pacchetto;
 
-  const report = getReportPacchettiData();
+  const alertDaPagare = item.daPagare > 0;
+  const alertInScadenza = item.saldo <= 2;
 
-  const totaleAperti = pacchettiData.filter(p => !isPacchettoChiuso(p)).length;
-  const alertRossi = report.filter(r => r.avvisi.some(a => a.tipo === "rosso")).length;
-  const alertGialli = report.filter(r => r.avvisi.some(a => a.tipo === "giallo")).length;
-  const daPagare = report.filter(r => r.avvisi.some(a => a.tipo === "blu")).length;
+  return `
+    <div class="report-card ${tipoReport === "da_pagare" ? "report-blue" : "report-yellow"}">
 
-  if (!report.length) {
-    out.innerHTML = `
-      <div class="report-summary">
-        <div class="report-pill">Pacchetti aperti: ${totaleAperti}</div>
-        <div class="report-pill">Criticità: 0</div>
+      <div class="report-title">
+        <button onclick="mostraPacchettiCliente('${escapeQuote(p.ID_Cliente)}')">
+          ${safe(item.clienteNome)}
+        </button>
       </div>
 
-      <div class="card-ios">
-        <div class="card-title">✅ Nessun pacchetto critico</div>
-        <div class="card-sub">
-          Non risultano pacchetti aperti con saldo basso, saldo negativo, scadenza critica o importi da pagare.
-        </div>
+      <div class="report-line">
+        🎟️ Tipo Pacchetto: ${safe(p.Tipo_Pacchetto)} — ${safe(item.tipologia)}
       </div>
-    `;
-    return;
-  }
 
-  out.innerHTML = `
-    <div class="report-summary">
-      <div class="report-pill">Pacchetti aperti: ${totaleAperti}</div>
-      <div class="report-pill">Criticità totali: ${report.length}</div>
-      <div class="report-pill">🔴 Rossi: ${alertRossi}</div>
-      <div class="report-pill">🟡 Gialli: ${alertGialli}</div>
-      <div class="report-pill">💰 Da pagare: ${daPagare}</div>
+      <div class="report-line">
+        👤 Cliente: ${safe(item.clienteNome)}
+      </div>
+
+      <div class="report-line">
+        💰 Prezzo: ${safe(p.Prezzo)} | Da pagare: ${safe(p.Da_Pagare)}
+      </div>
+
+      <div class="report-line">
+        📊 Lezioni totali: ${item.lezioniTotali} | Lezioni rimanenti: ${item.saldo}
+      </div>
+
+      <div class="report-line">
+        📅 Validità: ${safe(p.Valido_Da)} → ${safe(p.Valido_A)}
+      </div>
+
+      <div class="report-line">
+        📌 Stato: ${safe(p.Stato || "Attivo")}
+      </div>
+
+      <div class="report-warning">
+        ${alertDaPagare ? `⚠️ Da pagare: ${safe(p.Da_Pagare)}<br>` : ""}
+        ${alertInScadenza ? `⚠️ In scadenza: ${item.saldo} lezioni rimanenti` : ""}
+      </div>
+
+      <div class="card-actions">
+        ${
+          item.cliente
+            ? `<button onclick="inviaWhatsAppCliente('${escapeQuote(item.cliente.ID_Cliente)}')">📲 WhatsApp</button>`
+            : ""
+        }
+
+        <button onclick="mostraPacchettiCliente('${escapeQuote(p.ID_Cliente)}')">
+          🎟️ Dettaglio Pacchetti
+        </button>
+      </div>
+
+    </div>
+  `;
+}
+
+function renderReportFattureMancanti(items) {
+  if (!items.length) return "";
+
+  return `
+    <h3>🧾 Fatture C mancanti</h3>
+
+    <div class="report-empty">
+      Pacchetti con Flag C = No senza numero fattura o senza data fattura.
     </div>
 
-    ${report.map(item => {
+    ${items.map(item => {
       const p = item.pacchetto;
-      const clienteNome = item.cliente
-        ? `${safe(item.cliente.Nome)} ${safe(item.cliente.Cognome)}`
-        : "Cliente non trovato";
-
-      const classe = getClasseReportPacchetto(item.avvisi);
 
       return `
-        <div class="report-card ${classe}">
+        <div class="report-card report-red">
+
           <div class="report-title">
-            <button onclick="mostraPacchettiCliente('${escapeQuote(item.cliente.ID_Cliente)}')">📅 Prenotazioni</button>
-            ${clienteNome}
-          </button>
-</div>
-
-          <div class="report-line">
-            🎟️ ${safe(p.ID_Pacchetto)} — ${safe(p.Tipo_Pacchetto)} — ${safe(item.tipologia)}
+            ${safe(item.clienteNome)}
           </div>
 
           <div class="report-line">
-            📅 Validità: ${safe(p.Valido_Da)} → ${safe(p.Valido_A)}
+            🎟️ ${safe(p.ID_Pacchetto)} — ${safe(p.Tipo_Pacchetto)}
           </div>
 
           <div class="report-line">
-            📊 Totali: ${item.lezioniTotali} | Effettuate: ${item.lezioniEffettuate} | Saldo: ${item.saldo}
+            Fattura Nr: ${safe(p.Fattura_Nr || "Mancante")}
           </div>
 
           <div class="report-line">
-            💰 Prezzo: ${safe(p.Prezzo)} | Da pagare: ${safe(p.Da_Pagare)}
-          </div>
-
-          <div class="report-line">
-            📌 Stato: ${safe(p.Stato || "Attivo")}
-          </div>
-
-          <div class="report-warning">
-            ${item.avvisi.map(a => `⚠️ ${safe(a.testo)}`).join("<br>")}
+            Data Fattura: ${safe(p.Data_Fattura || "Mancante")}
           </div>
 
           <div class="card-actions">
@@ -2993,15 +2993,63 @@ function renderReportPacchetti() {
                 ? `<button onclick="inviaWhatsAppCliente('${escapeQuote(item.cliente.ID_Cliente)}')">📲 WhatsApp</button>`
                 : ""
             }
-            ${
-              item.cliente
-                ? `<button onclick="mostraPacchettiCliente('${escapeQuote(item.cliente.ID_Cliente)}')">🎟️ Dettaglio Pacchetti</button>`
-                : ""
-            }
+
+            <button onclick="mostraPacchettiCliente('${escapeQuote(p.ID_Cliente)}')">
+              🎟️ Dettaglio Pacchetti
+            </button>
           </div>
+
         </div>
       `;
     }).join("")}
+  `;
+}
+
+function renderReportPacchetti() {
+  const out = document.getElementById("outputReportPacchetti");
+  if (!out) return;
+
+  const daPagareItems = getPacchettiReportDaPagare();
+  const inScadenzaItems = getPacchettiReportInScadenza();
+  const fattureMancantiItems = getPacchettiReportFattureMancanti();
+
+  const corrente = getReportPacchettiCorrente();
+
+  const titoloCorrente =
+    reportPacchettiFiltro === "in_scadenza"
+      ? "In Scadenza"
+      : "Da Pagare";
+
+  out.innerHTML = `
+    <div class="report-summary">
+
+      <button
+        class="report-filter-btn ${reportPacchettiFiltro === "da_pagare" ? "active" : ""}"
+        onclick="setReportPacchettiFiltro('da_pagare')"
+      >
+        💰 Da Pagare: ${daPagareItems.length}
+      </button>
+
+      <button
+        class="report-filter-btn ${reportPacchettiFiltro === "in_scadenza" ? "active" : ""}"
+        onclick="setReportPacchettiFiltro('in_scadenza')"
+      >
+        ⚠️ In Scadenza: ${inScadenzaItems.length}
+      </button>
+
+    </div>
+
+    <h3>${titoloCorrente}</h3>
+
+    ${
+      corrente.length
+        ? corrente
+            .map(item => renderReportPacchettiCard(item, reportPacchettiFiltro))
+            .join("")
+        : `<div class="report-empty">Nessun pacchetto nella categoria ${safe(titoloCorrente)}.</div>`
+    }
+
+    ${renderReportFattureMancanti(fattureMancantiItems)}
   `;
 }
 
