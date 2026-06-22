@@ -96,6 +96,22 @@ function togglePrenotazioni() {
   el.classList.toggle("hidden");
 }
 
+function toggleNuovaPrenotazione() {
+  const box = document.getElementById("nuovaPrenotazioneBox");
+  if (!box) return;
+
+  box.classList.toggle("hidden");
+
+  if (!box.classList.contains("hidden")) {
+    applicaSmartDefaultsPrenotazione();
+
+    box.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+}
+
 function toggleNuovoCliente() {
   const box = document.getElementById("nuovoClienteBox");
   if (!box) return;
@@ -122,6 +138,126 @@ function resetSearchClienti() {
   if (input) input.value = "";
   renderClienti();
 }
+
+/* ===================== SMART DEFAULTS ===================== */
+const SMART_KEYS = {
+  ultimoClientePrenotazione: "pt_ultimo_cliente_prenotazione",
+  ultimaLezionePrenotazione: "pt_ultima_lezione_prenotazione",
+  ultimaTipologiaLezione: "pt_ultima_tipologia_lezione",
+  ultimoIstruttoreLezione: "pt_ultimo_istruttore_lezione",
+  ultimoOrarioLezione: "pt_ultimo_orario_lezione"
+};
+
+function salvaSmartValue(key, value) {
+  try {
+    if (!key || value === undefined || value === null) return;
+    localStorage.setItem(key, String(value));
+  } catch (err) {
+    console.warn("Smart storage non disponibile:", err);
+  }
+}
+
+function leggiSmartValue(key) {
+  try {
+    return localStorage.getItem(key) || "";
+  } catch (err) {
+    console.warn("Smart storage non disponibile:", err);
+    return "";
+  }
+}
+
+function selectContieneValore(selectEl, value) {
+  if (!selectEl || !value) return false;
+
+  const options = Array.from(selectEl.options || []);
+  return options.some(opt => String(opt.value) === String(value));
+}
+
+function getProssimaLezioneDisponibileSmart() {
+  const oggi = getTodayString();
+
+  const lezioniCandidate = lezioniData
+    .filter(l => String(l.Data || "") >= String(oggi))
+    .filter(l => {
+      const prenotati = prenotazioniData.filter(p =>
+        String(p.ID_Lezione) === String(l.ID_Lezione)
+      ).length;
+
+      const max = Number(l.Max_Partecipanti || 0);
+      return max > 0 && prenotati < max;
+    })
+    .sort((a, b) => {
+      const keyA = `${a.Data || ""} ${formatOraHHMM(a.Ora)}`;
+      const keyB = `${b.Data || ""} ${formatOraHHMM(b.Ora)}`;
+      return keyA.localeCompare(keyB);
+    });
+
+  return lezioniCandidate.length > 0 ? lezioniCandidate[0] : null;
+}
+
+function applicaSmartDefaultsPrenotazione() {
+  renderSelectClienti();
+  renderSelectLezioni();
+
+  const selectCliente = document.getElementById("select_cliente");
+  const selectLezione = document.getElementById("select_lezione");
+
+  const ultimoCliente = leggiSmartValue(SMART_KEYS.ultimoClientePrenotazione);
+  const ultimaLezione = leggiSmartValue(SMART_KEYS.ultimaLezionePrenotazione);
+
+  // cliente
+  if (selectCliente && ultimoCliente && selectContieneValore(selectCliente, ultimoCliente)) {
+    selectCliente.value = ultimoCliente;
+  }
+
+  // lezione
+  if (selectLezione && ultimaLezione && selectContieneValore(selectLezione, ultimaLezione)) {
+    selectLezione.value = ultimaLezione;
+  } else if (selectLezione && !selectLezione.value) {
+    const prossima = getProssimaLezioneDisponibileSmart();
+
+    if (prossima && selectContieneValore(selectLezione, prossima.ID_Lezione)) {
+      selectLezione.value = prossima.ID_Lezione;
+    }
+  }
+
+  aggiornaPacchettiPrenotazione();
+
+  // focus intelligente
+  setTimeout(() => {
+    if (selectCliente && !selectCliente.value) {
+      selectCliente.focus();
+    } else if (selectLezione && !selectLezione.value) {
+      selectLezione.focus();
+    }
+  }, 80);
+}
+
+function ricordaSmartPrenotazione(idCliente, idLezione) {
+  if (idCliente) {
+    salvaSmartValue(SMART_KEYS.ultimoClientePrenotazione, idCliente);
+  }
+
+  if (idLezione) {
+    salvaSmartValue(SMART_KEYS.ultimaLezionePrenotazione, idLezione);
+  }
+}
+
+function ricordaSmartLezione(Tipologia, Istruttore, Ora) {
+  if (Tipologia) {
+    salvaSmartValue(SMART_KEYS.ultimaTipologiaLezione, Tipologia);
+  }
+
+  if (Istruttore) {
+    salvaSmartValue(SMART_KEYS.ultimoIstruttoreLezione, Istruttore);
+  }
+
+  if (Ora) {
+    salvaSmartValue(SMART_KEYS.ultimoOrarioLezione, Ora);
+  }
+}
+
+
 
 
 async function reloadAll() {
@@ -1371,6 +1507,8 @@ async function prenota() {
     setStatus("Prenotazione non restituita da Supabase: controlla le policy RLS", "err");
     return;
   }
+
+  ricordaSmartPrenotazione(idCliente, idLezione);
 
   document.getElementById("select_cliente").value = "";
   document.getElementById("select_lezione").value = "";
@@ -2646,9 +2784,9 @@ function renderHome() {
         <div class="home-wide-line">⚠️ In scadenza: ${reportInScadenza.length}</div>
         <div class="home-wide-line">🧾 Fatture mancanti: ${fattureMancanti.length}</div>
         <div class="home-quick-row">
-          <button onclick="vaiTab('reportPacchetti')">Apri Report</button>
-          <button onclick="apriNuovoPacchettoDaHome()">Nuovo Pacchetto</button>
+          <button onclick="vaiTab('reportPacchetti')">Apri Alert</button>
         </div>
+
       </div>
 
       <div class="home-bottom-space"></div>
@@ -2690,22 +2828,21 @@ function apriNuovaPrenotazioneDaHome() {
 
   setTimeout(() => {
     const box = document.getElementById("nuovaPrenotazioneBox");
+
     if (box && box.classList.contains("hidden")) {
       box.classList.remove("hidden");
+    }
 
-      renderSelectClienti();
-      renderSelectLezioni();
-      aggiornaPacchettiPrenotazione();
+    applicaSmartDefaultsPrenotazione();
 
-      const firstField = document.getElementById("select_cliente");
-      if (firstField) firstField.focus();
-
-      box.scrollIntoView({
+    const target = document.getElementById("nuovaPrenotazioneBox");
+    if (target) {
+      target.scrollIntoView({
         behavior: "smooth",
         block: "start"
       });
     }
-  }, 120);
+  }, 180);
 }
 
 function apriNuovaLezioneDaHome() {
@@ -4382,16 +4519,24 @@ function preparaNuovaLezioneAgenda() {
 
   renderAgendaOrari();
 
+  const ultimaOra = leggiSmartValue(SMART_KEYS.ultimoOrarioLezione);
+  const ultimaTipologia = leggiSmartValue(SMART_KEYS.ultimaTipologiaLezione);
+  const ultimoIstruttore = leggiSmartValue(SMART_KEYS.ultimoIstruttoreLezione);
+
   if (ora && !ora.value) {
-    ora.value = "";
+    if (ultimaOra && selectContieneValore(ora, ultimaOra)) {
+      ora.value = ultimaOra;
+    } else {
+      ora.value = "";
+    }
   }
 
   if (tipologia && !tipologia.value) {
-    tipologia.value = "";
+    tipologia.value = ultimaTipologia || "";
   }
 
   if (istruttore && !istruttore.value) {
-    istruttore.value = "Laura";
+    istruttore.value = ultimoIstruttore || "Laura";
   }
 }
 
@@ -4476,6 +4621,8 @@ async function salvaLezioneDaAgenda() {
     setStatus(`Errore salvataggio lezione da Agenda: ${error.message}`, "err");
     return;
   }
+
+  ricordaSmartLezione(Tipologia, Istruttore, Ora);
 
   pulisciFormLezioneAgenda();
   chiudiNuovaLezioneAgenda();
