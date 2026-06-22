@@ -42,7 +42,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     // apertura iniziale stile app
     setTimeout(() => {
-      vaiTab("calendario");
+      vaiTab("home");
     }, 150);
 
     setStatus("Dashboard caricata correttamente ✅ - " + APP_VERSION, "ok");
@@ -2474,72 +2474,271 @@ async function salvaModificaClienteInline(idCliente) {
 /* ===================== HOME ===================== */
 function renderHome() {
   const mainContainer = document.getElementById("status")?.parentElement;
-
   if (!mainContainer) return;
+
+  const oggi = getTodayString();
+
+  const lezioniOggi = lezioniData
+    .filter(l => String(l.Data) === String(oggi))
+    .sort((a, b) => String(a.Ora || "").localeCompare(String(b.Ora || "")));
+
+  const statsOggi = getAgendaStatsGiorno(lezioniOggi);
+
+  const reportDaPagare = getPacchettiReportDaPagare();
+  const reportInScadenza = getPacchettiReportInScadenza();
+  const fattureMancanti = getPacchettiReportFattureMancanti();
+
+  const prossimaLezione = lezioniOggi.length
+    ? lezioniOggi.find(l => {
+        const ora = formatOraHHMM(l.Ora);
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, "0");
+        const mm = String(now.getMinutes()).padStart(2, "0");
+        return ora >= `${hh}:${mm}`;
+      }) || lezioniOggi[0]
+    : null;
+
+  const prossimaLezionePrenotati = prossimaLezione
+    ? prenotazioniData.filter(p =>
+        String(p.ID_Lezione) === String(prossimaLezione.ID_Lezione)
+      ).length
+    : 0;
+
+  const prossimaLezioneMax = prossimaLezione
+    ? Number(prossimaLezione.Max_Partecipanti || 0)
+    : 0;
 
   const homeHtml = `
     <div id="homeSection" class="app-view">
-      
-      <div class="card-ios" style="margin-top:12px;">
-        <div class="card-title">🚀 Azioni rapide</div>
 
-        <div class="card-actions">
-
-          <button onclick="vaiTab('calendario')">
-            🗓️ Agenda
-          </button>
-
-          <button onclick="vaiTab('clienti')">
-            👥 Clienti
-          </button>
-
-          <button onclick="vaiTab('prenotazioni')">
-            ➕ Prenotazione
-          </button>
-
-          <button onclick="vaiTab('lezioni')">
-            ➕ Lezione
-          </button>
-
-          <button onclick="vaiTab('pacchetti')">
-            ➕ Pacchetto
-          </button>
-
-          <button onclick="vaiTab('reportPacchetti')">
-            ⚠️ Report Pacchetti
-          </button>
-
+      <div class="home-hero">
+        <div class="home-title">Pilates Therapy</div>
+        <div class="home-subtitle">
+          Hub operativo dello studio: agenda, clienti, prenotazioni, pacchetti e report in un solo punto.
         </div>
       </div>
+
+      <div class="home-kpi-grid">
+
+        <div class="home-kpi-card">
+          <div class="home-kpi-label">Oggi</div>
+          <div class="home-kpi-value">${statsOggi.totaleLezioni}</div>
+          <div class="home-kpi-note">lezioni programmate</div>
+        </div>
+
+        <div class="home-kpi-card">
+          <div class="home-kpi-label">Prenotazioni oggi</div>
+          <div class="home-kpi-value">${statsOggi.totalePrenotati}/${statsOggi.totalePosti}</div>
+          <div class="home-kpi-note">${statsOggi.postiLiberi} posti liberi</div>
+        </div>
+
+        <div class="home-kpi-card">
+          <div class="home-kpi-label">Clienti</div>
+          <div class="home-kpi-value">${clientiData.length}</div>
+          <div class="home-kpi-note">anagrafiche attive</div>
+        </div>
+
+        <div class="home-kpi-card">
+          <div class="home-kpi-label">Alert pacchetti</div>
+          <div class="home-kpi-value">${reportDaPagare.length + reportInScadenza.length}</div>
+          <div class="home-kpi-note">da controllare</div>
+        </div>
+
+      </div>
+
+      <div class="home-section-title">Azioni rapide</div>
+
+      <div class="home-action-grid">
+
+        <button class="home-action-card primary" onclick="vaiTab('calendario')">
+          <div class="home-action-icon">🗓️</div>
+          <div>
+            <div class="home-action-title">Agenda</div>
+            <div class="home-action-sub">Apri la giornata e gestisci le lezioni.</div>
+          </div>
+        </button>
+
+        <button class="home-action-card blue-soft" onclick="vaiTab('clienti')">
+          <div class="home-action-icon">👥</div>
+          <div>
+            <div class="home-action-title">Clienti</div>
+            <div class="home-action-sub">Cerca, modifica e apri schede cliente.</div>
+          </div>
+        </button>
+
+        <button class="home-action-card green" onclick="apriNuovaPrenotazioneDaHome()">
+          <div class="home-action-icon">➕</div>
+          <div>
+            <div class="home-action-title">Prenotazione</div>
+            <div class="home-action-sub">Crea una nuova prenotazione manuale.</div>
+          </div>
+        </button>
+
+        <button class="home-action-card purple" onclick="apriNuovaLezioneDaHome()">
+          <div class="home-action-icon">📅</div>
+          <div>
+            <div class="home-action-title">Lezione</div>
+            <div class="home-action-sub">Aggiungi una nuova lezione in agenda.</div>
+          </div>
+        </button>
+
+        <button class="home-action-card" onclick="apriNuovoPacchettoDaHome()">
+          <div class="home-action-icon">🎟️</div>
+          <div>
+            <div class="home-action-title">Pacchetto</div>
+            <div class="home-action-sub">Registra pagamento, scadenza e saldo.</div>
+          </div>
+        </button>
+
+        <button class="home-action-card warning" onclick="vaiTab('reportPacchetti')">
+          <div class="home-action-icon">⚠️</div>
+          <div>
+            <div class="home-action-title">Report</div>
+            <div class="home-action-sub">Da pagare, in scadenza e fatture mancanti.</div>
+          </div>
+        </button>
+
+      </div>
+
+      <div class="home-section-title">Prossima lezione</div>
+
+      <div class="home-wide-card">
+        ${
+          prossimaLezione
+            ? `
+              <div class="home-wide-title">
+                ${safe(formatOraHHMM(prossimaLezione.Ora))} · ${safe(prossimaLezione.Tipologia)}
+              </div>
+              <div class="home-wide-line">👤 Istruttore: ${safe(prossimaLezione.Istruttore)}</div>
+              <div class="home-wide-line">👥 Prenotati: ${prossimaLezionePrenotati}/${prossimaLezioneMax}</div>
+              <div class="home-wide-line">📅 Data: ${safe(formatDataEstesaIt(prossimaLezione.Data))}</div>
+              <div class="home-quick-row">
+                <button onclick="vaiTab('calendario')">Apri Agenda</button>
+                <button onclick="mostraDettaglioLezione('${escapeQuote(prossimaLezione.ID_Lezione)}', 'dettaglioCalendarioLezioneBox'); vaiTab('calendario')">
+                  Dettaglio
+                </button>
+              </div>
+            `
+            : `
+              <div class="home-wide-title">Nessuna lezione oggi</div>
+              <div class="home-wide-line">
+                Puoi creare subito una nuova lezione dalla Home o dall’Agenda.
+              </div>
+              <div class="home-quick-row">
+                <button onclick="apriNuovaLezioneDaHome()">➕ Nuova lezione</button>
+                <button onclick="vaiTab('calendario')">Apri Agenda</button>
+              </div>
+            `
+        }
+      </div>
+
+      <div class="home-section-title">Alert operativi</div>
+
+      <div class="home-wide-card">
+        <div class="home-wide-title">Pacchetti</div>
+        <div class="home-wide-line">💰 Da pagare: ${reportDaPagare.length}</div>
+        <div class="home-wide-line">⚠️ In scadenza: ${reportInScadenza.length}</div>
+        <div class="home-wide-line">🧾 Fatture mancanti: ${fattureMancanti.length}</div>
+        <div class="home-quick-row">
+          <button onclick="vaiTab('reportPacchetti')">Apri Report</button>
+          <button onclick="apriNuovoPacchettoDaHome()">Nuovo Pacchetto</button>
+        </div>
+      </div>
+
+      <div class="home-bottom-space"></div>
 
     </div>
   `;
 
-  // Nascondo tutte le section esistenti
   document.querySelectorAll(".section").forEach(sec => {
     sec.classList.remove("active-section");
     sec.classList.add("hidden");
   });
 
-  // Rimuovo eventuale home precedente (evita duplicati)
   const oldHome = document.getElementById("homeSection");
   if (oldHome) oldHome.remove();
 
-  // Inserisco la home sopra tutto
   mainContainer.insertAdjacentHTML("beforeend", homeHtml);
 
-  // set active tab
-  document.querySelectorAll(".footer-tab").forEach(b => b.classList.remove("active"));
-  const tab = document.getElementById("tabHome");
-  if (tab) tab.classList.add("active");
+  document.querySelectorAll(".footer-tab").forEach(btn => {
+    btn.classList.remove("active");
+  });
 
-  // scroll top
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  const tabHome = document.getElementById("tabHome");
+  if (tabHome) tabHome.classList.add("active");
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+}
+
+
+function chiudiHomeSeAperta() {
+  const oldHome = document.getElementById("homeSection");
+  if (oldHome) oldHome.remove();
+}
+
+function apriNuovaPrenotazioneDaHome() {
+  vaiTab("prenotazioni");
+
+  setTimeout(() => {
+    const section = document.getElementById("prenotazioniSection");
+    if (section) {
+      section.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }
+  }, 120);
+}
+
+function apriNuovaLezioneDaHome() {
+  vaiTab("calendario");
+
+  setTimeout(() => {
+    const box = document.getElementById("nuovaLezioneAgendaBox");
+
+    if (box && box.classList.contains("hidden")) {
+      toggleNuovaLezioneAgenda();
+    } else {
+      preparaNuovaLezioneAgenda();
+    }
+
+    const target = document.getElementById("nuovaLezioneAgendaBox");
+    if (target) {
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }
+  }, 160);
+}
+
+function apriNuovoPacchettoDaHome() {
+  vaiTab("pacchetti");
+
+  setTimeout(() => {
+    const box = document.getElementById("nuovoPacchettoBox");
+
+    if (box && box.classList.contains("hidden")) {
+      toggleNuovoPacchetto();
+    } else {
+      preparaNuovoPacchetto();
+    }
+
+    const target = document.getElementById("nuovoPacchettoBox");
+    if (target) {
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }
+  }, 160);
 }
 
 
 /* ===================== FOOTER MENU APP ===================== */
-
 function vaiTab(tab) {
   const dashboardSection = document.getElementById("dashboardSection");
   const calendarioSection = document.getElementById("calendarioSection");
@@ -2548,13 +2747,13 @@ function vaiTab(tab) {
   const prenotazioniSection = document.getElementById("prenotazioniSection");
   const pacchettiSection = document.getElementById("pacchettiSection");
 
+  const tabHome = document.getElementById("tabHome");
   const tabDashboard = document.getElementById("tabDashboard");
   const tabCalendario = document.getElementById("tabCalendario");
   const tabClienti = document.getElementById("tabClienti");
   const tabLezioni = document.getElementById("tabLezioni");
   const tabPrenotazioni = document.getElementById("tabPrenotazioni");
   const tabPacchetti = document.getElementById("tabPacchetti");
-  const tabHome = document.getElementById("tabHome");
   const tabReportPacchetti = document.getElementById("tabReportPacchetti");
 
   const dashboardWrapper = dashboardSection?.parentElement;
@@ -2590,6 +2789,9 @@ function vaiTab(tab) {
     if (btn) btn.classList.remove("active");
   });
 
+  if (tab !== "home") {
+    chiudiHomeSeAperta();
+  }
 
   if (dashboardSection) dashboardSection.classList.add("hidden");
   if (calendarioSection) calendarioSection.classList.add("hidden");
@@ -2604,6 +2806,12 @@ function vaiTab(tab) {
     dettaglioLezioneBox.classList.add("hidden");
   }
 
+  const dettaglioCalendarioLezioneBox = document.getElementById("dettaglioCalendarioLezioneBox");
+  if (dettaglioCalendarioLezioneBox && tab !== "calendario") {
+    dettaglioCalendarioLezioneBox.innerHTML = "";
+    dettaglioCalendarioLezioneBox.classList.add("hidden");
+  }
+
   const outputStoricoCliente = document.getElementById("outputStoricoCliente");
   if (outputStoricoCliente) {
     outputStoricoCliente.innerHTML = `
@@ -2611,13 +2819,10 @@ function vaiTab(tab) {
     `;
   }
 
-
-  
   if (tab === "home") {
     renderHome();
     return;
   }
-
 
   if (tab === "dashboard") {
     if (dashboardWrapper) dashboardWrapper.classList.add("active-section");
@@ -2628,6 +2833,7 @@ function vaiTab(tab) {
     calcolaDashboardSettimanale();
 
     scrollToSection("dashboardSection");
+    return;
   }
 
   if (tab === "calendario") {
@@ -2638,6 +2844,7 @@ function vaiTab(tab) {
     renderCalendario();
 
     scrollToSection("calendarioSection");
+    return;
   }
 
   if (tab === "clienti") {
@@ -2648,6 +2855,7 @@ function vaiTab(tab) {
     renderClienti();
 
     scrollToSection("clientiSection");
+    return;
   }
 
   if (tab === "lezioni") {
@@ -2658,6 +2866,7 @@ function vaiTab(tab) {
     renderLezioni();
 
     scrollToSection("lezioniSection");
+    return;
   }
 
   if (tab === "prenotazioni") {
@@ -2668,6 +2877,7 @@ function vaiTab(tab) {
     loadPrenotazioni();
 
     scrollToSection("prenotazioniSection");
+    return;
   }
 
   if (tab === "pacchetti") {
@@ -2675,15 +2885,18 @@ function vaiTab(tab) {
     if (pacchettiSection) pacchettiSection.classList.remove("hidden");
     if (tabPacchetti) tabPacchetti.classList.add("active");
 
+    const reportBox = document.getElementById("reportPacchettiBox");
+    if (reportBox) reportBox.classList.add("hidden");
+
     loadPacchetti();
 
     scrollToSection("pacchettiSection");
+    return;
   }
 
-    if (tab === "reportPacchetti") {
+  if (tab === "reportPacchetti") {
     if (pacchettiWrapper) pacchettiWrapper.classList.add("active-section");
     if (pacchettiSection) pacchettiSection.classList.remove("hidden");
-
     if (tabReportPacchetti) tabReportPacchetti.classList.add("active");
 
     const reportBox = document.getElementById("reportPacchettiBox");
@@ -2692,6 +2905,7 @@ function vaiTab(tab) {
     renderReportPacchetti();
 
     scrollToSection("pacchettiSection");
+    return;
   }
 }
 
