@@ -3132,92 +3132,206 @@ function renderPacchettiMobileSafe() {
     const out = document.getElementById("outputPacchetti");
     if (!out) return;
 
-    const table = out.querySelector("table");
-    if (!table) return;
+    const cards = pacchettiData.map(p => {
+      
+      const cliente = clientiData.find(c =>
+        String(c.ID_Cliente) === String(p.ID_Cliente)
+      );
 
-    const rows = table.querySelectorAll("tr");
-    if (!rows || rows.length <= 1) return;
+      const clienteNome = cliente
+        ? `${cliente.Nome} ${cliente.Cognome}`
+        : "Cliente non trovato";
 
-    const cards = [];
+      const lezioniTotali = Number(p.Lezioni_Totali || 0);
+      const lezioniUsate = contaPrenotazioniPacchetto(p.ID_Pacchetto);
+      const lezioniRimanenti = lezioniTotali - lezioniUsate;
 
-    for (let i = 1; i < rows.length; i++) {
-      const cells = rows[i].querySelectorAll("td");
-      if (!cells || cells.length < 16) continue;
+      const prezzo = Number(p.Prezzo || 0);
+      const daPagare = Number(p.Da_Pagare || 0);
 
-      const idPacchetto = cells[0].innerText;
-      const cliente = cells[1].innerText;
-      const idCliente = cells[2].innerText;
-      const tipo = cells[3].innerText;
-      const base = cells[4].innerText;
-      const add = cells[5].innerText;
-      const totali = cells[6].innerText;
-      const prezzo = cells[7].innerText;
-      const pagato = cells[8].innerText;
-      const flagC = cells[9].innerText;
-      const daPagare = cells[10].innerText;
-      const fatturaNr = cells[11].innerText;
-      const dataFattura = cells[12].innerText;
-      const validoDa = cells[13].innerText;
-      const validoA = cells[14].innerText;
-      const stato = cells[15].innerText;
+      const alertDaPagare = daPagare > 0;
+      const alertInScadenza = lezioniRimanenti <= 2;
 
-      cards.push(`
+      return `
         <div class="card-ios">
+          
           <div class="card-title">
-            🎟️ ${tipo}
+            ${clienteNome}
           </div>
 
           <div class="card-sub">
-            👤 ${cliente}
+            🎟️ ${p.Tipo_Pacchetto}
           </div>
 
           <div class="card-sub">
-            🆔 Pacchetto: ${idPacchetto}
+            💰 Prezzo: ${prezzo}
           </div>
 
           <div class="card-sub">
-            ID Cliente: ${idCliente}
+            💸 Da pagare: ${daPagare}
           </div>
 
           <div class="card-sub">
-            📊 Lezioni: ${totali} — Base: ${base} — Add: ${add}
+            📊 Lezioni totali: ${lezioniTotali}
           </div>
 
           <div class="card-sub">
-            💰 Prezzo: ${prezzo} — Da pagare: ${daPagare}
+            ⚖️ Lezioni rimanenti: ${lezioniRimanenti}
           </div>
 
           <div class="card-sub">
-            Pagato: ${pagato} — Flag C: ${flagC}
+            📅 Validità: ${p.Valido_Da} → ${p.Valido_A}
           </div>
 
-          <div class="card-sub">
-            Fattura: ${fatturaNr || "-"} — Data: ${dataFattura || "-"}
+          ${
+            alertDaPagare
+              ? `<div class="report-warning">⚠️ Da pagare</div>`
+              : ""
+          }
+
+          ${
+            alertInScadenza
+              ? `<div class="report-warning">⚠️ In scadenza</div>`
+              : ""
+          }
+
+          <div class="card-actions">
+            <button onclick="mostraDettaglioPacchetto('${escapeQuote(p.ID_Pacchetto)}')">
+              🔎 Dettaglio
+            </button>
+
+            <button onclick="modificaPacchettoInline('${escapeQuote(p.ID_Pacchetto)}')">
+              ✏️ Modifica
+            </button>
+
+            <button onclick="eliminaPacchetto('${escapeQuote(p.ID_Pacchetto)}')">
+              🗑️ Elimina
+            </button>
           </div>
 
-          <div class="card-sub">
-            📅 Validità: ${validoDa} → ${validoA}
-          </div>
-
-          <div class="card-sub">
-            Stato: ${stato || "Attivo"}
-          </div>
-        </div>
-      `);
-    }
-
-    if (cards.length > 0) {
-      out.innerHTML = `
-        <div style="display:flex; flex-direction:column; gap:10px;">
-          ${cards.join("")}
         </div>
       `;
-    }
+    });
+
+    out.innerHTML = cards.join("");
 
   } catch (err) {
     console.error("Errore renderPacchettiMobileSafe:", err);
   }
 }
+
+
+async function eliminaPacchetto(idPacchetto) {
+  if (!confirm("Eliminare questo pacchetto?")) return;
+
+  const { error } = await supabaseClient
+    .from("pacchetti")
+    .delete()
+    .eq("ID_Pacchetto", idPacchetto);
+
+  if (error) {
+    console.error("Errore eliminaPacchetto:", error);
+    setStatus(`Errore eliminazione pacchetto: ${error.message}`, "err");
+    return;
+  }
+
+  await loadPacchetti();
+  setStatus("Pacchetto eliminato ✅", "ok");
+}
+
+
+function mostraDettaglioPacchetto(idPacchetto) {
+  const out = document.getElementById("outputPacchetti");
+
+  const p = pacchettiData.find(x =>
+    String(x.ID_Pacchetto) === String(idPacchetto)
+  );
+
+  if (!p) return;
+
+  const cliente = clientiData.find(c =>
+    String(c.ID_Cliente) === String(p.ID_Cliente)
+  );
+
+  const nomeCliente = cliente
+    ? `${cliente.Nome} ${cliente.Cognome}`
+    : "Cliente non trovato";
+
+  const usate = contaPrenotazioniPacchetto(p.ID_Pacchetto);
+  const tot = Number(p.Lezioni_Totali || 0);
+  const saldo = tot - usate;
+
+  animateView(out, `
+    <div class="app-toolbar">
+      <button class="app-back-btn" onclick="loadPacchetti()">← Indietro</button>
+    </div>
+
+    <div class="card-ios">
+      <div class="card-title">${nomeCliente}</div>
+
+      <div class="card-sub">🎟️ ${p.Tipo_Pacchetto}</div>
+      <div class="card-sub">💰 Prezzo: ${p.Prezzo}</div>
+      <div class="card-sub">💸 Da pagare: ${p.Da_Pagare}</div>
+
+      <div class="card-sub">📊 Totali: ${tot}</div>
+      <div class="card-sub">✅ Usate: ${usate}</div>
+      <div class="card-sub">⚖️ Rimanenti: ${saldo}</div>
+
+      <div class="card-sub">📅 Validità: ${p.Valido_Da} → ${p.Valido_A}</div>
+      <div class="card-sub">📌 Stato: ${p.Stato}</div>
+
+      <div class="card-actions">
+        <button onclick="modificaPacchettoInline('${escapeQuote(p.ID_Pacchetto)}')">
+          ✏️ Modifica
+        </button>
+
+        <button onclick="eliminaPacchetto('${escapeQuote(p.ID_Pacchetto)}')">
+          🗑️ Elimina
+        </button>
+
+        <button onclick="loadPacchetti()">← Indietro</button>
+      </div>
+    </div>
+  `);
+}
+
+
+function modificaPacchettoInline(idPacchetto) {
+  const p = pacchettiData.find(x =>
+    String(x.ID_Pacchetto) === String(idPacchetto)
+  );
+
+  if (!p) return;
+
+  const nuovoPrezzo = prompt("Prezzo", p.Prezzo || "");
+  if (nuovoPrezzo === null) return;
+
+  const nuovoDaPagare = prompt("Da Pagare", p.Da_Pagare || "");
+  if (nuovoDaPagare === null) return;
+
+  aggiornaPacchetto(idPacchetto, {
+    Prezzo: Number(nuovoPrezzo || 0),
+    Da_Pagare: Number(nuovoDaPagare || 0)
+  });
+}
+
+async function aggiornaPacchetto(idPacchetto, payload) {
+  const { error } = await supabaseClient
+    .from("pacchetti")
+    .update(payload)
+    .eq("ID_Pacchetto", idPacchetto);
+
+  if (error) {
+    console.error("Errore modifica pacchetto:", error);
+    setStatus(`Errore modifica: ${error.message}`, "err");
+    return;
+  }
+
+  await loadPacchetti();
+  setStatus("Pacchetto aggiornato ✅", "ok");
+}
+
+
 
 /* ===================== REPORT PACCHETTI V2 ===================== */
 
