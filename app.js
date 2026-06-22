@@ -3688,13 +3688,14 @@ async function aggiungiPacchetto() {
       Importo: Number(document.getElementById("pac_importo")?.value || 0),
       Metodo_Pagamento: document.getElementById("pac_metodo")?.value || "",
 
-      // 🔥 IMPORTANTISSIMO (fiscalità futura)
+      // ✅ FLAG FISCALE
       Flag_C: document.getElementById("pac_flag_c")?.value || "No",
 
       Note: document.getElementById("pac_note")?.value || ""
 
     };
 
+    // Validazione
     if (!pacchetto.ID_Cliente || !pacchetto.Importo || pacchetto.Lezioni_Totali === 0) {
       alert("Compila Cliente, Importo e Lezioni");
       return;
@@ -3717,25 +3718,27 @@ async function aggiungiPacchetto() {
     }
 
     // =====================================
-    // 3. AUTO CONTABILITA (VALORE DI BILANCIO)
+    // 3. AUTO CONTABILITA (VALORE BILANCIO)
     // =====================================
 
-    if (data && data.Importo > 0) {
+    if (data && Number(data.Importo) > 0) {
 
       const movimento = {
         Data: data.Data_Inizio || new Date().toISOString().split("T")[0],
-
         Tipo: "Entrata",
         Categoria: "Pacchetti",
 
-        // ✅ Descrizione chiara
+        // ✅ descrizione leggibile
         Descrizione: `${nomeClienteSelezionato || ""} - ${data.Tipo_Pacchetto || ""}`,
 
         Importo: Number(data.Importo || 0),
         Metodo_Pagamento: data.Metodo_Pagamento || "",
 
-        // 🔥 SALVIAMO FLAG_C (FONDAMENTALE)
-        Note: `Auto da Pacchetto ID: ${data.ID_Pacchetto || ""} | Flag_C: ${data.Flag_C || "No"}`
+        // ✅ FLAG_C salvato strutturato
+        Flag_C: data.Flag_C || "No",
+
+        // ✅ solo riferimento tecnico
+        Note: `Auto da Pacchetto ID: ${data.ID_Pacchetto || ""}`
       };
 
       const { error: errConti } = await supabaseClient
@@ -3748,15 +3751,22 @@ async function aggiungiPacchetto() {
     }
 
     // =====================================
-    // 4. RESET UI
+    // 4. RESET FORM
     // =====================================
 
-    document.getElementById("pac_importo").value = "";
-    document.getElementById("pac_lezioni").value = "";
-    document.getElementById("pac_note").value = "";
+    const fields = [
+      "pac_importo",
+      "pac_lezioni",
+      "pac_note"
+    ];
+
+    fields.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    });
 
     // =====================================
-    // 5. REFRESH
+    // 5. REFRESH DATI
     // =====================================
 
     if (typeof loadPacchetti === "function") {
@@ -3770,7 +3780,7 @@ async function aggiungiPacchetto() {
     alert("✅ Pacchetto creato");
 
   } catch (err) {
-    console.error(err);
+    console.error("Errore aggiungiPacchetto:", err);
   }
 }
 
@@ -5605,20 +5615,53 @@ function renderContiKpi() {
 
   let entrate = 0;
   let uscite = 0;
+  let imponibile = 0;
 
   contiData.forEach(r => {
+
+    const importo = Number(r.Importo || 0);
+
+    // Totali base
     if (r.Tipo === "Entrata") {
-      entrate += Number(r.Importo || 0);
+      entrate += importo;
     } else {
-      uscite += Number(r.Importo || 0);
+      uscite += importo;
     }
+
+    // =========================
+    // LOGICA FLAG_C
+    // =========================
+
+    if (r.Tipo === "Entrata") {
+
+      const flagC = (r.Flag_C || "No").toLowerCase();
+
+      if (flagC === "no") {
+        imponibile += importo;
+      }
+    }
+
   });
 
   const saldo = entrate - uscite;
 
+  // =========================
+  // FISCALE
+  // =========================
+
+  const base78 = imponibile * 0.78;
+  const imposta = base78 * 0.05;
+  const inps = base78 * 0.2607;
+
+  // =========================
+  // UI
+  // =========================
+
   document.getElementById("contiKpiRow").innerHTML = `
+    
     <div class="dashboard-kpi-row">
 
+      <!-- ENTRATE -->
       <div class="dashboard-kpi-card">
         <div class="dashboard-kpi-title">Entrate</div>
         <div class="dashboard-kpi-value" style="color:#34c759;">
@@ -5626,6 +5669,7 @@ function renderContiKpi() {
         </div>
       </div>
 
+      <!-- USCITE -->
       <div class="dashboard-kpi-card">
         <div class="dashboard-kpi-title">Uscite</div>
         <div class="dashboard-kpi-value" style="color:#ff3b30;">
@@ -5633,10 +5677,47 @@ function renderContiKpi() {
         </div>
       </div>
 
+      <!-- SALDO -->
       <div class="dashboard-kpi-card">
         <div class="dashboard-kpi-title">Saldo</div>
         <div class="dashboard-kpi-value">
           € ${saldo.toFixed(2)}
+        </div>
+      </div>
+
+    </div>
+
+    <div class="dashboard-kpi-row">
+
+      <!-- IMPONIBILE -->
+      <div class="dashboard-kpi-card">
+        <div class="dashboard-kpi-title">Imponibile</div>
+        <div class="dashboard-kpi-value">
+          € ${imponibile.toFixed(2)}
+        </div>
+      </div>
+
+      <!-- BASE 78% -->
+      <div class="dashboard-kpi-card">
+        <div class="dashboard-kpi-title">Base (78%)</div>
+        <div class="dashboard-kpi-value">
+          € ${base78.toFixed(2)}
+        </div>
+      </div>
+
+      <!-- IMPOSTA -->
+      <div class="dashboard-kpi-card">
+        <div class="dashboard-kpi-title">Imposta (5%)</div>
+        <div class="dashboard-kpi-value" style="color:#ff9500;">
+          € ${imposta.toFixed(2)}
+        </div>
+      </div>
+
+      <!-- INPS -->
+      <div class="dashboard-kpi-card">
+        <div class="dashboard-kpi-title">INPS (26.07%)</div>
+        <div class="dashboard-kpi-value" style="color:#af52de;">
+          € ${inps.toFixed(2)}
         </div>
       </div>
 
