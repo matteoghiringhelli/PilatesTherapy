@@ -2614,9 +2614,10 @@ function renderHome() {
               <div class="home-wide-line">📅 Data: ${safe(formatDataEstesaIt(prossimaLezione.Data))}</div>
               <div class="home-quick-row">
                 <button onclick="vaiTab('calendario')">Apri Agenda</button>
-                <button onclick="mostraDettaglioLezione('${escapeQuote(prossimaLezione.ID_Lezione)}', 'dettaglioCalendarioLezioneBox'); vaiTab('calendario')">
-                  Dettaglio
+                <button onclick="apriDettaglioLezioneDaHome('${escapeQuote(prossimaLezione.ID_Lezione)}')">
+                Dettaglio
                 </button>
+
               </div>
             `
             : `
@@ -2736,6 +2737,34 @@ function apriNuovoPacchettoDaHome() {
     }
   }, 160);
 }
+
+
+function apriDettaglioLezioneDaHome(idLezione) {
+  if (!idLezione) return;
+
+  // 1. Vai in Agenda
+  vaiTab("calendario");
+
+  // 2. Aspetta che la UI sia ready
+  setTimeout(() => {
+    // 3. Apri dettaglio nella box Agenda
+    mostraDettaglioLezione(idLezione, "dettaglioCalendarioLezioneBox");
+
+    // 4. Scroll verso il dettaglio
+    const box = document.getElementById("dettaglioCalendarioLezioneBox");
+
+    if (box) {
+      setTimeout(() => {
+        box.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      }, 120);
+    }
+
+  }, 180);
+}
+
 
 
 /* ===================== FOOTER MENU APP ===================== */
