@@ -1390,24 +1390,53 @@ body {
   <h2>Conti Studio</h2>
 
   <div id="contiSection">
-    <div class="dashboard-card">
-      <div class="dashboard-card-title">💼 Conti Studio</div>
 
-      <div class="dashboard-line">
-        Questa sezione sarà dedicata alla parte finanziaria dello studio.
-      </div>
+  <h2>💼 Conti Studio</h2>
 
-      <div class="dashboard-line">
-        Qui potremo inserire incassi, ricavi, spese, tasse, contributi e guadagno netto.
-      </div>
+  <!-- FORM INSERIMENTO -->
+  <div class="card-ios">
+    <div class="card-title">➕ Nuovo Movimento</div>
 
-      <div class="card-actions">
-        <button onclick="vaiTab('dashboard')">
-          📊 Apri Dashboard
-        </button>
-      </div>
+    <div class="form-row">
+      <input type="date" id="conti_data">
+      
+      <select id="conti_tipo">
+        <option value="Entrata">Entrata</option>
+        <option value="Uscita">Uscita</option>
+      </select>
+
+      <input id="conti_categoria" placeholder="Categoria">
+    </div>
+
+    <div class="form-row">
+      <input id="conti_descrizione" placeholder="Descrizione">
+      <input type="number" step="0.01" id="conti_importo" placeholder="Importo">
+    </div>
+
+    <div class="form-row">
+      <select id="conti_metodo">
+        <option value="">Metodo</option>
+        <option>Contanti</option>
+        <option>Carta</option>
+        <option>Bonifico</option>
+      </select>
+
+      <input id="conti_note" placeholder="Note">
+    </div>
+
+    <div class="card-actions">
+      <button onclick="aggiungiMovimentoConti()">💾 Salva</button>
     </div>
   </div>
+
+  <!-- KPI -->
+  <div id="contiKpiRow"></div>
+
+  <!-- LISTA -->
+  <div id="contiList"></div>
+
+</div>
+
 </div>
   
   <!-- ===================== CALENDARIO ===================== -->
