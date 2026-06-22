@@ -3799,21 +3799,64 @@ async function eliminaLezioneDaAgenda(idLezione) {
 
 
 
-function inviaWhatsAppCliente(idCliente) {
+function inviaWhatsAppCliente(idCliente) {function inviaWhatsAppClienteWhatsApp(idCliente);
+}
+
+function mostraSceltaWhatsApp(idCliente) {
+  chiudiWA();
+
+  const cliente = clientiData.find(c => String(c.ID_Cliente) === String(idCliente));
+
+  if (!cliente) {
+    setStatus("Cliente non trovato per WhatsApp", "err");
+    return;
+  }
+
+  const overlay = document.createElement("div");
+  overlay.className = "wa-choice-overlay";
+  overlay.id = "waChoiceOverlay";
+
+  overlay.innerHTML = `
+    <div class="wa-choice-box">
+
+      <button onclick="inviaWhatsAppClienteConScelta('${escapeQuote(idCliente)}', 'lezioni')">
+        📅 Lezioni
+      </button>
+
+      <button onclick="inviaWhatsAppClienteConScelta('${escapeQuote(idCliente)}', 'pacchetti')">
+        🎟️ Pacchetti
+      </button>
+
+      <button onclick="inviaWhatsAppClienteConScelta('${escapeQuote(idCliente)}', 'entrambi')">
+        📊 Entrambi
+      </button>
+
+      <button onclick="chiudiWA()">
+        Annulla
+      </button>
+
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+}
+
+function chiudiWA() {
+  const el = document.getElementById("waChoiceOverlay");
+  if (el) el.remove();
+}
+
+function inviaWhatsAppClienteConScelta(idCliente, scelta) {
+
+  chiudiWA();
+
   const cliente = clientiData.find(c => String(c.ID_Cliente) === String(idCliente));
   if (!cliente) {
     setStatus("Cliente non trovato per WhatsApp", "err");
     return;
   }
 
-  const scelta = prompt(
-  "Cosa vuoi inviare?\n1 = Lezioni\n2 = Pacchetti\n3 = Entrambi"
-);
-
-if (!scelta) return;
-
   const telefonoPulito = String(cliente.Telefono || "").replace(/\D/g, "");
-
   if (!telefonoPulito) {
     setStatus("Numero telefono mancante per WhatsApp", "err");
     return;
@@ -3823,7 +3866,6 @@ if (!scelta) return;
     .filter(p => String(p.ID_Cliente) === String(idCliente))
     .map(p => {
       const l = lezioniData.find(x => String(x.ID_Lezione) === String(p.ID_Lezione));
-
       return {
         Data: l ? l.Data : "",
         Ora: l ? l.Ora : "",
@@ -3832,9 +3874,9 @@ if (!scelta) return;
       };
     })
     .sort((a, b) => {
-      const dataOraA = `${a.Data || ""} ${a.Ora || ""}`;
-      const dataOraB = `${b.Data || ""} ${b.Ora || ""}`;
-      return dataOraB.localeCompare(dataOraA);
+      const aKey = `${a.Data || ""} ${a.Ora || ""}`;
+      const bKey = `${b.Data || ""} ${b.Ora || ""}`;
+      return bKey.localeCompare(aKey);
     });
 
   const listaLezioni = storico.length
@@ -3852,28 +3894,31 @@ if (!scelta) return;
       const tot = Number(p.Lezioni_Totali || 0);
       const saldo = tot - usate;
       const tipo = getTipologiaPacchetto(p.Tipo_Pacchetto);
-
       return `- ${tipo}: ${tot} lezioni | fatte ${usate} | saldo ${saldo} | ${p.Stato || "Attivo"}`;
     }).join("\n");
 
   let testo = `Ciao ${cliente.Nome || ""},\n\n`;
 
-if (scelta === "1" || scelta === "3") {
-  testo += `Lezioni effettuate: ${storico.length}\n\n`;
-}
+  if (scelta === "lezioni") {
+    testo += `Lezioni effettuate: ${storico.length}\n\n`;
+    testo += `Lista lezioni:\n${listaLezioni}`;
+  }
 
-if (scelta === "2" || scelta === "3") {
-  testo += `Pacchetti:\n${pacchetti || "- Nessun pacchetto registrato"}\n\n`;
-}
+  if (scelta === "pacchetti") {
+    testo += `Pacchetti:\n${pacchetti || "- Nessun pacchetto registrato"}`;
+  }
 
-if (scelta === "1" || scelta === "3") {
-  testo += `Lista lezioni:\n${listaLezioni}`;
-}
+  if (scelta === "entrambi") {
+    testo += `Lezioni effettuate: ${storico.length}\n\n`;
+    testo += `Pacchetti:\n${pacchetti || "- Nessun pacchetto registrato"}\n\n`;
+    testo += `Lista lezioni:\n${listaLezioni}`;
+  }
 
   const link = `https://wa.me/${telefonoPulito}?text=${encodeURIComponent(testo)}`;
-
   window.open(link, "_blank");
 }
+
+
 
 function vaiADataAgenda() {
   const val = document.getElementById("agendaDatePicker")?.value;
