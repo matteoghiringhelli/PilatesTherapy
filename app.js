@@ -4,7 +4,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const APP_VERSION = "v-step4-filtri-data-2026-06-19";
+const APP_VERSION = "v-agenda-step3-2026-06-22";
 
 const MAX_PARTECIPANTI = {
   "Privata": 1,
@@ -2142,7 +2142,7 @@ const payload = nuovePrenotazioni.map((p, index) => ({
   }
 
   renderCalendario();
-  mostraDettaglioLezione(idLezione, "dettaglioCalendarioLezioneBox");
+  mostraDettaglioLezione(idLezione, dettaglioLezioneBoxAttivo);
   setStatus("Prenotazioni salvate correttamente ✅", "ok");
 }
 
@@ -2169,7 +2169,7 @@ async function eliminaPrenotazioneDaLezione(idPrenotazione, idLezione) {
   }
 
   renderCalendario();
-  mostraDettaglioLezione(idLezione, "dettaglioCalendarioLezioneBox");
+  mostraDettaglioLezione(idLezione, dettaglioLezioneBoxAttivo);
   setStatus("Prenotazione eliminata correttamente ✅", "ok");
 }
 
@@ -3432,6 +3432,194 @@ function renderReportPacchetti() {
 
 /* ===================== CALENDARIO ===================== */
 
+function renderAgendaOrari() {
+  const sel = document.getElementById("agenda_ora");
+  if (!sel) return;
+
+  const valoreCorrente = sel.value;
+
+  sel.innerHTML = '<option value="">Ora</option>';
+
+  for (let h = 7; h <= 21; h++) {
+    for (const m of [0, 30]) {
+      const val = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      const opt = document.createElement("option");
+      opt.value = val;
+      opt.textContent = val;
+      sel.appendChild(opt);
+    }
+  }
+
+  if (valoreCorrente) {
+    sel.value = valoreCorrente;
+  }
+}
+
+function preparaNuovaLezioneAgenda() {
+  const data = document.getElementById("agenda_data");
+  const ora = document.getElementById("agenda_ora");
+  const tipologia = document.getElementById("agenda_tipologia");
+  const istruttore = document.getElementById("agenda_istruttore");
+
+  if (data) {
+    data.value = calendarioDataCorrente;
+  }
+
+  renderAgendaOrari();
+
+  if (ora && !ora.value) {
+    ora.value = "";
+  }
+
+  if (tipologia && !tipologia.value) {
+    tipologia.value = "";
+  }
+
+  if (istruttore && !istruttore.value) {
+    istruttore.value = "Laura";
+  }
+}
+
+function toggleNuovaLezioneAgenda() {
+  const box = document.getElementById("nuovaLezioneAgendaBox");
+  if (!box) return;
+
+  box.classList.toggle("hidden");
+
+  if (!box.classList.contains("hidden")) {
+    preparaNuovaLezioneAgenda();
+
+    box.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+}
+
+function chiudiNuovaLezioneAgenda() {
+  const box = document.getElementById("nuovaLezioneAgendaBox");
+  if (!box) return;
+
+  box.classList.add("hidden");
+}
+
+function pulisciFormLezioneAgenda() {
+  const data = document.getElementById("agenda_data");
+  const ora = document.getElementById("agenda_ora");
+  const tipologia = document.getElementById("agenda_tipologia");
+  const istruttore = document.getElementById("agenda_istruttore");
+
+  if (data) data.value = calendarioDataCorrente;
+  if (ora) ora.value = "";
+  if (tipologia) tipologia.value = "";
+  if (istruttore) istruttore.value = "Laura";
+}
+
+async function salvaLezioneDaAgenda() {
+  const Data = calendarioDataCorrente;
+  const Ora = document.getElementById("agenda_ora")?.value || "";
+  const Tipologia = document.getElementById("agenda_tipologia")?.value || "";
+  const Istruttore = document.getElementById("agenda_istruttore")?.value.trim() || "";
+
+  const payload = {
+    ID_Lezione: generaNuovoIdProgressivo("LZ", lezioniData, "ID_Lezione"),
+    Data,
+    Ora,
+    Tipologia,
+    Istruttore,
+    Max_Partecipanti: MAX_PARTECIPANTI[Tipologia]
+  };
+
+  if (!payload.Data || !payload.Ora || !payload.Tipologia || !payload.Istruttore) {
+    setStatus("Compila tutti i campi della lezione", "err");
+    return;
+  }
+
+  const duplicato = lezioniData.find(l =>
+    String(l.Data) === String(payload.Data) &&
+    String(formatOraHHMM(l.Ora)) === String(formatOraHHMM(payload.Ora)) &&
+    normalizzaTesto(l.Tipologia) === normalizzaTesto(payload.Tipologia)
+  );
+
+  if (duplicato) {
+    const conferma = confirm(
+      "Esiste già una lezione con stessa data, ora e tipologia. Vuoi salvarla comunque?"
+    );
+
+    if (!conferma) {
+      setStatus("Salvataggio lezione annullato", "err");
+      return;
+    }
+  }
+
+  const { error } = await supabaseClient
+    .from("lezioni")
+    .insert([payload]);
+
+  if (error) {
+    console.error("Errore salvaLezioneDaAgenda:", error);
+    setStatus(`Errore salvataggio lezione da Agenda: ${error.message}`, "err");
+    return;
+  }
+
+  pulisciFormLezioneAgenda();
+  chiudiNuovaLezioneAgenda();
+
+  await loadLezioni();
+  await loadPrenotazioni();
+
+  calendarioDataCorrente = Data;
+  renderCalendario();
+
+  setStatus("Lezione salvata da Agenda correttamente ✅", "ok");
+}
+
+function chiudiDettaglioAgendaSeAperto() {
+  const dettaglioBox = document.getElementById("dettaglioCalendarioLezioneBox");
+
+  if (dettaglioBox) {
+    dettaglioBox.innerHTML = "";
+    dettaglioBox.classList.add("hidden");
+  }
+}
+
+function vaiOggiAgenda() {
+  calendarioDataCorrente = getTodayString();
+
+  const dataAgendaInput = document.getElementById("agenda_data");
+  if (dataAgendaInput) {
+    dataAgendaInput.value = calendarioDataCorrente;
+  }
+
+  chiudiDettaglioAgendaSeAperto();
+  renderCalendario();
+}
+
+function getAgendaStatsGiorno(lezioniGiorno) {
+  const totaleLezioni = lezioniGiorno.length;
+
+  const totalePosti = lezioniGiorno.reduce((sum, l) => {
+    return sum + Number(l.Max_Partecipanti || 0);
+  }, 0);
+
+  const totalePrenotati = lezioniGiorno.reduce((sum, l) => {
+    const prenotati = prenotazioniData.filter(p =>
+      String(p.ID_Lezione) === String(l.ID_Lezione)
+    ).length;
+
+    return sum + prenotati;
+  }, 0);
+
+  const postiLiberi = Math.max(totalePosti - totalePrenotati, 0);
+
+  return {
+    totaleLezioni,
+    totalePosti,
+    totalePrenotati,
+    postiLiberi
+  };
+}
+
 function renderCalendario() {
   const out = document.getElementById("outputCalendario");
   const label = document.getElementById("calendarioDataLabel");
@@ -3440,30 +3628,65 @@ function renderCalendario() {
 
   label.textContent = formatDataEstesaIt(calendarioDataCorrente);
 
+  const dataAgendaInput = document.getElementById("agenda_data");
+  if (dataAgendaInput) {
+    dataAgendaInput.value = calendarioDataCorrente;
+  }
+
   const lezioniGiorno = lezioniData
     .filter(l => l.Data === calendarioDataCorrente)
     .sort((a, b) => String(a.Ora || "").localeCompare(String(b.Ora || "")));
 
   if (!lezioniGiorno.length) {
     out.innerHTML = `
+      <div class="agenda-day-summary">
+        📊 Nessuna lezione programmata per questo giorno.
+      </div>
+
       <div class="card-ios">
         <div class="card-title">Nessuna lezione</div>
-        <div class="card-sub">📭 Nessuna lezione programmata</div>
+        <div class="card-sub">📭 Usa “Aggiungi lezione” per creare una nuova lezione in questa giornata.</div>
       </div>
     `;
     return;
   }
 
-  out.innerHTML = lezioniGiorno.map(l => {
+  const stats = getAgendaStatsGiorno(lezioniGiorno);
 
+  const summaryHtml = `
+    <div class="agenda-day-summary">
+      📊 ${stats.totaleLezioni} lezioni · 
+      👥 ${stats.totalePrenotati}/${stats.totalePosti} prenotazioni · 
+      🟢 ${stats.postiLiberi} posti liberi
+    </div>
+  `;
+
+  const cardsHtml = lezioniGiorno.map(l => {
     const prenotati = prenotazioniData.filter(p =>
       String(p.ID_Lezione) === String(l.ID_Lezione)
     ).length;
 
     const max = Number(l.Max_Partecipanti || 0);
+    const rimasti = Math.max(max - prenotati, 0);
+
+    let statoClasse = "agenda-lesson-empty";
+    let statoPillClasse = "agenda-status-empty";
+    let statoTesto = "Disponibile";
+
+    if (prenotati > 0 && prenotati < max) {
+      statoClasse = "agenda-lesson-partial";
+      statoPillClasse = "agenda-status-partial";
+      statoTesto = "Parziale";
+    }
+
+    if (max > 0 && prenotati >= max) {
+      statoClasse = "agenda-lesson-full";
+      statoPillClasse = "agenda-status-full";
+      statoTesto = "Piena";
+    }
 
     return `
-      <div class="card-ios">
+      <div class="card-ios ${statoClasse}">
 
         <div class="agenda-lesson-time">
           ${safe(formatOraHHMM(l.Ora))}
@@ -3478,12 +3701,20 @@ function renderCalendario() {
         </div>
 
         <div class="card-sub">
-          👥 ${prenotati}/${max}
+          👥 ${prenotati}/${max} · Rimasti: ${rimasti}
         </div>
+
+        <span class="agenda-status-pill ${statoPillClasse}">
+          ${statoTesto}
+        </span>
 
         <div class="card-actions">
           <button onclick="mostraDettaglioLezione('${escapeQuote(l.ID_Lezione)}', 'dettaglioCalendarioLezioneBox')">
             👁️ Apri
+          </button>
+
+          <button onclick="eliminaLezioneDaAgenda('${escapeQuote(l.ID_Lezione)}')">
+            🗑️ Elimina
           </button>
         </div>
 
@@ -3491,12 +3722,20 @@ function renderCalendario() {
     `;
   }).join("");
 
+  out.innerHTML = summaryHtml + cardsHtml;
 }
 
 function giornoPrecedente() {
   const d = new Date(calendarioDataCorrente + "T00:00:00");
   d.setDate(d.getDate() - 1);
   calendarioDataCorrente = formatDateLocal(d);
+
+  const dataAgendaInput = document.getElementById("agenda_data");
+  if (dataAgendaInput) {
+    dataAgendaInput.value = calendarioDataCorrente;
+  }
+
+  chiudiDettaglioAgendaSeAperto();
   renderCalendario();
 }
 
@@ -3504,12 +3743,49 @@ function giornoSuccessivo() {
   const d = new Date(calendarioDataCorrente + "T00:00:00");
   d.setDate(d.getDate() + 1);
   calendarioDataCorrente = formatDateLocal(d);
+
+  const dataAgendaInput = document.getElementById("agenda_data");
+  if (dataAgendaInput) {
+    dataAgendaInput.value = calendarioDataCorrente;
+  }
+
+  chiudiDettaglioAgendaSeAperto();
   renderCalendario();
 }
 
-function vaiOggiAgenda() {
-  calendarioDataCorrente = getTodayString();
+async function eliminaLezioneDaAgenda(idLezione) {
+  if (!confirm("Eliminare questa lezione e le prenotazioni collegate?")) return;
+
+  const { error: errorPren } = await supabaseClient
+    .from("prenotazioni")
+    .delete()
+    .eq("ID_Lezione", idLezione);
+
+  if (errorPren) {
+    console.error("Errore eliminazione prenotazioni da Agenda:", errorPren);
+    setStatus(`Errore eliminazione prenotazioni collegate: ${errorPren.message}`, "err");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("lezioni")
+    .delete()
+    .eq("ID_Lezione", idLezione);
+
+  if (error) {
+    console.error("Errore eliminazione lezione da Agenda:", error);
+    setStatus(`Errore eliminazione lezione: ${error.message}`, "err");
+    return;
+  }
+
+  chiudiDettaglioAgendaSeAperto();
+
+  await loadLezioni();
+  await loadPrenotazioni();
+
   renderCalendario();
+
+  setStatus("Lezione eliminata da Agenda correttamente ✅", "ok");
 }
 
 
