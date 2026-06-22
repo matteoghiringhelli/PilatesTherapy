@@ -2455,45 +2455,151 @@ function mostraPacchettiCliente(idCliente) {
   const box = document.getElementById("outputClienti");
   if (!box) return;
 
-  const cliente = clientiData.find(c => String(c.ID_Cliente) === String(idCliente));
+  const cliente = clientiData.find(c =>
+    String(c.ID_Cliente) === String(idCliente)
+  );
+
+  if (!cliente) {
+    box.innerHTML = `
+      <div class="app-toolbar">
+        <button class="app-back-btn" onclick="chiudiDettaglioCliente()">
+          ← Clienti
+        </button>
+      </div>
+
+      <div class="card-ios">
+        <div class="card-title">Cliente non trovato</div>
+      </div>
+    `;
+    return;
+  }
+
+  const clienteNome = `${cliente.Nome || ""} ${cliente.Cognome || ""}`.trim();
 
   const pacchetti = pacchettiData
     .filter(p => String(p.ID_Cliente) === String(idCliente))
-    .sort((a,b) => String(b.Valido_Da).localeCompare(String(a.Valido_Da)));
+    .sort((a, b) => {
+      return String(b.Valido_Da || "").localeCompare(String(a.Valido_Da || ""));
+    });
 
-  const html = pacchetti.map(p => {
-    const usate = contaPrenotazioniPacchetto(p.ID_Pacchetto);
-    const tot = Number(p.Lezioni_Totali || 0);
-    const saldo = tot - usate;
+  const cardsHtml = pacchetti.length
+    ? pacchetti.map(p => {
+        const lezioniTotali = Number(p.Lezioni_Totali || 0);
+        const lezioniUsate = contaPrenotazioniPacchetto(p.ID_Pacchetto);
+        const lezioniRimanenti = lezioniTotali - lezioniUsate;
+        const daPagare = Number(p.Da_Pagare || 0);
 
-    const tipologia = getTipologiaPacchetto(p.Tipo_Pacchetto);
+        const alertDaPagare = !isPacchettoChiuso(p) && daPagare > 0;
+        const alertInScadenza = !isPacchettoChiuso(p) && lezioniRimanenti <= 2;
 
-    return `
+        return `
+          <div class="card-ios">
+            <div class="card-title">
+              ${safe(clienteNome)}
+            </div>
+
+            <div class="card-sub">
+              🎟️ Tipo Pacchetto: ${safe(p.Tipo_Pacchetto)}
+            </div>
+
+            <div class="card-sub">
+              💰 Prezzo: ${safe(p.Prezzo)}
+            </div>
+
+            <div class="card-sub">
+              💸 Da Pagare: ${safe(p.Da_Pagare)}
+            </div>
+
+            <div class="card-sub">
+              📊 Lezioni Totali: ${safe(lezioniTotali)}
+            </div>
+
+            <div class="card-sub">
+              ✅ Lezioni Usate: ${safe(lezioniUsate)}
+            </div>
+
+            <div class="card-sub">
+              ⚖️ Lezioni Rimanenti: ${safe(lezioniRimanenti)}
+            </div>
+
+            <div class="card-sub">
+              📅 Validità Da: ${safe(p.Valido_Da)}
+            </div>
+
+            <div class="card-sub">
+              📅 Validità A: ${safe(p.Valido_A)}
+            </div>
+
+            <div class="card-sub">
+              📌 Stato: ${safe(p.Stato || "Attivo")}
+            </div>
+
+            ${
+              alertDaPagare
+                ? `<div class="report-warning">⚠️ Da pagare: ${safe(daPagare)}</div>`
+                : ""
+            }
+
+            ${
+              alertInScadenza
+                ? `<div class="report-warning">⚠️ In scadenza: ${safe(lezioniRimanenti)} lezioni rimanenti</div>`
+                : ""
+            }
+
+            <div class="card-actions">
+              <button onclick="apriDettaglioPacchettoDaCliente('${escapeQuote(p.ID_Pacchetto)}')">
+                🔎 Dettaglio
+              </button>
+            </div>
+          </div>
+        `;
+      }).join("")
+    : `
       <div class="card-ios">
-        <div class="card-title">${tipologia}</div>
-        <div class="card-sub">📅 Inizio: ${p.Valido_Da}</div>
-        <div class="card-sub">📊 Totali: ${tot}</div>
-        <div class="card-sub">✅ Effettuate: ${usate}</div>
-        <div class="card-sub">⚖️ Saldo: ${saldo}</div>
-        <div class="card-sub">💰 Prezzo: ${p.Prezzo}</div>
-        <div class="card-sub">💸 Da Pagare: ${p.Da_Pagare}</div>
-        <div class="card-sub">📌 Stato: ${p.Stato || "Attivo"}</div>
+        <div class="card-title">Nessun pacchetto</div>
+        <div class="card-sub">
+          Non ci sono pacchetti registrati per questo cliente.
+        </div>
       </div>
     `;
-  }).join("");
 
   box.innerHTML = `
     <div class="app-toolbar">
-      <button class="app-back-btn" onclick="chiudiDettaglioCliente()">← Indietro</button>
+      <button class="app-back-btn" onclick="chiudiDettaglioCliente()">
+        ← Clienti
+      </button>
     </div>
 
-    <div class="card-ios">
-      <div class="card-title">Pacchetti ${cliente.Nome}</div>
-      ${html || "<p>Nessun pacchetto</p>"}
-      
+    <div style="padding: 12px 12px 90px 12px;">
+      <div class="card-ios">
+        <div class="card-title">
+          🎟️ Pacchetti Cliente
+        </div>
+
+        <div class="card-sub">
+          <strong>Cliente:</strong> ${safe(clienteNome)}
+        </div>
+
+        <div class="card-sub">
+          <strong>ID Cliente:</strong> ${safe(cliente.ID_Cliente)}
+        </div>
+
+        <div class="card-sub">
+          <strong>Totale pacchetti:</strong> ${pacchetti.length}
+        </div>
+      </div>
+
+      ${cardsHtml}
     </div>
   `;
+
+  box.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
 }
+
+
 
 function chiudiDettaglioCliente() {
   renderClienti();
@@ -2888,6 +2994,36 @@ function apriNuovoPacchettoDaHome() {
       });
     }
   }, 160);
+}
+
+function apriDettaglioPacchettoDaCliente(idPacchetto) {
+  if (!idPacchetto) return;
+
+  // Vai alla tab Pacchetti
+  vaiTab("pacchetti");
+
+  // Aspetta il render (importante)
+  setTimeout(() => {
+    // Se la funzione esiste, ricarica i pacchetti (sicurezza)
+    if (typeof loadPacchetti === "function") {
+      loadPacchetti();
+    }
+
+    // Apri il dettaglio pacchetto
+    if (typeof mostraDettaglioPacchetto === "function") {
+      mostraDettaglioPacchetto(idPacchetto);
+    }
+
+    // Scroll verso il dettaglio
+    const container = document.getElementById("outputPacchetti");
+    if (container) {
+      container.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }
+
+  }, 200);
 }
 
 
