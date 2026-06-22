@@ -2512,7 +2512,11 @@ function renderHome() {
     <div id="homeSection" class="app-view">
 
       <div class="home-hero">
-        <div class="home-title">Pilates Therapy</div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <img src="icon-192.png" style="width:42px; height:42px; border-radius:12px;">
+          <div class="home-title">Pilates Therapy</div>
+        </div>
+
         <div class="home-subtitle">
           Hub operativo dello studio: agenda, clienti, prenotazioni, pacchetti e report in un solo punto.
         </div>
