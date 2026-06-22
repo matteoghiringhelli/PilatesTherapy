@@ -3117,14 +3117,22 @@ function renderPacchetti() {
         <th>Valido_Da</th>
         <th>Valido_A</th>
         <th>Stato</th>
+        <th>Azioni</th>
       </tr>
+
       ${pacchettiData.map(p => {
-        const cliente = clientiData.find(c => String(c.ID_Cliente) === String(p.ID_Cliente));
+        const cliente = clientiData.find(c =>
+          String(c.ID_Cliente) === String(p.ID_Cliente)
+        );
+
+        const clienteNome = cliente
+          ? `${cliente.Nome || ""} ${cliente.Cognome || ""}`.trim()
+          : "-";
 
         return `
           <tr>
             <td>${safe(p.ID_Pacchetto)}</td>
-            <td>${cliente ? safe(cliente.Nome + " " + cliente.Cognome) : "-"}</td>
+            <td>${safe(clienteNome)}</td>
             <td>${safe(p.ID_Cliente)}</td>
             <td>${safe(p.Tipo_Pacchetto)}</td>
             <td>${safe(p.Lezioni_Base)}</td>
@@ -3139,6 +3147,11 @@ function renderPacchetti() {
             <td>${safe(p.Valido_Da)}</td>
             <td>${safe(p.Valido_A)}</td>
             <td>${safe(p.Stato)}</td>
+            <td>
+              <button onclick="mostraDettaglioPacchetto('${escapeQuote(p.ID_Pacchetto)}')">
+                🔎 Dettaglio
+              </button>
+            </td>
           </tr>
         `;
       }).join("")}
@@ -3152,105 +3165,97 @@ function renderPacchetti() {
 
 function renderPacchettiMobileSafe() {
   try {
-    // ✅ SOLO MOBILE
     if (window.innerWidth > 768) return;
 
     const out = document.getElementById("outputPacchetti");
     if (!out) return;
 
-    const table = out.querySelector("table");
-    if (!table) return;
+    if (!pacchettiData.length) {
+      out.innerHTML = `
+        <div class="card-ios">
+          <div class="card-title">Nessun pacchetto</div>
+          <div class="card-sub">Non ci sono pacchetti registrati.</div>
+        </div>
+      `;
+      return;
+    }
 
-    const rows = table.querySelectorAll("tr");
-    if (!rows || rows.length <= 1) return;
+    const cards = pacchettiData.map(p => {
+      const cliente = clientiData.find(c =>
+        String(c.ID_Cliente) === String(p.ID_Cliente)
+      );
 
-    const cards = [];
+      const clienteNome = cliente
+        ? `${cliente.Nome || ""} ${cliente.Cognome || ""}`.trim()
+        : "Cliente non trovato";
 
-    for (let i = 1; i < rows.length; i++) {
-      const cells = rows[i].querySelectorAll("td");
-      if (!cells || cells.length < 16) continue;
+      const lezioniTotali = Number(p.Lezioni_Totali || 0);
+      const lezioniUsate = contaPrenotazioniPacchetto(p.ID_Pacchetto);
+      const lezioniRimanenti = lezioniTotali - lezioniUsate;
 
-      const idPacchetto = cells[0].innerText;
-      const cliente = cells[1].innerText;
-      const tipo = cells[3].innerText;
+      const daPagare = Number(p.Da_Pagare || 0);
 
-      const lezioniBase = cells[4].innerText;
-      const lezioniAdd = cells[5].innerText;
-      const lezioniTot = cells[6].innerText;
+      const alertDaPagare = !isPacchettoChiuso(p) && daPagare > 0;
+      const alertInScadenza = !isPacchettoChiuso(p) && lezioniRimanenti <= 2;
 
-      const prezzo = cells[7].innerText;
-      const pagato = cells[8].innerText;
-      const daPagare = cells[10].innerText;
-
-      const validoDa = cells[13].innerText;
-      const validoA = cells[14].innerText;
-
-      // ✅ calcolo contatori
-      const usate = contaPrenotazioniPacchetto(idPacchetto);
-      const totNum = Number(lezioniTot || 0);
-      const saldo = totNum - usate;
-
-      const daPagareNum = Number(daPagare || 0);
-
-      const alertDaPagare = daPagareNum > 0;
-      const alertInScadenza = saldo <= 2;
-
-      cards.push(`
+      return `
         <div class="card-ios">
 
           <div class="card-title">
-            ${cliente}
+            ${safe(clienteNome)}
           </div>
 
           <div class="card-sub">
-            🎟️ ${tipo}
+            🎟️ Tipo Pacchetto: ${safe(p.Tipo_Pacchetto)}
           </div>
 
           <div class="card-sub">
-            📊 ${lezioniTot} lezioni (usate ${usate} • saldo ${saldo})
+            💰 Prezzo: ${safe(p.Prezzo)}
           </div>
 
           <div class="card-sub">
-            💰 Prezzo: ${prezzo}
+            💸 Da Pagare: ${safe(p.Da_Pagare)}
           </div>
 
           <div class="card-sub">
-            💸 Da pagare: ${daPagare}
+            📊 Lezioni Totali: ${safe(lezioniTotali)}
           </div>
 
           <div class="card-sub">
-            📅 ${validoDa} → ${validoA}
+            ⚖️ Lezioni Rimanenti: ${safe(lezioniRimanenti)}
+          </div>
+
+          <div class="card-sub">
+            📅 Validità Da: ${safe(p.Valido_Da)}
+          </div>
+
+          <div class="card-sub">
+            📅 Validità A: ${safe(p.Valido_A)}
           </div>
 
           ${
             alertDaPagare
-              ? `<div class="report-warning">⚠️ Da pagare</div>`
+              ? `<div class="report-warning">⚠️ Da pagare: ${safe(daPagare)}</div>`
               : ""
           }
 
           ${
             alertInScadenza
-              ? `<div class="report-warning">⚠️ In scadenza</div>`
+              ? `<div class="report-warning">⚠️ In scadenza: ${safe(lezioniRimanenti)} lezioni rimanenti</div>`
               : ""
           }
 
           <div class="card-actions">
-            <button onclick="mostraDettaglioPacchetto('${escapeQuote(idPacchetto)}')">
+            <button onclick="mostraDettaglioPacchetto('${escapeQuote(p.ID_Pacchetto)}')">
               🔎 Dettaglio
             </button>
           </div>
 
         </div>
-      `);
-    }
-
-    if (cards.length > 0) {
-      out.innerHTML = `
-        <div style="display:flex; flex-direction:column; gap:10px;">
-          ${cards.join("")}
-        </div>
       `;
-    }
+    });
+
+    out.innerHTML = cards.join("");
 
   } catch (err) {
     console.error("Errore renderPacchettiMobileSafe:", err);
@@ -3637,6 +3642,7 @@ function aggiornaDaPagareModificaPacchetto() {
 }
 
 async function salvaModificaPacchettoInline(idPacchetto) {
+
   const payload = {
     ID_Cliente: document.getElementById("edit_pac_cliente")?.value || "",
     Tipo_Pacchetto: document.getElementById("edit_pac_tipo")?.value || "",
@@ -3658,6 +3664,7 @@ async function salvaModificaPacchettoInline(idPacchetto) {
     Stato: document.getElementById("edit_pac_stato")?.value || "Attivo"
   };
 
+  // ✅ VALIDAZIONI
   if (!payload.ID_Cliente) {
     setStatus("Cliente obbligatorio", "err");
     return;
@@ -3673,10 +3680,16 @@ async function salvaModificaPacchettoInline(idPacchetto) {
     return;
   }
 
+  // ✅ LOGICA BUSINESS
   if (payload.Flag_Pagato === "Si") {
     payload.Da_Pagare = 0;
   }
 
+  if (payload.Flag_C === "Si") {
+    payload.Fattura_Nr = "";
+  }
+
+  // ✅ UPDATE SU SUPABASE
   const { error } = await supabaseClient
     .from("pacchetti")
     .update(payload)
@@ -3688,6 +3701,7 @@ async function salvaModificaPacchettoInline(idPacchetto) {
     return;
   }
 
+  // ✅ REFRESH DATI
   await loadPacchetti();
   await loadPrenotazioni();
 
@@ -3698,6 +3712,7 @@ async function salvaModificaPacchettoInline(idPacchetto) {
 
   setStatus("Pacchetto modificato correttamente ✅", "ok");
 
+  // ✅ TORNA AL DETTAGLIO
   setTimeout(() => {
     mostraDettaglioPacchetto(idPacchetto);
   }, 100);
