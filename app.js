@@ -3667,96 +3667,113 @@ function generaNuovoIdPacchetto() {
 }
 
 async function aggiungiPacchetto() {
-  aggiornaAnteprimaPacchetto();
 
-  const ID_Cliente = document.getElementById("pac_cliente")?.value || "";
-  const Tipo_Pacchetto = document.getElementById("pac_tipo")?.value || "";
-  const tipo = TIPI_PACCHETTO[Tipo_Pacchetto];
+  try {
 
-  const Lezioni_Base = Number(document.getElementById("pac_lezioni_base")?.value || 0);
-  const Lezioni_Add = Number(document.getElementById("pac_lezioni_add")?.value || 0);
-  const Lezioni_Totali = Number(document.getElementById("pac_lezioni_totali")?.value || 0);
-  const Prezzo = Number(document.getElementById("pac_prezzo")?.value || 0);
-  const Flag_Pagato = document.getElementById("pac_flag_pagato")?.value || "Si";
-  const Flag_C = document.getElementById("pac_flag_c")?.value || "Si";
+    // =====================================
+    // 1. COSTRUZIONE PACCHETTO
+    // =====================================
 
-  const daPagareRaw = document.getElementById("pac_da_pagare")?.value;
-  const Da_Pagare = Flag_Pagato === "Si" ? 0 : Number(daPagareRaw || 0);
+    const pacchetto = {
 
-  const Fattura_Nr = document.getElementById("pac_fattura_nr")?.value.trim() || "";
-  const Data_Fattura = document.getElementById("pac_data_fattura")?.value || "";
-  const Valido_Da = document.getElementById("pac_valido_da")?.value || "";
-  const Valido_A = document.getElementById("pac_valido_a")?.value || "";
-  const Stato = document.getElementById("pac_stato")?.value || "";
+      ID_Cliente: clienteSelezionatoId || null,
 
-  if (!ID_Cliente) {
-    setStatus("Seleziona un cliente per il pacchetto", "err");
-    return;
-  }
+      Data_Inizio: document.getElementById("pac_data_inizio")?.value || new Date().toISOString().split("T")[0],
+      Data_Fine: document.getElementById("pac_data_fine")?.value || null,
 
-  if (!Tipo_Pacchetto || !tipo) {
-    setStatus("Seleziona un tipo pacchetto valido", "err");
-    return;
-  }
+      Tipo_Pacchetto: tipoPacchettoSelezionato || "",
+      Lezioni_Totali: Number(document.getElementById("pac_lezioni")?.value || 0),
+      Lezioni_Utilizzate: 0,
 
-  if (!Valido_Da || !Valido_A) {
-    setStatus("Inserisci una data di inizio validità", "err");
-    return;
-  }
+      Importo: Number(document.getElementById("pac_importo")?.value || 0),
+      Metodo_Pagamento: document.getElementById("pac_metodo")?.value || "",
 
-  if (Flag_Pagato === "No") {
-    if (daPagareRaw === "" || daPagareRaw === null || daPagareRaw === undefined) {
-      setStatus("Da Pagare è obbligatorio quando Pagato = No", "err");
+      // 🔥 IMPORTANTISSIMO (fiscalità futura)
+      Flag_C: document.getElementById("pac_flag_c")?.value || "No",
+
+      Note: document.getElementById("pac_note")?.value || ""
+
+    };
+
+    if (!pacchetto.ID_Cliente || !pacchetto.Importo || pacchetto.Lezioni_Totali === 0) {
+      alert("Compila Cliente, Importo e Lezioni");
       return;
     }
 
-    if (Da_Pagare < 0) {
-      setStatus("Da Pagare non può essere negativo", "err");
+    // =====================================
+    // 2. INSERT PACCHETTO
+    // =====================================
+
+    const { data, error } = await supabaseClient
+      .from("pacchetti")
+      .insert([pacchetto])
+      .select()
+      .single();
+
+    if (error) {
+      console.error(error);
+      alert("Errore salvataggio pacchetto");
       return;
     }
-  }
 
+    // =====================================
+    // 3. AUTO CONTABILITA (VALORE DI BILANCIO)
+    // =====================================
 
+    if (data && data.Importo > 0) {
 
-  const payload = {
-    ID_Pacchetto: generaNuovoIdPacchetto(),
-    ID_Cliente,
-    Tipo_Pacchetto,
-    Lezioni_Base,
-    Lezioni_Add,
-    Lezioni_Totali,
-    Prezzo,
-    Flag_Pagato,
-    Flag_C,
-    Da_Pagare,
-    Fattura_Nr: Flag_C === "No" ? Fattura_Nr : "",
-    Data_Fattura: Data_Fattura || null,
-    Valido_Da,
-    Valido_A,
-    Stato
-  };
+      const movimento = {
+        Data: data.Data_Inizio || new Date().toISOString().split("T")[0],
 
-  const { error } = await supabaseClient
-    .from("pacchetti")
-    .insert([payload]);
+        Tipo: "Entrata",
+        Categoria: "Pacchetti",
 
-  if (error) {
-    console.error("Errore aggiungiPacchetto:", error);
-    setStatus(`Errore salvataggio pacchetto: ${error.message}`, "err");
-    return;
-  }
+        // ✅ Descrizione chiara
+        Descrizione: `${nomeClienteSelezionato || ""} - ${data.Tipo_Pacchetto || ""}`,
 
-  pulisciFormPacchetto();
+        Importo: Number(data.Importo || 0),
+        Metodo_Pagamento: data.Metodo_Pagamento || "",
 
-  const box = document.getElementById("nuovoPacchettoBox");
-    if (box && box.classList.contains("hidden")) {
-      toggleNuovoPacchetto();
+        // 🔥 SALVIAMO FLAG_C (FONDAMENTALE)
+        Note: `Auto da Pacchetto ID: ${data.ID_Pacchetto || ""} | Flag_C: ${data.Flag_C || "No"}`
+      };
+
+      const { error: errConti } = await supabaseClient
+        .from("studio_act")
+        .insert([movimento]);
+
+      if (errConti) {
+        console.error("Errore contabilità:", errConti);
+      }
     }
 
-  await loadPacchetti();
+    // =====================================
+    // 4. RESET UI
+    // =====================================
 
-  setStatus("Pacchetto salvato correttamente ✅", "ok");
+    document.getElementById("pac_importo").value = "";
+    document.getElementById("pac_lezioni").value = "";
+    document.getElementById("pac_note").value = "";
+
+    // =====================================
+    // 5. REFRESH
+    // =====================================
+
+    if (typeof loadPacchetti === "function") {
+      await loadPacchetti();
+    }
+
+    if (typeof loadConti === "function") {
+      await loadConti();
+    }
+
+    alert("✅ Pacchetto creato");
+
+  } catch (err) {
+    console.error(err);
+  }
 }
+
 
 function pulisciFormPacchetto() {
   daPagareManuale = false;
@@ -5519,6 +5536,192 @@ function renderDashboardKpiSettimanale(dataSettimanale) {
   out.textContent = formatEuro(valore);
 }
 
+
+// ============================
+// CONTI STUDIO
+// ============================
+
+let contiData = [];
+
+// LOAD
+async function loadConti() {
+  const { data, error } = await supabaseClient
+    .from("studio_act")
+    .select("*")
+    .order("Data", { ascending: false });
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  contiData = data || [];
+  renderConti();
+}
+
+
+// INSERT
+async function aggiungiMovimentoConti() {
+
+  const movimento = {
+    Data: document.getElementById("conti_data").value,
+    Tipo: document.getElementById("conti_tipo").value,
+    Categoria: document.getElementById("conti_categoria").value,
+    Descrizione: document.getElementById("conti_descrizione").value,
+    Importo: parseFloat(document.getElementById("conti_importo").value || 0),
+    Metodo_Pagamento: document.getElementById("conti_metodo").value,
+    Note: document.getElementById("conti_note").value
+  };
+
+  if (!movimento.Data || !movimento.Categoria || !movimento.Importo) {
+    alert("Compila Data, Categoria e Importo");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("studio_act")
+    .insert([movimento]);
+
+  if (error) {
+    console.error(error);
+    alert("Errore salvataggio");
+    return;
+  }
+
+  // reset form
+  document.getElementById("conti_data").value = "";
+  document.getElementById("conti_categoria").value = "";
+  document.getElementById("conti_descrizione").value = "";
+  document.getElementById("conti_importo").value = "";
+  document.getElementById("conti_metodo").value = "";
+  document.getElementById("conti_note").value = "";
+
+  await loadConti();
+}
+
+
+// KPI
+function renderContiKpi() {
+
+  let entrate = 0;
+  let uscite = 0;
+
+  contiData.forEach(r => {
+    if (r.Tipo === "Entrata") {
+      entrate += Number(r.Importo || 0);
+    } else {
+      uscite += Number(r.Importo || 0);
+    }
+  });
+
+  const saldo = entrate - uscite;
+
+  document.getElementById("contiKpiRow").innerHTML = `
+    <div class="dashboard-kpi-row">
+
+      <div class="dashboard-kpi-card">
+        <div class="dashboard-kpi-title">Entrate</div>
+        <div class="dashboard-kpi-value" style="color:#34c759;">
+          € ${entrate.toFixed(2)}
+        </div>
+      </div>
+
+      <div class="dashboard-kpi-card">
+        <div class="dashboard-kpi-title">Uscite</div>
+        <div class="dashboard-kpi-value" style="color:#ff3b30;">
+          € ${uscite.toFixed(2)}
+        </div>
+      </div>
+
+      <div class="dashboard-kpi-card">
+        <div class="dashboard-kpi-title">Saldo</div>
+        <div class="dashboard-kpi-value">
+          € ${saldo.toFixed(2)}
+        </div>
+      </div>
+
+    </div>
+  `;
+}
+
+
+// RENDER LISTA (mobile-first)
+function renderConti() {
+
+  renderContiKpi();
+
+  const container = document.getElementById("contiList");
+
+  if (!contiData.length) {
+    container.innerHTML = `<div class="muted">Nessun movimento</div>`;
+    return;
+  }
+
+  container.innerHTML = contiData.map(r => `
+    <div class="card-ios">
+
+      <div class="card-title">
+        ${r.Tipo === "Entrata" ? "💰" : "💸"} ${r.Categoria}
+      </div>
+
+      <div class="card-sub">${r.Data}</div>
+
+      <div class="card-row">${r.Descrizione || ""}</div>
+
+      <div class="card-row" style="font-weight:700;
+        color:${r.Tipo === "Entrata" ? "#34c759" : "#ff3b30"};">
+        € ${Number(r.Importo).toFixed(2)}
+      </div>
+
+      <div class="card-sub">${r.Metodo_Pagamento || ""}</div>
+
+    </div>
+  `).join("");
+}
+
+
+// AUTO LOAD
+window.addEventListener("DOMContentLoaded", () => {
+  if (document.getElementById("contiSection")) {
+    loadConti();
+  }
+});
+
+
+// ============================
+// AUTO CONTABILITA DA PACCHETTI
+// ============================
+
+async function registraEntrataPacchetto(pacchetto) {
+
+  try {
+
+    const movimento = {
+      Data: pacchetto.Data_Inizio || new Date().toISOString().split("T")[0],
+      Tipo: "Entrata",
+      Categoria: "Pacchetti",
+      Descrizione: `${pacchetto.Nome_Cliente || ""} - ${pacchetto.Tipo_Pacchetto || ""}`,
+      Importo: Number(pacchetto.Importo || 0),
+      Metodo_Pagamento: pacchetto.Metodo_Pagamento || "",
+      Note: `Auto da ID Pacchetto: ${pacchetto.ID_Pacchetto || ""}`
+    };
+
+    if (!movimento.Importo || movimento.Importo <= 0) {
+      return;
+    }
+
+    const { error } = await supabaseClient
+      .from("studio_act")
+      .insert([movimento]);
+
+    if (error) {
+      console.error("Errore contabilità:", error);
+    }
+
+  } catch (err) {
+    console.error("Errore funzione contabilità:", err);
+  }
+}
 
 
 console.log("APP JS CARICATO OK");
