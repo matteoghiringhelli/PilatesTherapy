@@ -2044,14 +2044,14 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
     `;
 
   animateView(box, `
+     
       <div class="app-toolbar">
-       >    <button class="app-back-btn" onclick="...">← Indietro</button>
+        <button class="app-back-btn" onclick="chiudiDettaglioLezione('${escapeQuote(boxId)}')">
+          ← Indietro
+        </button>
       </div>
-      <div class="view-content">
-      
 
-      <button class="app-back-btn" onclick="chiudiDettaglioLezione('${escapeQuote(boxId)}')">← Indietro</button>
-    </div>
+<div class="view-content">
 
     <div class="lesson-detail">
 
