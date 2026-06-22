@@ -2709,20 +2709,22 @@ function renderHome() {
         </button>
 
         <button class="home-action-card green" onclick="apriNuovaPrenotazioneDaHome()">
-          <div class="home-action-icon">➕</div>
+          <div class="home-action-icon">📝</div>
           <div>
             <div class="home-action-title">Prenotazione</div>
             <div class="home-action-sub">Crea una nuova prenotazione manuale.</div>
           </div>
         </button>
 
-        <button class="home-action-card purple" onclick="apriNuovaLezioneDaHome()">
-          <div class="home-action-icon">🧘</div>
+        
+        <button class="home-action-card purple" onclick="vaiTab('conti')">
+          <div class="home-action-icon">💼</div>
           <div>
-            <div class="home-action-title">Lezione</div>
-            <div class="home-action-sub">Aggiungi una nuova lezione in agenda.</div>
+            <div class="home-action-title">Conti Studio</div>
+            <div class="home-action-sub">Apri la sezione finanziaria dello studio.</div>
           </div>
         </button>
+
 
         <button class="home-action-card" onclick="apriNuovoPacchettoDaHome()">
           <div class="home-action-icon">🎟️</div>
@@ -2922,6 +2924,7 @@ function vaiTab(tab) {
   const dashboardSection = document.getElementById("dashboardSection");
   const calendarioSection = document.getElementById("calendarioSection");
   const clientiSection = document.getElementById("clientiSection");
+  const contiSection = document.getElementById("contiSection");
   const lezioniSection = document.getElementById("lezioniSection");
   const prenotazioniSection = document.getElementById("prenotazioniSection");
   const pacchettiSection = document.getElementById("pacchettiSection");
@@ -2938,6 +2941,7 @@ function vaiTab(tab) {
   const dashboardWrapper = dashboardSection?.parentElement;
   const calendarioWrapper = calendarioSection?.parentElement;
   const clientiWrapper = clientiSection?.parentElement;
+  const contiWrapper = contiSection?.parentElement;
   const lezioniWrapper = lezioniSection?.parentElement;
   const prenotazioniWrapper = prenotazioniSection?.parentElement;
   const pacchettiWrapper = pacchettiSection?.parentElement;
@@ -2946,6 +2950,7 @@ function vaiTab(tab) {
     dashboardWrapper,
     calendarioWrapper,
     clientiWrapper,
+    contiWrapper,
     lezioniWrapper,
     prenotazioniWrapper,
     pacchettiWrapper
@@ -2975,6 +2980,7 @@ function vaiTab(tab) {
   if (dashboardSection) dashboardSection.classList.add("hidden");
   if (calendarioSection) calendarioSection.classList.add("hidden");
   if (clientiSection) clientiSection.classList.add("hidden");
+  if (contiSection) contiSection.classList.add("hidden");
   if (lezioniSection) lezioniSection.classList.add("hidden");
   if (prenotazioniSection) prenotazioniSection.classList.add("hidden");
   if (pacchettiSection) pacchettiSection.classList.add("hidden");
@@ -3002,6 +3008,13 @@ function vaiTab(tab) {
     renderHome();
     return;
   }
+
+  if (tab === "conti") {
+  if (contiWrapper) contiWrapper.classList.add("active-section");
+  if (contiSection) contiSection.classList.remove("hidden");
+  scrollToSection("contiSection");
+  return;
+}
 
   if (tab === "dashboard") {
     if (dashboardWrapper) dashboardWrapper.classList.add("active-section");
