@@ -1364,7 +1364,32 @@ body {
   </div>
 </div>
 
-<!-- ===================== CALENDARIO ===================== -->
+<!-- ===================== CONTI STUDIO ===================== -->
+<div class="section">
+  <h2>Conti Studio</h2>
+
+  <div id="contiSection">
+    <div class="dashboard-card">
+      <div class="dashboard-card-title">💼 Conti Studio</div>
+
+      <div class="dashboard-line">
+        Questa sezione sarà dedicata alla parte finanziaria dello studio.
+      </div>
+
+      <div class="dashboard-line">
+        Qui potremo inserire incassi, ricavi, spese, tasse, contributi e guadagno netto.
+      </div>
+
+      <div class="card-actions">
+        <button onclick="vaiTab('dashboard')">
+          📊 Apri Dashboard
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+  
+  <!-- ===================== CALENDARIO ===================== -->
 <div class="section">
   <h2>Agenda</h2>
 
@@ -1378,7 +1403,7 @@ body {
     </div>
 
     <div class="form-row calendario-actions">
-      <button onclick="toggleNuovaLezioneAgenda()">➕ Aggiungi lezione</button>
+      <button onclick="toggleNuovaLezioneAgenda()">🧘 Aggiungi lezione</button>
       <button onclick="vaiOggiAgenda()">Oggi</button>
     </div>
 
@@ -1387,10 +1412,13 @@ body {
         <div class="card-title">➕ Nuova lezione</div>
 
         <div class="form-row">
-          <label class="field-block">
-            <span class="field-label">Data</span>
-            <input id="agenda_data" type="date" readonly>
-          </label>
+         <input id="agenda_data" type="hidden">
+          <div class="field-block" style="min-width:220px;">
+          <span class="field-label">Data lezione</span>
+          <div class="muted">
+            La lezione verrà salvata nel giorno aperto in Agenda.
+          </div>
+        </div>
 
           <label class="field-block">
             <span class="field-label">Ora</span>
@@ -1471,7 +1499,7 @@ body {
   
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <scriptv=39-step6-smartscript></script>
+  <script src="app.js?v=40-fix-home-agenda-finance"></script>
   
   <script>
     if ("serviceWorker" in navigator) {
