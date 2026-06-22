@@ -129,6 +129,9 @@ async function reloadAll() {
   await loadLezioni();
   await loadPacchetti();
   await loadPrenotazioni();
+  calcolaDashboardMensile();
+  calcolaDashboardSettimanale();
+
   
 }
 
@@ -2802,6 +2805,11 @@ function aggiornaAnteprimaPacchetto() {
   const flagCInput = document.getElementById("pac_flag_c");
   const fatturaNrInput = document.getElementById("pac_fattura_nr");
   const validoDaInput = document.getElementById("pac_valido_da");
+  const dataFattura = document.getElementById("pac_data_fattura");
+  if (validoDa && dataFattura && !dataFattura.value) {
+  dataFattura.value = validoDa;
+  }
+
   const validoAInput = document.getElementById("pac_valido_a");
   const saldoWarning = document.getElementById("pac_saldo_warning");
 
@@ -3866,5 +3874,108 @@ if (scelta === "1" || scelta === "3") {
 
   window.open(link, "_blank");
 }
+
+function vaiADataAgenda() {function calendarioDataCorrente = val;
+  renderCalendario();
+}
+
+function settimanaPrecedente() {
+  const d = new Date(calendarioDataCorrente);
+  d.setDate(d.getDate() - 7);
+  calendarioDataCorrente = d.toISOString().slice(0,10);
+  renderCalendario();
+}
+
+function settimanaSuccessiva() {
+  const d = new Date(calendarioDataCorrente);
+  d.setDate(d.getDate() + 7);
+  calendarioDataCorrente = d.toISOString().slice(0,10);
+  renderCalendario();
+}
+  const val = document.getElementById("agendaDatePicker").value;
+  if (!val) return;
+
+function calcolaDashboardMensile() {
+  const result = {};
+
+  prenotazioniData.forEach(p => {
+
+    const lezione = lezioniData.find(l => l.ID_Lezione === p.ID_Lezione);
+    const pacchetto = pacchettiData.find(pk => pk.ID_Pacchetto === p.ID_Pacchetto);
+
+    if (!lezione || !pacchetto) return;
+
+    const mese = lezione.Data.slice(0,7);
+    const tipo = lezione.Tipologia;
+
+    const prezzo = Number(pacchetto.Prezzo || 0) / Number(pacchetto.Lezioni_Totali || 1);
+
+    if (!result[mese]) {
+      result[mese] = { Privata: 0, Duetto: 0, "Mini-Gruppo": 0 };
+    }
+
+    result[mese][tipo] += prezzo;
+  });
+
+  renderDashboardMensile(result);
+}
+
+function renderDashboardMensile(data) {
+
+  const out = document.getElementById("dashboardMensile");
+  if (!out) return;
+
+  out.innerHTML = Object.entries(data).map(([mese, valori]) => `
+    <div class="card-ios">
+      <div class="card-title">${mese}</div>
+      <div>Privata: ${Math.round(valori.Privata)}</div>
+      <div>Duetto: ${Math.round(valori.Duetto)}</div>
+      <div>Mini-Gruppo: ${Math.round(valori["Mini-Gruppo"])}</div>
+    </div>
+  `).join("");
+
+}
+
+function calcolaDashboardSettimanale() {
+
+  const giorni = {
+    1: 0, 2: 0, 3: 0,
+    4: 0, 5: 0, 6: 0, 0: 0
+  };
+
+  prenotazioniData.forEach(p => {
+
+    const lezione = lezioniData.find(l => l.ID_Lezione === p.ID_Lezione);
+    const pacchetto = pacchettiData.find(pk => pk.ID_Pacchetto === p.ID_Pacchetto);
+
+    if (!lezione || !pacchetto) return;
+
+    const giorno = new Date(lezione.Data).getDay();
+
+    const prezzo = Number(pacchetto.Prezzo || 0) / Number(pacchetto.Lezioni_Totali || 1);
+
+    giorni[giorno] += prezzo;
+  });
+
+  renderDashboardSettimanale(giorni);
+}
+
+function renderDashboardSettimanale(data) {
+
+  const giorniLabel = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"];
+
+  const out = document.getElementById("dashboardSettimanale");
+  if (!out) return;
+
+  out.innerHTML = Object.entries(data)
+    .map(([g, val]) => `
+      <div class="card-ios">
+        <div class="card-title">${giorniLabel[g]}</div>
+        <div>${Math.round(val)}</div>
+      </div>
+    `).join("");
+}
+
+
 
 console.log("APP JS CARICATO OK");
