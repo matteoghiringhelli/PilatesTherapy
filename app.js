@@ -3800,8 +3800,11 @@ async function eliminaLezioneDaAgenda(idLezione) {
 
 
 
-function inviaWhatsAppCliente(idCliente) {function inviaWhatsAppClienteWhatsApp(idCliente);
+
+function inviaWhatsAppCliente(idCliente) {
+  mostraSceltaWhatsApp(idCliente);
 }
+
 
 function mostraSceltaWhatsApp(idCliente) {
   chiudiWA();
