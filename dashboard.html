@@ -624,6 +624,83 @@ body {
   border-radius: 12px;
 }
 
+/* ===== DASHBOARD RICAVI ===== */
+
+.dashboard-kpi-row {
+  display: flex;
+  gap: 10px;
+  margin: 10px 12px;
+  flex-wrap: wrap;
+}
+
+.dashboard-kpi-card {
+  flex: 1;
+  min-width: 140px;
+  border-radius: 18px;
+  padding: 14px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+
+.dashboard-kpi-title {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.dashboard-kpi-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: #007aff;
+}
+
+.dashboard-card {
+  border-radius: 18px;
+  padding: 14px;
+  margin: 10px 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+
+.dashboard-card-title {
+  font-weight: 800;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.dashboard-total {
+  font-weight: 800;
+  font-size: 18px;
+  margin-top: 8px;
+  color: #007aff;
+}
+
+.dashboard-line {
+  font-size: 14px;
+  color: #444;
+  margin: 4px 0;
+}
+
+.dashboard-mini-table {
+  width: 100%;
+  margin-top: 8px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.dashboard-mini-table th,
+.dashboard-mini-table td {
+  border: 1px solid #e1e1e1;
+  padding: 6px;
+  text-align: right;
+}
+
+.dashboard-mini-table th:first-child,
+.dashboard-mini-table td:first-child {
+  text-align: left;
+}
+
 
 
     
@@ -698,15 +775,36 @@ body {
 </div>
 
   <!-- ===================== DASHBOARD ===================== -->
-
 <div class="section">
   <h2>Dashboard</h2>
 
-  <h3>📊 Fatturato Mensile</h3>
-  <div id="dashboardMensile"></div>
+  <div id="dashboardSection">
 
-  <h3>📅 Fatturato Settimanale</h3>
-  <div id="dashboardSettimanale"></div>
+    <div class="dashboard-kpi-row">
+      <div class="dashboard-kpi-card">
+        <div class="dashboard-kpi-title">Mese corrente</div>
+        <div id="dashboardKpiMese" class="dashboard-kpi-value">-</div>
+      </div>
+
+      <div class="dashboard-kpi-card">
+        <div class="dashboard-kpi-title">Settimana corrente</div>
+        <div id="dashboardKpiSettimana" class="dashboard-kpi-value">-</div>
+      </div>
+    </div>
+
+    <h3>📊 Ricavi Mensili</h3>
+    <p class="muted">
+      Ricavo calcolato da prenotazioni con pacchetto associato: Prezzo pacchetto / Lezioni Totali.
+    </p>
+    <div id="dashboardMensile"></div>
+
+    <h3>📅 Ricavi Settimanali</h3>
+    <p class="muted">
+      Split per giorno della settimana, sempre basato sul prezzo per lezione del pacchetto usato nella prenotazione.
+    </p>
+    <div id="dashboardSettimanale"></div>
+
+  </div>
 </div>
 
   
@@ -1060,6 +1158,11 @@ body {
 <!-- ===================== FOOTER MENU APP ===================== -->
 <div class="app-footer">
 
+  <button id="tabDashboard" class="footer-tab" onclick="vaiTab('dashboard')">
+    <span>📊</span>
+    Dash
+  </button>
+  
   <button id="tabCalendario" class="footer-tab" onclick="vaiTab('calendario')">
     <span>🗓️</span>
     Agenda
@@ -1090,7 +1193,7 @@ body {
   
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="app.js?v=agenda-step3-v1"></script>
+  <script src="app.js?v=dashboard-ricavi-v1"></script>
   
   <script>
     if ("serviceWorker" in navigator) {
