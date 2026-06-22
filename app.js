@@ -2806,7 +2806,6 @@ function aggiornaAnteprimaPacchetto() {
   const fatturaNrInput = document.getElementById("pac_fattura_nr");
   const validoDaInput = document.getElementById("pac_valido_da");
   const dataFattura = document.getElementById("pac_data_fattura");
-  const dataFattura = document.getElementById("pac_data_fattura");
   if (validoDaInput && dataFattura && !dataFattura.value) {
   dataFattura.value = validoDaInput.value;
   }
