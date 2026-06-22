@@ -1962,10 +1962,14 @@ function renderPrenotazioniMobileSafe() {
 
 function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
   dettaglioLezioneBoxAttivo = boxId;
-    const box = document.getElementById(boxId);
+
+  const box = document.getElementById(boxId);
   if (!box) return;
 
-  const lezione = lezioniData.find(l => String(l.ID_Lezione) === String(idLezione));
+  const lezione = lezioniData.find(l =>
+    String(l.ID_Lezione) === String(idLezione)
+  );
+
   if (!lezione) return;
 
   const prenotazioniLezione = prenotazioniData.filter(p =>
@@ -1989,10 +1993,12 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
         return `
           <div class="lesson-client-row">
             <strong>${cliente ? safe(cliente.Nome + " " + cliente.Cognome) : "Cliente non trovato"}</strong><br>
+
             <span style="font-size:12px; color:#666;">
               Pacchetto: ${safe(p.ID_Pacchetto || "-")}
               ${pacchetto ? ` — ${safe(pacchetto.Tipo_Pacchetto || "")}` : ""}
             </span>
+
             <div class="card-actions" style="margin-top:8px;">
               <button onclick="eliminaPrenotazioneDaLezione('${escapeQuote(p.ID_Prenotazione)}', '${escapeQuote(idLezione)}')">
                 🗑️ Cancella prenotazione
@@ -2044,54 +2050,57 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
     `;
 
   animateView(box, `
-     
-      <div class="app-toolbar">
-        <button class="app-back-btn" onclick="chiudiDettaglioLezione('${escapeQuote(boxId)}')">
-          ← Indietro
-        </button>
-      </div>
+    <div class="app-toolbar">
+      <button class="app-back-btn" onclick="chiudiDettaglioLezione('${escapeQuote(boxId)}')">
+        ← Indietro
+      </button>
+    </div>
 
-<div class="view-content">
+    <div class="view-content">
 
-    <div class="lesson-detail">
+      <div class="lesson-detail">
 
-      <div class="lesson-detail-title">
-        ${safe(lezione.Data)} - ${safe(formatOraHHMM(lezione.Ora))}
-      </div>
-
-      <div class="lesson-detail-sub">
-        ${safe(lezione.Tipologia)} (${prenotati}/${max})
-      </div>
-
-      <div class="lesson-detail-sub">
-        👤 ${safe(lezione.Istruttore)}
-      </div>
-
-      <div class="lesson-detail-section">
-        <div class="lesson-detail-section-title">
-          Clienti già prenotati
+        <div class="lesson-detail-title">
+          ${safe(lezione.Data)} - ${safe(formatOraHHMM(lezione.Ora))}
         </div>
-        ${clientiGiaPrenotatiHtml}
-      </div>
 
-      <div class="lesson-detail-section">
-        <div class="lesson-detail-section-title">
-          Aggiungi prenotazioni
+        <div class="lesson-detail-sub">
+          ${safe(lezione.Tipologia)} (${prenotati}/${max})
         </div>
-        ${slotHtml}
-      </div>
 
-      ${
-        postiLiberi > 0
-          ? `
-            <div class="lesson-detail-actions">
-              <button onclick="salvaPrenotazioniDaLezione('${escapeQuote(idLezione)}')">
-                💾 Salva prenotazioni
-              </button>
-            </div>
-          `
-          : ""
-      }
+        <div class="lesson-detail-sub">
+          👤 ${safe(lezione.Istruttore)}
+        </div>
+
+        <div class="lesson-detail-section">
+          <div class="lesson-detail-section-title">
+            Clienti già prenotati
+          </div>
+
+          ${clientiGiaPrenotatiHtml}
+        </div>
+
+        <div class="lesson-detail-section">
+          <div class="lesson-detail-section-title">
+            Aggiungi prenotazioni
+          </div>
+
+          ${slotHtml}
+        </div>
+
+        ${
+          postiLiberi > 0
+            ? `
+              <div class="lesson-detail-actions">
+                <button onclick="salvaPrenotazioniDaLezione('${escapeQuote(idLezione)}')">
+                  💾 Salva prenotazioni
+                </button>
+              </div>
+            `
+            : ""
+        }
+
+      </div>
 
     </div>
   `);
@@ -2321,44 +2330,64 @@ async function eliminaPrenotazioneDaLezione(idPrenotazione, idLezione) {
 
 function mostraSchedaCliente(idCliente) {
   const box = document.getElementById("outputClienti");
+  if (!box) return;
 
-  const cliente = clientiData.find(c => c.ID_Cliente == idCliente);
+  const cliente = clientiData.find(c =>
+    String(c.ID_Cliente) === String(idCliente)
+  );
+
   if (!cliente) return;
 
   animateView(box, `
     <div class="app-toolbar">
-    <button class="app-back-btn" onclick="...">← Indietro</button>
-  </div>
-
-  <div class="view-content">
-
-    <button class="app-back-btn" onclick="chiudiDettaglioCliente()">← Clienti</button>
-  </div>
-
-  <div style="padding: 12px 12px 80px 12px;">
-  
-    <div class="card-ios">
-      <div class="card-title">
-        ${cliente.Nome} ${cliente.Cognome}
-      </div>
-
-      <div class="card-sub">📞 ${cliente.Telefono || "-"}</div>
-      <div class="card-sub">📧 ${cliente.Email || "-"}</div>
-      <div class="card-sub">🏠 ${cliente.Indirizzo || "-"}</div>
-      <div class="card-sub">📍 ${cliente["Cittá"] || "-"}</div>
-      <div class="card-sub">📮 ${cliente.CAP || "-"}</div>
-      <div class="card-sub">🧾 ${cliente.Codice_Fiscale || "-"}</div>
-
-      <div class="card-actions">
-        <button onclick="mostraModificaClienteInline('${cliente.ID_Cliente}')">✏️ Modifica</button>
-        <button onclick="eliminaCliente('${escapeQuote(cliente.ID_Cliente)}')">🗑️ Elimina</button>
-        <button onclick="inviaWhatsAppCliente('${escapeQuote(cliente.ID_Cliente)}')">📲 WhatsApp</button>
-        <button onclick="chiudiDettaglioCliente()">← Indietro</button>
-      </div>
+      <button class="app-back-btn" onclick="chiudiDettaglioCliente()">
+        ← Clienti
+      </button>
     </div>
 
-  </div>
-`);
+    <div class="view-content">
+
+      <div style="padding: 12px 12px 90px 12px;">
+
+        <div class="card-ios">
+          <div class="card-title">
+            ${safe(cliente.Nome)} ${safe(cliente.Cognome)}
+          </div>
+
+          <div class="card-sub">📞 ${safe(cliente.Telefono || "-")}</div>
+          <div class="card-sub">📧 ${safe(cliente.Email || "-")}</div>
+          <div class="card-sub">🏠 ${safe(cliente.Indirizzo || "-")}</div>
+          <div class="card-sub">📍 ${safe(cliente["Cittá"] || "-")}</div>
+          <div class="card-sub">📮 ${safe(cliente.CAP || "-")}</div>
+          <div class="card-sub">🧾 ${safe(cliente.Codice_Fiscale || "-")}</div>
+
+          <div class="card-actions">
+            <button onclick="mostraModificaClienteInline('${escapeQuote(cliente.ID_Cliente)}')">
+              ✏️ Modifica
+            </button>
+
+            <button onclick="mostraPacchettiCliente('${escapeQuote(cliente.ID_Cliente)}')">
+              🎟️ Pacchetti
+            </button>
+
+            <button onclick="mostraPrenotazioniCliente('${escapeQuote(cliente.ID_Cliente)}')">
+              📅 Prenotazioni
+            </button>
+
+            <button onclick="inviaWhatsAppCliente('${escapeQuote(cliente.ID_Cliente)}')">
+              📲 WhatsApp
+            </button>
+
+            <button onclick="eliminaCliente('${escapeQuote(cliente.ID_Cliente)}')">
+              🗑️ Elimina
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  `);
 }
 
 
@@ -2470,17 +2499,19 @@ function mostraPacchettiCliente(idCliente) {
   );
 
   if (!cliente) {
-    box.innerHTML = `
+    animateView(box, `
       <div class="app-toolbar">
         <button class="app-back-btn" onclick="chiudiDettaglioCliente()">
           ← Clienti
         </button>
       </div>
 
-      <div class="card-ios">
-        <div class="card-title">Cliente non trovato</div>
+      <div class="view-content">
+        <div class="card-ios">
+          <div class="card-title">Cliente non trovato</div>
+        </div>
       </div>
-    `;
+    `);
     return;
   }
 
@@ -2573,40 +2604,41 @@ function mostraPacchettiCliente(idCliente) {
       </div>
     `;
 
-  box.innerHTML = `
+  animateView(box, `
     <div class="app-toolbar">
       <button class="app-back-btn" onclick="chiudiDettaglioCliente()">
         ← Clienti
       </button>
     </div>
 
-    <div style="padding: 12px 12px 90px 12px;">
-      <div class="card-ios">
-        <div class="card-title">
-          🎟️ Pacchetti Cliente
+    <div class="view-content">
+
+      <div style="padding: 12px 12px 90px 12px;">
+
+        <div class="card-ios">
+          <div class="card-title">
+            🎟️ Pacchetti Cliente
+          </div>
+
+          <div class="card-sub">
+            <strong>Cliente:</strong> ${safe(clienteNome)}
+          </div>
+
+          <div class="card-sub">
+            <strong>ID Cliente:</strong> ${safe(cliente.ID_Cliente)}
+          </div>
+
+          <div class="card-sub">
+            <strong>Totale pacchetti:</strong> ${pacchetti.length}
+          </div>
         </div>
 
-        <div class="card-sub">
-          <strong>Cliente:</strong> ${safe(clienteNome)}
-        </div>
+        ${cardsHtml}
 
-        <div class="card-sub">
-          <strong>ID Cliente:</strong> ${safe(cliente.ID_Cliente)}
-        </div>
-
-        <div class="card-sub">
-          <strong>Totale pacchetti:</strong> ${pacchetti.length}
-        </div>
       </div>
 
-      ${cardsHtml}
     </div>
-  `;
-
-  box.scrollIntoView({
-    behavior: "smooth",
-    block: "start"
-  });
+  `);
 }
 
 
