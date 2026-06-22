@@ -2396,98 +2396,120 @@ function mostraPrenotazioniCliente(idCliente) {
   const box = document.getElementById("outputClienti");
   if (!box) return;
 
-  const cliente = clientiData.find(c => String(c.ID_Cliente) === String(idCliente));
+  const cliente = clientiData.find(c =>
+    String(c.ID_Cliente) === String(idCliente)
+  );
 
   if (!cliente) {
-    box.classList.remove("hidden");
-    box.innerHTML = `
+    animateView(box, `
       <div class="app-toolbar">
-        <button class="app-back-btn" onclick="chiudiDettaglioCliente()">← Indietro</button>
+        <button class="app-back-btn" onclick="chiudiDettaglioCliente()">
+          ← Clienti
+        </button>
       </div>
 
-      <div class="card-ios">
-        <div class="card-title">Cliente non trovato</div>
-        
+      <div class="view-content">
+        <div class="card-ios">
+          <div class="card-title">Cliente non trovato</div>
+        </div>
       </div>
-    `;
+    `);
     return;
   }
 
-  const storico = prenotazioniData
-    .filter(p => String(p.ID_Cliente) === String(idCliente))
-    .map(p => {
-      const lezione = lezioniData.find(l => String(l.ID_Lezione) === String(p.ID_Lezione));
+  const clienteNome = `${cliente.Nome || ""} ${cliente.Cognome || ""}`.trim();
 
-      return {
-        ID_Prenotazione: p.ID_Prenotazione,
-        ID_Lezione: p.ID_Lezione,
-        Data: lezione ? lezione.Data : "",
-        Ora: lezione ? lezione.Ora : "",
-        Tipologia: lezione ? lezione.Tipologia : "",
-        Istruttore: lezione ? lezione.Istruttore : "",
-        lezioneTrovata: !!lezione
-      };
-    })
+  const prenotazioni = prenotazioniData
+    .filter(p => String(p.ID_Cliente) === String(idCliente))
     .sort((a, b) => {
-      const dataOraA = `${a.Data || ""} ${a.Ora || ""}`;
-      const dataOraB = `${b.Data || ""} ${b.Ora || ""}`;
-      return dataOraB.localeCompare(dataOraA);
+      return String(b.Data_Lezione || "").localeCompare(String(a.Data_Lezione || ""));
     });
 
-  box.classList.remove("hidden");
+  const cardsHtml = prenotazioni.length
+    ? prenotazioni.map(p => {
 
-  box.innerHTML = `
-    <div class="card-ios">
+        const lezione = lezioniData.find(l =>
+          String(l.ID_Lezione) === String(p.ID_Lezione)
+        );
 
-      <div class="card-title">
-        📅 Prenotazioni Cliente
+        const pacchetto = pacchettiData.find(pc =>
+          String(pc.ID_Pacchetto) === String(p.ID_Pacchetto)
+        );
+
+        return `
+          <div class="card-ios">
+            <div class="card-title">
+              ${safe(clienteNome)}
+            </div>
+
+            <div class="card-sub">
+              📅 Lezione: ${lezione ? safe(lezione.Data) : "-"}
+            </div>
+
+            <div class="card-sub">
+              ⏰ Ora: ${lezione ? safe(formatOraHHMM(lezione.Ora)) : "-"}
+            </div>
+
+            <div class="card-sub">
+              🧘 Tipologia: ${lezione ? safe(lezione.Tipologia) : "-"}
+            </div>
+
+            <div class="card-sub">
+              🎟️ Pacchetto: ${safe(p.ID_Pacchetto || "-")}
+              ${pacchetto ? ` — ${safe(pacchetto.Tipo_Pacchetto || "")}` : ""}
+            </div>
+
+            <div class="card-actions">
+              <button onclick="eliminaPrenotazione('${escapeQuote(p.ID_Prenotazione)}')">
+                🗑️ Elimina
+              </button>
+            </div>
+          </div>
+        `;
+      }).join("")
+    : `
+      <div class="card-ios">
+        <div class="card-sub">
+          Nessuna prenotazione trovata per questo cliente.
+        </div>
       </div>
+    `;
 
-      <div class="card-sub">
-        <strong>Cliente:</strong> ${safe(cliente.Nome)} ${safe(cliente.Cognome)}
-      </div>
+  animateView(box, `
+    <div class="app-toolbar">
+      <button class="app-back-btn" onclick="chiudiDettaglioCliente()">
+        ← Clienti
+      </button>
+    </div>
 
-      <div class="card-sub">
-        <strong>ID Cliente:</strong> ${safe(cliente.ID_Cliente)}
-      </div>
+    <div class="view-content">
 
-      <div class="card-sub">
-        <strong>Totale prenotazioni:</strong> ${storico.length}
-      </div>
+      <div style="padding: 12px 12px 90px 12px;">
 
-      <div style="margin-top:12px;">
-        ${
-          storico.length
-            ? storico.map(s => `
-                <div class="lesson-client-row">
-                  <strong>📅 ${s.lezioneTrovata ? safe(s.Data) : "⚠️ NO LEZIONE"} ${safe(formatOraHHMM(s.Ora))}</strong><br>
-                  ${safe(s.Tipologia)}<br>
-                  👤 ${safe(s.Istruttore)}<br>
-                  <span style="font-size:12px; color:#666;">
-                    ID_Prenotazione: ${safe(s.ID_Prenotazione)}<br>
-                    ID_Lezione: ${safe(s.ID_Lezione)}
-                  </span>
-                </div>
-              `).join("")
-            : `
-                <div class="lesson-client-row">
-                  Nessuna prenotazione trovata per questo cliente.
-                </div>
-              `
-        }
-      </div>
+        <div class="card-ios">
+          <div class="card-title">
+            📅 Prenotazioni Cliente
+          </div>
 
-      <div class="app-toolbar">
-        <button class="app-back-btn" onclick="chiudiDettaglioCliente()">← Indietro</button>
+          <div class="card-sub">
+            <strong>Cliente:</strong> ${safe(clienteNome)}
+          </div>
+
+          <div class="card-sub">
+            <strong>ID Cliente:</strong> ${safe(cliente.ID_Cliente)}
+          </div>
+
+          <div class="card-sub">
+            <strong>Totale prenotazioni:</strong> ${prenotazioni.length}
+          </div>
+        </div>
+
+        ${cardsHtml}
+
       </div>
 
     </div>
-  `;
-
-  box.scrollIntoView({
-    behavior: "smooth",
-    block: "start"
-  });
+  `);
 }
 
 function mostraPacchettiCliente(idCliente) {
