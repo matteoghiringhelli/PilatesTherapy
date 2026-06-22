@@ -3875,25 +3875,30 @@ if (scelta === "1" || scelta === "3") {
   window.open(link, "_blank");
 }
 
-function vaiADataAgenda() {function calendarioDataCorrente = val;
+function vaiADataAgenda() {
+  const val = document.getElementById("agendaDatePicker")?.value;
+
+  if (!val) return;
+
+  calendarioDataCorrente = val;
   renderCalendario();
 }
 
 function settimanaPrecedente() {
   const d = new Date(calendarioDataCorrente);
   d.setDate(d.getDate() - 7);
-  calendarioDataCorrente = d.toISOString().slice(0,10);
+
+  calendarioDataCorrente = d.toISOString().slice(0, 10);
   renderCalendario();
 }
 
 function settimanaSuccessiva() {
   const d = new Date(calendarioDataCorrente);
   d.setDate(d.getDate() + 7);
-  calendarioDataCorrente = d.toISOString().slice(0,10);
+
+  calendarioDataCorrente = d.toISOString().slice(0, 10);
   renderCalendario();
 }
-  const val = document.getElementById("agendaDatePicker").value;
-  if (!val) return;
 
 function calcolaDashboardMensile() {
   const result = {};
