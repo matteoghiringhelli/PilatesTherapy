@@ -4,7 +4,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const APP_VERSION = "v-agenda-step3-2026-06-22";
+const APP_VERSION = "v-dashboard-ricavi-2026-06-22";
 
 const MAX_PARTECIPANTI = {
   "Privata": 1,
@@ -2473,26 +2473,29 @@ async function salvaModificaClienteInline(idCliente) {
 /* ===================== FOOTER MENU APP ===================== */
 
 function vaiTab(tab) {
+  const dashboardSection = document.getElementById("dashboardSection");
+  const calendarioSection = document.getElementById("calendarioSection");
   const clientiSection = document.getElementById("clientiSection");
   const lezioniSection = document.getElementById("lezioniSection");
   const prenotazioniSection = document.getElementById("prenotazioniSection");
   const pacchettiSection = document.getElementById("pacchettiSection");
 
+  const tabDashboard = document.getElementById("tabDashboard");
+  const tabCalendario = document.getElementById("tabCalendario");
   const tabClienti = document.getElementById("tabClienti");
   const tabLezioni = document.getElementById("tabLezioni");
   const tabPrenotazioni = document.getElementById("tabPrenotazioni");
   const tabPacchetti = document.getElementById("tabPacchetti");
 
+  const dashboardWrapper = dashboardSection?.parentElement;
+  const calendarioWrapper = calendarioSection?.parentElement;
   const clientiWrapper = clientiSection?.parentElement;
   const lezioniWrapper = lezioniSection?.parentElement;
   const prenotazioniWrapper = prenotazioniSection?.parentElement;
   const pacchettiWrapper = pacchettiSection?.parentElement;
 
-  const calendarioSection = document.getElementById("calendarioSection");
-  const tabCalendario = document.getElementById("tabCalendario");
-  const calendarioWrapper = calendarioSection?.parentElement;
-
   const wrappers = [
+    dashboardWrapper,
     calendarioWrapper,
     clientiWrapper,
     lezioniWrapper,
@@ -2504,10 +2507,18 @@ function vaiTab(tab) {
     if (wrapper) wrapper.classList.remove("active-section");
   });
 
-  [tabCalendario, tabClienti, tabLezioni, tabPrenotazioni, tabPacchetti].forEach(btn => {
+  [
+    tabDashboard,
+    tabCalendario,
+    tabClienti,
+    tabLezioni,
+    tabPrenotazioni,
+    tabPacchetti
+  ].forEach(btn => {
     if (btn) btn.classList.remove("active");
   });
 
+  if (dashboardSection) dashboardSection.classList.add("hidden");
   if (calendarioSection) calendarioSection.classList.add("hidden");
   if (clientiSection) clientiSection.classList.add("hidden");
   if (lezioniSection) lezioniSection.classList.add("hidden");
@@ -2527,16 +2538,26 @@ function vaiTab(tab) {
     `;
   }
 
-  
-if (tab === "calendario") {
-  if (calendarioWrapper) calendarioWrapper.classList.add("active-section");
-  if (calendarioSection) calendarioSection.classList.remove("hidden");
-  if (tabCalendario) tabCalendario.classList.add("active");
+  if (tab === "dashboard") {
+    if (dashboardWrapper) dashboardWrapper.classList.add("active-section");
+    if (dashboardSection) dashboardSection.classList.remove("hidden");
+    if (tabDashboard) tabDashboard.classList.add("active");
 
-  renderCalendario();
+    calcolaDashboardMensile();
+    calcolaDashboardSettimanale();
 
-  scrollToSection("calendarioSection");
-}
+    scrollToSection("dashboardSection");
+  }
+
+  if (tab === "calendario") {
+    if (calendarioWrapper) calendarioWrapper.classList.add("active-section");
+    if (calendarioSection) calendarioSection.classList.remove("hidden");
+    if (tabCalendario) tabCalendario.classList.add("active");
+
+    renderCalendario();
+
+    scrollToSection("calendarioSection");
+  }
 
   if (tab === "clienti") {
     if (clientiWrapper) clientiWrapper.classList.add("active-section");
@@ -2544,6 +2565,7 @@ if (tab === "calendario") {
     if (tabClienti) tabClienti.classList.add("active");
 
     renderClienti();
+
     scrollToSection("clientiSection");
   }
 
@@ -2553,6 +2575,7 @@ if (tab === "calendario") {
     if (tabLezioni) tabLezioni.classList.add("active");
 
     renderLezioni();
+
     scrollToSection("lezioniSection");
   }
 
@@ -2562,6 +2585,7 @@ if (tab === "calendario") {
     if (tabPrenotazioni) tabPrenotazioni.classList.add("active");
 
     loadPrenotazioni();
+
     scrollToSection("prenotazioniSection");
   }
 
@@ -2571,6 +2595,7 @@ if (tab === "calendario") {
     if (tabPacchetti) tabPacchetti.classList.add("active");
 
     loadPacchetti();
+
     scrollToSection("pacchettiSection");
   }
 }
@@ -3971,85 +3996,308 @@ function settimanaSuccessiva() {
   renderCalendario();
 }
 
+/* ===================== DASHBOARD RICAVI ===================== */
+
+function formatEuro(value) {
+  const numero = Number(value || 0);
+
+  return numero.toLocaleString("it-IT", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  });
+}
+
+function getRicavoPrenotazione(p) {
+  const lezione = lezioniData.find(l =>
+    String(l.ID_Lezione) === String(p.ID_Lezione)
+  );
+
+  const pacchetto = pacchettiData.find(pk =>
+    String(pk.ID_Pacchetto) === String(p.ID_Pacchetto)
+  );
+
+  if (!lezione || !pacchetto) {
+    return null;
+  }
+
+  const prezzoPacchetto = Number(pacchetto.Prezzo || 0);
+  const lezioniTotali = Number(pacchetto.Lezioni_Totali || 0);
+
+  if (!prezzoPacchetto || !lezioniTotali) {
+    return null;
+  }
+
+  const prezzoPerLezione = prezzoPacchetto / lezioniTotali;
+
+  return {
+    ID_Prenotazione: p.ID_Prenotazione,
+    ID_Cliente: p.ID_Cliente,
+    ID_Lezione: p.ID_Lezione,
+    ID_Pacchetto: p.ID_Pacchetto,
+    Data: lezione.Data || "",
+    Ora: lezione.Ora || "",
+    Tipologia: lezione.Tipologia || "",
+    GiornoSettimana: getGiornoSettimanaIndex(lezione.Data),
+    Settimana: getWeekKey(lezione.Data),
+    Mese: String(lezione.Data || "").slice(0, 7),
+    Ricavo: prezzoPerLezione
+  };
+}
+
+function getRicaviPrenotazioniValide() {
+  return prenotazioniData
+    .map(p => getRicavoPrenotazione(p))
+    .filter(item => item && item.Data && item.Mese);
+}
+
+function getGiornoSettimanaIndex(dateString) {
+  if (!dateString) return null;
+
+  const d = new Date(dateString + "T00:00:00");
+  return d.getDay();
+}
+
+function getMondayDate(dateString) {
+  const d = new Date(dateString + "T00:00:00");
+  const day = d.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+
+  d.setDate(d.getDate() + diffToMonday);
+
+  return d;
+}
+
+function getWeekKey(dateString) {
+  if (!dateString) return "";
+
+  return formatDateLocal(getMondayDate(dateString));
+}
+
+function getWeekLabel(weekKey) {
+  if (!weekKey) return "";
+
+  const start = new Date(weekKey + "T00:00:00");
+  const end = new Date(start);
+
+  end.setDate(start.getDate() + 6);
+
+  return `${formatDateLocal(start)} → ${formatDateLocal(end)}`;
+}
+
+function getUltimiMesiDaRicavi(ricavi, quantita = 6) {
+  const mesi = Array.from(new Set(
+    ricavi
+      .map(r => r.Mese)
+      .filter(Boolean)
+  )).sort();
+
+  return mesi.slice(-quantita).reverse();
+}
+
+function getUltimeSettimaneDaRicavi(ricavi, quantita = 8) {
+  const settimane = Array.from(new Set(
+    ricavi
+      .map(r => r.Settimana)
+      .filter(Boolean)
+  )).sort();
+
+  return settimane.slice(-quantita).reverse();
+}
+
 function calcolaDashboardMensile() {
+  const ricavi = getRicaviPrenotazioniValide();
+  const mesiDaMostrare = getUltimiMesiDaRicavi(ricavi, 6);
+
   const result = {};
 
-  prenotazioniData.forEach(p => {
+  mesiDaMostrare.forEach(mese => {
+    result[mese] = {
+      Privata: 0,
+      Duetto: 0,
+      "Mini-Gruppo": 0,
+      Totale: 0
+    };
+  });
 
-    const lezione = lezioniData.find(l => l.ID_Lezione === p.ID_Lezione);
-    const pacchetto = pacchettiData.find(pk => pk.ID_Pacchetto === p.ID_Pacchetto);
+  ricavi.forEach(item => {
+    if (!result[item.Mese]) return;
 
-    if (!lezione || !pacchetto) return;
+    const tipologia = item.Tipologia || "Altro";
 
-    const mese = lezione.Data.slice(0,7);
-    const tipo = lezione.Tipologia;
-
-    const prezzo = Number(pacchetto.Prezzo || 0) / Number(pacchetto.Lezioni_Totali || 1);
-
-    if (!result[mese]) {
-      result[mese] = { Privata: 0, Duetto: 0, "Mini-Gruppo": 0 };
+    if (!result[item.Mese][tipologia]) {
+      result[item.Mese][tipologia] = 0;
     }
 
-    result[mese][tipo] += prezzo;
+    result[item.Mese][tipologia] += item.Ricavo;
+    result[item.Mese].Totale += item.Ricavo;
   });
 
   renderDashboardMensile(result);
+  renderDashboardKpiMensile(result);
 }
 
 function renderDashboardMensile(data) {
-
   const out = document.getElementById("dashboardMensile");
   if (!out) return;
 
-  out.innerHTML = Object.entries(data).map(([mese, valori]) => `
-    <div class="card-ios">
-      <div class="card-title">${mese}</div>
-      <div>Privata: ${Math.round(valori.Privata)}</div>
-      <div>Duetto: ${Math.round(valori.Duetto)}</div>
-      <div>Mini-Gruppo: ${Math.round(valori["Mini-Gruppo"])}</div>
-    </div>
-  `).join("");
+  const entries = Object.entries(data);
 
+  if (!entries.length) {
+    out.innerHTML = `
+      <div class="dashboard-card">
+        <div class="dashboard-card-title">Nessun dato mensile</div>
+        <div class="dashboard-line">
+          Non ci sono prenotazioni con pacchetto associato e prezzo valido.
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  out.innerHTML = entries.map(([mese, valori]) => {
+    const privata = valori.Privata || 0;
+    const duetto = valori.Duetto || 0;
+    const mini = valori["Mini-Gruppo"] || 0;
+    const totale = valori.Totale || 0;
+
+    return `
+      <div class="dashboard-card">
+        <div class="dashboard-card-title">${safe(mese)}</div>
+
+        <div class="dashboard-line">Privata: ${formatEuro(privata)}</div>
+        <div class="dashboard-line">Duetto: ${formatEuro(duetto)}</div>
+        <div class="dashboard-line">Mini-Gruppo: ${formatEuro(mini)}</div>
+
+        <div class="dashboard-total">
+          Totale: ${formatEuro(totale)}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderDashboardKpiMensile(dataMensile) {
+  const out = document.getElementById("dashboardKpiMese");
+  if (!out) return;
+
+  const meseCorrente = getTodayString().slice(0, 7);
+  const valore = dataMensile[meseCorrente]?.Totale || 0;
+
+  out.textContent = formatEuro(valore);
 }
 
 function calcolaDashboardSettimanale() {
+  const ricavi = getRicaviPrenotazioniValide();
+  const settimaneDaMostrare = getUltimeSettimaneDaRicavi(ricavi, 8);
 
-  const giorni = {
-    1: 0, 2: 0, 3: 0,
-    4: 0, 5: 0, 6: 0, 0: 0
-  };
+  const result = {};
 
-  prenotazioniData.forEach(p => {
-
-    const lezione = lezioniData.find(l => l.ID_Lezione === p.ID_Lezione);
-    const pacchetto = pacchettiData.find(pk => pk.ID_Pacchetto === p.ID_Pacchetto);
-
-    if (!lezione || !pacchetto) return;
-
-    const giorno = new Date(lezione.Data).getDay();
-
-    const prezzo = Number(pacchetto.Prezzo || 0) / Number(pacchetto.Lezioni_Totali || 1);
-
-    giorni[giorno] += prezzo;
+  settimaneDaMostrare.forEach(settimana => {
+    result[settimana] = {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+      6: 0,
+      0: 0,
+      Totale: 0
+    };
   });
 
-  renderDashboardSettimanale(giorni);
+  ricavi.forEach(item => {
+    if (!result[item.Settimana]) return;
+
+    const giorno = item.GiornoSettimana;
+
+    if (giorno === null || giorno === undefined) return;
+
+    result[item.Settimana][giorno] += item.Ricavo;
+    result[item.Settimana].Totale += item.Ricavo;
+  });
+
+  renderDashboardSettimanale(result);
+  renderDashboardKpiSettimanale(result);
 }
 
 function renderDashboardSettimanale(data) {
-
-  const giorniLabel = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"];
-
   const out = document.getElementById("dashboardSettimanale");
   if (!out) return;
 
-  out.innerHTML = Object.entries(data)
-    .map(([g, val]) => `
-      <div class="card-ios">
-        <div class="card-title">${giorniLabel[g]}</div>
-        <div>${Math.round(val)}</div>
+  const entries = Object.entries(data);
+
+  if (!entries.length) {
+    out.innerHTML = `
+      <div class="dashboard-card">
+        <div class="dashboard-card-title">Nessun dato settimanale</div>
+        <div class="dashboard-line">
+          Non ci sono prenotazioni con pacchetto associato e prezzo valido.
+        </div>
       </div>
-    `).join("");
+    `;
+    return;
+  }
+
+  out.innerHTML = entries.map(([settimana, valori]) => {
+    return `
+      <div class="dashboard-card">
+        <div class="dashboard-card-title">
+          Settimana ${safe(getWeekLabel(settimana))}
+        </div>
+
+        <table class="dashboard-mini-table">
+          <tr>
+            <th>Giorno</th>
+            <th>Ricavi</th>
+          </tr>
+          <tr>
+            <td>Lunedì</td>
+            <td>${formatEuro(valori[1] || 0)}</td>
+          </tr>
+          <tr>
+            <td>Martedì</td>
+            <td>${formatEuro(valori[2] || 0)}</td>
+          </tr>
+          <tr>
+            <td>Mercoledì</td>
+            <td>${formatEuro(valori[3] || 0)}</td>
+          </tr>
+          <tr>
+            <td>Giovedì</td>
+            <td>${formatEuro(valori[4] || 0)}</td>
+          </tr>
+          <tr>
+            <td>Venerdì</td>
+            <td>${formatEuro(valori[5] || 0)}</td>
+          </tr>
+          <tr>
+            <td>Sabato</td>
+            <td>${formatEuro(valori[6] || 0)}</td>
+          </tr>
+          <tr>
+            <td>Domenica</td>
+            <td>${formatEuro(valori[0] || 0)}</td>
+          </tr>
+        </table>
+
+        <div class="dashboard-total">
+          Totale: ${formatEuro(valori.Totale || 0)}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderDashboardKpiSettimanale(dataSettimanale) {
+  const out = document.getElementById("dashboardKpiSettimana");
+  if (!out) return;
+
+  const settimanaCorrente = getWeekKey(getTodayString());
+  const valore = dataSettimanale[settimanaCorrente]?.Totale || 0;
+
+  out.textContent = formatEuro(valore);
 }
 
 
