@@ -2470,6 +2470,74 @@ async function salvaModificaClienteInline(idCliente) {
   }, 100);
 }
 
+
+/* ===================== HOME ===================== */
+function renderHome() {
+  const mainContainer = document.getElementById("status")?.parentElement;
+
+  if (!mainContainer) return;
+
+  const homeHtml = `
+    <div id="homeSection" class="app-view">
+      
+      <div class="card-ios" style="margin-top:12px;">
+        <div class="card-title">🚀 Azioni rapide</div>
+
+        <div class="card-actions">
+
+          <button onclick="vaiTab('calendario')">
+            🗓️ Agenda
+          </button>
+
+          <button onclick="vaiTab('clienti')">
+            👥 Clienti
+          </button>
+
+          <button onclick="vaiTab('prenotazioni')">
+            ➕ Prenotazione
+          </button>
+
+          <button onclick="vaiTab('lezioni')">
+            ➕ Lezione
+          </button>
+
+          <button onclick="vaiTab('pacchetti')">
+            ➕ Pacchetto
+          </button>
+
+          <button onclick="vaiTab('reportPacchetti')">
+            ⚠️ Report Pacchetti
+          </button>
+
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  // Nascondo tutte le section esistenti
+  document.querySelectorAll(".section").forEach(sec => {
+    sec.classList.remove("active-section");
+    sec.classList.add("hidden");
+  });
+
+  // Rimuovo eventuale home precedente (evita duplicati)
+  const oldHome = document.getElementById("homeSection");
+  if (oldHome) oldHome.remove();
+
+  // Inserisco la home sopra tutto
+  mainContainer.insertAdjacentHTML("beforeend", homeHtml);
+
+  // set active tab
+  document.querySelectorAll(".footer-tab").forEach(b => b.classList.remove("active"));
+  const tab = document.getElementById("tabHome");
+  if (tab) tab.classList.add("active");
+
+  // scroll top
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+
 /* ===================== FOOTER MENU APP ===================== */
 
 function vaiTab(tab) {
@@ -2486,6 +2554,8 @@ function vaiTab(tab) {
   const tabLezioni = document.getElementById("tabLezioni");
   const tabPrenotazioni = document.getElementById("tabPrenotazioni");
   const tabPacchetti = document.getElementById("tabPacchetti");
+  const tabHome = document.getElementById("tabHome");
+  const tabReportPacchetti = document.getElementById("tabReportPacchetti");
 
   const dashboardWrapper = dashboardSection?.parentElement;
   const calendarioWrapper = calendarioSection?.parentElement;
@@ -2508,15 +2578,18 @@ function vaiTab(tab) {
   });
 
   [
+    tabHome,
     tabDashboard,
     tabCalendario,
     tabClienti,
     tabLezioni,
     tabPrenotazioni,
-    tabPacchetti
+    tabPacchetti,
+    tabReportPacchetti
   ].forEach(btn => {
     if (btn) btn.classList.remove("active");
   });
+
 
   if (dashboardSection) dashboardSection.classList.add("hidden");
   if (calendarioSection) calendarioSection.classList.add("hidden");
@@ -2537,6 +2610,14 @@ function vaiTab(tab) {
       <p class="muted">Clicca sul nome di un cliente nella tabella prenotazioni per vedere il suo storico.</p>
     `;
   }
+
+
+  
+  if (tab === "home") {
+    renderHome();
+    return;
+  }
+
 
   if (tab === "dashboard") {
     if (dashboardWrapper) dashboardWrapper.classList.add("active-section");
@@ -2595,6 +2676,20 @@ function vaiTab(tab) {
     if (tabPacchetti) tabPacchetti.classList.add("active");
 
     loadPacchetti();
+
+    scrollToSection("pacchettiSection");
+  }
+
+    if (tab === "reportPacchetti") {
+    if (pacchettiWrapper) pacchettiWrapper.classList.add("active-section");
+    if (pacchettiSection) pacchettiSection.classList.remove("hidden");
+
+    if (tabReportPacchetti) tabReportPacchetti.classList.add("active");
+
+    const reportBox = document.getElementById("reportPacchettiBox");
+    if (reportBox) reportBox.classList.remove("hidden");
+
+    renderReportPacchetti();
 
     scrollToSection("pacchettiSection");
   }
