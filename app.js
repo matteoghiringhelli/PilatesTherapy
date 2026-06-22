@@ -5821,16 +5821,16 @@ function applicaFiltroConti() {
     return;
   }
 
-  const [anno, meseNum] = mese.split("-");
+  const [annoFiltro, meseFiltro] = mese.split("-");
 
   const filtrati = contiDataOriginal.filter(r => {
-    if (!r.Data) return false;
 
-    const data = new Date(r.Data);
-    const y = data.getFullYear().toString();
-    const m = String(data.getMonth() + 1).padStart(2, "0");
+    if (!r.data) return false;
 
-    return y === anno && m === meseNum;
+    // ✅ parsing SICURO (no Date JS)
+    const [anno, mese] = r.data.split("-");
+
+    return anno === annoFiltro && mese === meseFiltro;
   });
 
   contiData = filtrati;
