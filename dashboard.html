@@ -502,6 +502,50 @@ body {
   background: #ffffff;
   color: #555;
 }
+
+/* ===== AGENDA / CALENDARIO ===== */
+
+.calendario-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.calendario-data-label {
+  font-weight: 700;
+  font-size: 15px;
+  text-align: center;
+  flex: 1;
+}
+
+.calendario-actions {
+  padding: 0 12px;
+}
+
+.agenda-lesson-time {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.agenda-lesson-type {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.agenda-lesson-full {
+  border-left: 6px solid #ff3b30;
+}
+
+.agenda-lesson-partial {
+  border-left: 6px solid #ffcc00;
+}
+
+.agenda-lesson-empty {
+  border-left: 6px solid #34c759;
+}
+
+    
     
   </style>
 </head>
@@ -848,20 +892,75 @@ body {
 
 <!-- ===================== CALENDARIO ===================== -->
 <div class="section">
-  <h2>Calendario</h2>
+  <h2>Agenda</h2>
 
   <div id="calendarioSection">
 
-    <div class="app-toolbar">
+    <div class="app-toolbar calendario-toolbar">
       <button onclick="giornoPrecedente()">←</button>
-      <span id="calendarioDataLabel"></span>
+      <span id="calendarioDataLabel" class="calendario-data-label"></span>
       <button onclick="giornoSuccessivo()">→</button>
+    </div>
+
+    <div class="form-row calendario-actions">
+      <button onclick="toggleNuovaLezioneAgenda()">➕ Aggiungi lezione</button>
+      <button onclick="vaiOggiAgenda()">Oggi</button>
+    </div>
+
+    <div id="nuovaLezioneAgendaBox" class="hidden">
+      <div class="card-ios">
+        <div class="card-title">➕ Nuova lezione</div>
+
+        <div class="form-row">
+          <label class="field-block">
+            <span class="field-label">Data</span>
+            <input id="agenda_data" type="date" readonly>
+          </label>
+
+          <label class="field-block">
+            <span class="field-label">Ora</span>
+            <select id="agenda_ora">
+              <option value="">Ora</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="form-row">
+          <label class="field-block">
+            <span class="field-label">Tipologia</span>
+            <select id="agenda_tipologia">
+              <option value="">Tipologia</option>
+              <option value="Privata">Privata</option>
+              <option value="Duetto">Duetto</option>
+              <option value="Mini-Gruppo">Mini-Gruppo</option>
+            </select>
+          </label>
+
+          <label class="field-block">
+            <span class="field-label">Istruttore</span>
+            <input id="agenda_istruttore" placeholder="Istruttore">
+          </label>
+        </div>
+
+        <p class="muted">
+          La data viene presa automaticamente dal giorno visualizzato in Agenda.
+        </p>
+
+        <div class="card-actions">
+          <button onclick="salvaLezioneDaAgenda()">💾 Salva lezione</button>
+          <button onclick="toggleNuovaLezioneAgenda()">Annulla</button>
+        </div>
+      </div>
     </div>
 
     <div id="outputCalendario"></div>
 
+    <div id="dettaglioCalendarioLezioneBox" class="hidden"></div>
+
   </div>
 </div>
+
+  
   
 <!-- ===================== FOOTER MENU APP ===================== -->
 <div class="app-footer">
@@ -895,9 +994,8 @@ body {
 
   
 
- 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="app.js?v=id-progressivi-v1"></script>
+  <script src="app.js?v=agenda-step2-v1"></script>
   
   <script>
     if ("serviceWorker" in navigator) {
