@@ -355,11 +355,15 @@
 /* toolbar tipo app */
 .app-toolbar {
   position: sticky;
-  top: 60px; /* ✅ NON 52 */
+  top: 60px;
   background: rgba(242,242,247,0.95);
   padding: 8px 12px;
   z-index: 210;
+
+  /* ✅ FIX copertura */
+  margin-bottom: 8px;
 }
+
 
 .app-back-btn {
   background: white;
