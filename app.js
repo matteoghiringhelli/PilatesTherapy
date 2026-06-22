@@ -30,7 +30,8 @@ let searchPrenotazioni = "";
 let searchClienti = "";
 let reportPacchettiFiltro = "da_pagare";
 let calendarioDataCorrente = getTodayString();
-let calendarioDataCorrente = getaglioLezioneBox";
+let dettaglioLezioneBoxAttivo = "dettaglioLezioneBox";
+
 
 
 window.addEventListener("DOMContentLoaded", async () => {
@@ -240,7 +241,9 @@ function formatOraHHMM(value) {
 }
 
 function formatDataEstesaIt(dateString) {
-  if");  if (!dateString) return "";
+  if (!dateString) return "";
+
+  const d = new Date(dateString + "T00:00:00");
 
   const giorni = [
     "Domenica",
@@ -267,12 +270,7 @@ function formatDataEstesaIt(dateString) {
     "Dicembre"
   ];
 
-  const giornoSettimana = giorni[d.getDay()];
-  const giorno = d.getDate();
-  const mese = mesi[d.getMonth()];
-  const anno = d.getFullYear();
-
-  return `${giornoSettimana} ${giorno} ${mese} ${anno}`;
+  return `${giorni[d.getDay()]} ${d.getDate()} ${mesi[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 
@@ -2144,7 +2142,7 @@ const payload = nuovePrenotazioni.map((p, index) => ({
   }
 
   renderCalendario();
-  mostraDettaglioLezione(idLezione, dettaglioLezioneBoxAttivo);
+  mostraDettaglioLezione(idLezione, "dettaglioCalendarioLezioneBox");
   setStatus("Prenotazioni salvate correttamente ✅", "ok");
 }
 
@@ -2171,7 +2169,7 @@ async function eliminaPrenotazioneDaLezione(idPrenotazione, idLezione) {
   }
 
   renderCalendario();
-  mostraDettaglioLezione(idLezione, dettaglioLezioneBoxAttivo);
+  mostraDettaglioLezione(idLezione, "dettaglioCalendarioLezioneBox");
   setStatus("Prenotazione eliminata correttamente ✅", "ok");
 }
 
@@ -3440,17 +3438,17 @@ function renderCalendario() {
 
   if (!out || !label) return;
 
-  label.textContent = calendarioDataCorrente;
+  label.textContent = formatDataEstesaIt(calendarioDataCorrente);
 
   const lezioniGiorno = lezioniData
     .filter(l => l.Data === calendarioDataCorrente)
-    .sort((a, b) => String(a.Ora).localeCompare(String(b.Ora)));
+    .sort((a, b) => String(a.Ora || "").localeCompare(String(b.Ora || "")));
 
   if (!lezioniGiorno.length) {
     out.innerHTML = `
       <div class="card-ios">
         <div class="card-title">Nessuna lezione</div>
-        <div class="card-sub">📭 Nessuna lezione programmata per questo giorno</div>
+        <div class="card-sub">📭 Nessuna lezione programmata</div>
       </div>
     `;
     return;
@@ -3466,8 +3464,13 @@ function renderCalendario() {
 
     return `
       <div class="card-ios">
-        <div class="card-title">
-          ${safe(l.Ora)} - ${safe(l.Tipologia)}
+
+        <div class="agenda-lesson-time">
+          ${safe(formatOraHHMM(l.Ora))}
+        </div>
+
+        <div class="agenda-lesson-type">
+          ${safe(l.Tipologia)}
         </div>
 
         <div class="card-sub">
@@ -3479,13 +3482,15 @@ function renderCalendario() {
         </div>
 
         <div class="card-actions">
-          <button onclick="mostraDettaglioLezione('${escapeQuote(l.ID_Lezione)}')">
+          <button onclick="mostraDettaglioLezione('${escapeQuote(l.ID_Lezione)}', 'dettaglioCalendarioLezioneBox')">
             👁️ Apri
           </button>
         </div>
+
       </div>
     `;
   }).join("");
+
 }
 
 function giornoPrecedente() {
@@ -3501,6 +3506,12 @@ function giornoSuccessivo() {
   calendarioDataCorrente = formatDateLocal(d);
   renderCalendario();
 }
+
+function vaiOggiAgenda() {
+  calendarioDataCorrente = getTodayString();
+  renderCalendario();
+}
+
 
 
 
