@@ -30,6 +30,7 @@ let searchPrenotazioni = "";
 let searchClienti = "";
 let reportPacchettiFiltro = "da_pagare";
 let calendarioDataCorrente = getTodayString();
+let calendarioDataCorrente = getaglioLezioneBox";
 
 
 window.addEventListener("DOMContentLoaded", async () => {
@@ -40,7 +41,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     // apertura iniziale stile app
     setTimeout(() => {
-      vaiTab("clienti");
+      vaiTab("calendario");
     }, 150);
 
     setStatus("Dashboard caricata correttamente ✅ - " + APP_VERSION, "ok");
@@ -237,6 +238,44 @@ function formatDateLocal(date) {
 function formatOraHHMM(value) {
   return String(value || "").substring(0, 5);
 }
+
+function formatDataEstesaIt(dateString) {
+  if");  if (!dateString) return "";
+
+  const giorni = [
+    "Domenica",
+    "Lunedì",
+    "Martedì",
+    "Mercoledì",
+    "Giovedì",
+    "Venerdì",
+    "Sabato"
+  ];
+
+  const mesi = [
+    "Gennaio",
+    "Febbraio",
+    "Marzo",
+    "Aprile",
+    "Maggio",
+    "Giugno",
+    "Luglio",
+    "Agosto",
+    "Settembre",
+    "Ottobre",
+    "Novembre",
+    "Dicembre"
+  ];
+
+  const giornoSettimana = giorni[d.getDay()];
+  const giorno = d.getDate();
+  const mese = mesi[d.getMonth()];
+  const anno = d.getFullYear();
+
+  return `${giornoSettimana} ${giorno} ${mese} ${anno}`;
+}
+
+
 
 function isDateInCurrentWeek(dateString) {
   if (!dateString) return false;
@@ -597,6 +636,7 @@ async function loadLezioni() {
   renderLezioni();
   renderLezioniMobileSafe();
   renderSelectLezioni();
+  renderCalendario();
 }
 
 function getLezioniFiltrate() {
@@ -1096,6 +1136,7 @@ async function loadPrenotazioni() {
   renderPrenotazioni();
   renderLezioni();
   renderSelectLezioni();
+  renderCalendario();
   aggiornaPacchettiPrenotazione();
 }
 
@@ -1780,8 +1821,9 @@ function renderPrenotazioniMobileSafe() {
   }
 }
 
-function mostraDettaglioLezione(idLezione) {
-  const box = document.getElementById("dettaglioLezioneBox");
+function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
+  dettaglioLezioneBoxAttivo = boxId;
+    const box = document.getElementById(boxId);
   if (!box) return;
 
   const lezione = lezioniData.find(l => String(l.ID_Lezione) === String(idLezione));
@@ -1864,7 +1906,7 @@ function mostraDettaglioLezione(idLezione) {
 
   animateView(box, `
     <div class="app-toolbar">
-      <button class="app-back-btn" onclick="chiudiDettaglioLezione()">← Lezioni</button>
+      <button class="app-back-btn" onclick="chiudiDettaglioLezione('${escapeQuote(boxId)}')">← Indietro</button>
     </div>
 
     <div class="lesson-detail">
@@ -1913,8 +1955,8 @@ function mostraDettaglioLezione(idLezione) {
 
 
 
-function chiudiDettaglioLezione() {
-  const box = document.getElementById("dettaglioLezioneBox");
+function chiudiDettaglioLezione(boxId = "dettaglioLezioneBox") {
+  const box = document.getElementById(boxId);
   closeAnimated(box);
 }
 
@@ -2101,8 +2143,8 @@ const payload = nuovePrenotazioni.map((p, index) => ({
     renderReportPacchetti();
   }
 
-  mostraDettaglioLezione(idLezione);
-
+  renderCalendario();
+  mostraDettaglioLezione(idLezione, dettaglioLezioneBoxAttivo);
   setStatus("Prenotazioni salvate correttamente ✅", "ok");
 }
 
@@ -2128,8 +2170,8 @@ async function eliminaPrenotazioneDaLezione(idPrenotazione, idLezione) {
     renderReportPacchetti();
   }
 
-  mostraDettaglioLezione(idLezione);
-
+  renderCalendario();
+  mostraDettaglioLezione(idLezione, dettaglioLezioneBoxAttivo);
   setStatus("Prenotazione eliminata correttamente ✅", "ok");
 }
 
@@ -2465,6 +2507,7 @@ function vaiTab(tab) {
     if (btn) btn.classList.remove("active");
   });
 
+  if (calendarioSection) calendarioSection.classList.add("hidden");
   if (clientiSection) clientiSection.classList.add("hidden");
   if (lezioniSection) lezioniSection.classList.add("hidden");
   if (prenotazioniSection) prenotazioniSection.classList.add("hidden");
