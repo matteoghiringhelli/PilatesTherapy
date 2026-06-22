@@ -1590,22 +1590,26 @@ body {
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="app.js?v=46-dashboard-grafici-settimanale-mensile"></script
+<script src="app.js?v=48-dashboard-grafici-fix-script"></script>
 
-  
-  <script>
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", function () {
-        navigator.serviceWorker.register("/sw.js")
-          .then(function () {
-            console.log("Service Worker registrato correttamente");
-          })
-          .catch(function (error) {
-            console.log("Errore registrazione Service Worker:", error);
-          });
-      });
-    }
-  </script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("/sw.js")
+        .then(function () {
+          console.log("Service Worker registrato correttamente");
+        })
+        .catch(function (error) {
+          console.log("Errore registrazione Service Worker:", error);
+        });
+    });
+  }
+</script>
 
 </body>
 </html>
+
+
+
+
+
