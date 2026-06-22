@@ -5565,7 +5565,9 @@ async function loadConti() {
     return;
   }
 
-  contiData = data || [];
+  contiDataOriginal = data || [];
+  contiData = [...contiDataOriginal];
+
   renderConti();
 }
 
@@ -5802,6 +5804,43 @@ async function registraEntrataPacchetto(pacchetto) {
   } catch (err) {
     console.error("Errore funzione contabilità:", err);
   }
+}
+
+// ============================
+// FILTRO CONTI PER MESE
+// ============================
+
+let contiDataOriginal = [];
+
+function applicaFiltroConti() {
+
+  const mese = document.getElementById("conti_mese").value;
+
+  if (!mese) {
+    alert("Seleziona un mese");
+    return;
+  }
+
+  const [anno, meseNum] = mese.split("-");
+
+  const filtrati = contiDataOriginal.filter(r => {
+    if (!r.Data) return false;
+
+    const data = new Date(r.Data);
+    const y = data.getFullYear().toString();
+    const m = String(data.getMonth() + 1).padStart(2, "0");
+
+    return y === anno && m === meseNum;
+  });
+
+  contiData = filtrati;
+  renderConti();
+}
+
+
+function resetFiltroConti() {
+  contiData = [...contiDataOriginal];
+  renderConti();
 }
 
 
