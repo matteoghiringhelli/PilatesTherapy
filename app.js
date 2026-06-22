@@ -31,6 +31,7 @@ let searchClienti = "";
 let reportPacchettiFiltro = "da_pagare";
 let calendarioDataCorrente = getTodayString();
 let dettaglioLezioneBoxAttivo = "dettaglioLezioneBox";
+let graficoRicaviMensiliInstance = null;
 
 
 
@@ -5382,6 +5383,7 @@ function calcolaDashboardMensile() {
 
   renderDashboardMensile(result);
   renderDashboardKpiMensile(result);
+  renderGraficoRicaviMensili(result);
 }
 
 function renderDashboardMensile(data) {
@@ -5432,6 +5434,115 @@ function renderDashboardKpiMensile(dataMensile) {
   const valore = dataMensile[meseCorrente]?.Totale || 0;
 
   out.textContent = formatEuro(valore);
+}
+
+function getLabelMeseGrafico(meseKey) {
+  if (!meseKey) return "";
+
+  const mesi = [
+    "Gen",
+    "Feb",
+    "Mar",
+    "Apr",
+    "Mag",
+    "Giu",
+    "Lug",
+    "Ago",
+    "Set",
+    "Ott",
+    "Nov",
+    "Dic"
+  ];
+
+  const parti = String(meseKey).split("-");
+  const anno = parti[0] || "";
+  const meseNumero = Number(parti[1] || 0);
+  const nomeMese = mesi[meseNumero - 1] || meseKey;
+
+  return `${nomeMese} ${anno}`;
+}
+
+function renderGraficoRicaviMensili(dataMensile) {
+  const canvas = document.getElementById("graficoRicaviMensili");
+
+  if (!canvas) return;
+
+  if (typeof Chart === "undefined") {
+    console.warn("Chart.js non caricato");
+    return;
+  }
+
+  const entries = Object.entries(dataMensile || {});
+
+  if (!entries.length) {
+    if (graficoRicaviMensiliInstance) {
+      graficoRicaviMensiliInstance.destroy();
+      graficoRicaviMensiliInstance = null;
+    }
+    return;
+  }
+
+  // I dati della dashboard sono in ordine dal più recente al più vecchio.
+  // Per il grafico li ribaltiamo: dal più vecchio al più recente.
+  const entriesOrdinate = [...entries].reverse();
+
+  const labels = entriesOrdinate.map(([mese]) => {
+    return getLabelMeseGrafico(mese);
+  });
+
+  const valori = entriesOrdinate.map(([, valoriMese]) => {
+    return Number(valoriMese.Totale || 0);
+  });
+
+  if (graficoRicaviMensiliInstance) {
+    graficoRicaviMensiliInstance.destroy();
+  }
+
+  graficoRicaviMensiliInstance = new Chart(canvas, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Ricavi mensili",
+          data: valori,
+          tension: 0.35,
+          fill: false,
+          borderColor: "#007aff",
+          backgroundColor: "#007aff",
+          pointRadius: 4,
+          pointHoverRadius: 6
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          display: true
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              const value = Number(context.parsed.y || 0);
+              return `Ricavi: ${formatEuro(value)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function (value) {
+              return formatEuro(value);
+            }
+          }
+        }
+      }
+    }
+  });
 }
 
 function calcolaDashboardSettimanale() {
