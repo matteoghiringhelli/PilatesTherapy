@@ -1144,75 +1144,41 @@ body {
     </div>
   </div>
 
-  <!-- ===================== PRENOTAZIONI ===================== -->
-  <div class="section">
-    <h2>Prenotazioni</h2>
+<!-- ===================== PRENOTAZIONI ===================== -->
+<div class="section">
+  <h2>Prenotazioni</h2>
 
-    <button onclick="togglePrenotazioni()">Apri / Chiudi Prenotazioni</button>
+  <div id="prenotazioniSection">
 
-    <div id="prenotazioniSection">
-      <button onclick="loadPrenotazioni()">Ricarica Prenotazioni</button>
+    <button onclick="loadPrenotazioni()">Ricarica Prenotazioni</button>
 
-      <div id="nuovaPrenotazioneBox" class="hidden">
-        <h3>Aggiungi Prenotazione</h3>
-        <div class="form-row">
+    <div id="nuovaPrenotazioneBox" class="hidden">
+      <h3>Aggiungi Prenotazione</h3>
 
-  <label class="field-block">
-    <span class="field-label">Cliente</span>
-    <select id="select_cliente" onchange="aggiornaPacchettiPrenotazione()">
-      <option value="">Seleziona cliente</option>
-    </select>
-  </label>
-
-  <label class="field-block">
-    <span class="field-label">Lezione</span>
-    <select id="select_lezione" onchange="aggiornaPacchettiPrenotazione()">
-      <option value="">Seleziona lezione</option>
-    </select>
-  </label>
-
-  <label class="field-block">
-    <span class="field-label">Pacchetto</span>
-    <select id="select_pacchetto">
-      <option value="">Seleziona prima cliente e lezione</option>
-    </select>
-  </label>
-
-  <button onclick="prenota()">Prenota</button>
-
-</div>
-
-      <h3>Filtri Prenotazioni</h3>
-
-
-      <div class="filters-row">
-        <span class="filter-label">Mostra:</span>
-        <button onclick="setFiltroPrenotazioni('tutte')">Tutte</button>
-        <button onclick="setFiltroPrenotazioni('oggi')">Oggi</button>
-        <button onclick="setFiltroPrenotazioni('settimana')">Questa settimana</button>
-        <button onclick="setFiltroPrenotazioni('future')">Future</button>
-        <button onclick="setFiltroPrenotazioni('passate')">Passate</button>
-
-        <span class="filter-label">Data specifica:</span>
-        <input id="filtro_prenotazioni_data" type="date" onchange="setFiltroPrenotazioniData()">
-        <button onclick="resetFiltroPrenotazioni()">Reset filtro</button>
+      <div class="form-row">
+        ...
       </div>
-
-      <div class="table-container">
-  <div id="outputPrenotazioni"></div>
-</div>
-
-<h3>Storico Cliente</h3>
-
-<div class="table-container">
-  <div id="outputStoricoCliente">
-    <p class="muted">Clicca sul nome di un cliente nella tabella prenotazioni per vedere il suo storico.</p>
-  </div>
-</div>
-
-
     </div>
+
+    <h3>Filtri Prenotazioni</h3>
+
+    <div class="filters-row">
+      ...
+    </div>
+
+    <div class="table-container">
+      <div id="outputPrenotazioni"></div>
+    </div>
+
+    <h3>Storico Cliente</h3>
+
+    <div class="table-container">
+      <div id="outputStoricoCliente"></div>
+    </div>
+
   </div>
+</div>
+
 
 <!-- ===================== PACCHETTI ===================== -->
 <div class="section">
@@ -1468,7 +1434,7 @@ body {
   
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="app.js?v=pacchetti-edit-v2"></script>
+  <script src="app.js?v=38-fix"></script>
   
   <script>
     if ("serviceWorker" in navigator) {
