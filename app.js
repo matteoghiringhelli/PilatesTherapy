@@ -2688,6 +2688,9 @@ function apriNuovaPrenotazioneDaHome() {
   vaiTab("prenotazioni");
 
   setTimeout(() => {
+    const box = document.getElementById("nuovaPrenotazioneBox");
+    if (box) box.classList.add("hidden");
+
     const section = document.getElementById("prenotazioniSection");
     if (section) {
       section.scrollIntoView({
@@ -2725,16 +2728,11 @@ function apriNuovoPacchettoDaHome() {
 
   setTimeout(() => {
     const box = document.getElementById("nuovoPacchettoBox");
+    if (box) box.classList.add("hidden");
 
-    if (box && box.classList.contains("hidden")) {
-      toggleNuovoPacchetto();
-    } else {
-      preparaNuovoPacchetto();
-    }
-
-    const target = document.getElementById("nuovoPacchettoBox");
-    if (target) {
-      target.scrollIntoView({
+    const section = document.getElementById("pacchettiSection");
+    if (section) {
+      section.scrollIntoView({
         behavior: "smooth",
         block: "start"
       });
@@ -2908,6 +2906,9 @@ function vaiTab(tab) {
     if (tabPrenotazioni) tabPrenotazioni.classList.add("active");
 
     loadPrenotazioni();
+    const nuovoBox = document.getElementById("nuovaPrenotazioneBox");
+    if (nuovoBox) nuovoBox.classList.add("hidden");
+
 
     scrollToSection("prenotazioniSection");
     return;
@@ -2922,6 +2923,8 @@ function vaiTab(tab) {
     if (reportBox) reportBox.classList.add("hidden");
 
     loadPacchetti();
+    const nuovoBox = document.getElementById("nuovoPacchettoBox");
+    if (nuovoBox) nuovoBox.classList.add("hidden");
 
     scrollToSection("pacchettiSection");
     return;
