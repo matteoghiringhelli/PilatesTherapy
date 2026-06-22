@@ -6286,4 +6286,46 @@ function resetFiltroConti() {
 }
 
 
+// ============================
+// LOGIN
+// ============================
+
+async function login() {
+
+  const email = document.getElementById("email")?.value.trim();
+  const password = document.getElementById("password")?.value.trim();
+  const status = document.getElementById("loginStatus");
+
+  if (!email || !password) {
+    if (status) status.textContent = "Inserisci email e password";
+    return;
+  }
+
+  if (status) status.textContent = "Login in corso...";
+
+  try {
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
+
+    if (error) {
+      console.error("Errore login:", error);
+      if (status) status.textContent = "❌ " + error.message;
+      return;
+    }
+
+    if (status) status.textContent = "✅ Login ok";
+
+    // ✅ redirect alla dashboard
+    window.location.href = "dashboard.html";
+
+  } catch (err) {
+    console.error(err);
+    if (status) status.textContent = "❌ Errore login";
+  }
+}
+
+
 console.log("APP JS CARICATO OK");
