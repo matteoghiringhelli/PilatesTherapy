@@ -29,6 +29,7 @@ let filtroPrenotazioniData = "";
 let searchPrenotazioni = "";
 let searchClienti = "";
 let reportPacchettiFiltro = "da_pagare";
+let calendarioDataCorrente = getTodayString();
 
 
 window.addEventListener("DOMContentLoaded", async () => {
@@ -2444,7 +2445,12 @@ function vaiTab(tab) {
   const prenotazioniWrapper = prenotazioniSection?.parentElement;
   const pacchettiWrapper = pacchettiSection?.parentElement;
 
+  const calendarioSection = document.getElementById("calendarioSection");
+  const tabCalendario = document.getElementById("tabCalendario");
+  const calendarioWrapper = calendarioSection?.parentElement;
+
   const wrappers = [
+    calendarioWrapper,
     clientiWrapper,
     lezioniWrapper,
     prenotazioniWrapper,
@@ -2455,7 +2461,7 @@ function vaiTab(tab) {
     if (wrapper) wrapper.classList.remove("active-section");
   });
 
-  [tabClienti, tabLezioni, tabPrenotazioni, tabPacchetti].forEach(btn => {
+  [tabCalendario, tabClienti, tabLezioni, tabPrenotazioni, tabPacchetti].forEach(btn => {
     if (btn) btn.classList.remove("active");
   });
 
@@ -2476,6 +2482,17 @@ function vaiTab(tab) {
       <p class="muted">Clicca sul nome di un cliente nella tabella prenotazioni per vedere il suo storico.</p>
     `;
   }
+
+  
+if (tab === "calendario") {
+  if (calendarioWrapper) calendarioWrapper.classList.add("active-section");
+  if (calendarioSection) calendarioSection.classList.remove("hidden");
+  if (tabCalendario) tabCalendario.classList.add("active");
+
+  renderCalendario();
+
+  scrollToSection("calendarioSection");
+}
 
   if (tab === "clienti") {
     if (clientiWrapper) clientiWrapper.classList.add("active-section");
@@ -3371,6 +3388,78 @@ function renderReportPacchetti() {
     ${renderReportFattureMancanti(fattureMancantiItems)}
   `;
 }
+
+/* ===================== CALENDARIO ===================== */
+
+function renderCalendario() {
+  const out = document.getElementById("outputCalendario");
+  const label = document.getElementById("calendarioDataLabel");
+
+  if (!out || !label) return;
+
+  label.textContent = calendarioDataCorrente;
+
+  const lezioniGiorno = lezioniData
+    .filter(l => l.Data === calendarioDataCorrente)
+    .sort((a, b) => String(a.Ora).localeCompare(String(b.Ora)));
+
+  if (!lezioniGiorno.length) {
+    out.innerHTML = `
+      <div class="card-ios">
+        <div class="card-title">Nessuna lezione</div>
+        <div class="card-sub">📭 Nessuna lezione programmata per questo giorno</div>
+      </div>
+    `;
+    return;
+  }
+
+  out.innerHTML = lezioniGiorno.map(l => {
+
+    const prenotati = prenotazioniData.filter(p =>
+      String(p.ID_Lezione) === String(l.ID_Lezione)
+    ).length;
+
+    const max = Number(l.Max_Partecipanti || 0);
+
+    return `
+      <div class="card-ios">
+        <div class="card-title">
+          ${safe(l.Ora)} - ${safe(l.Tipologia)}
+        </div>
+
+        <div class="card-sub">
+          👤 ${safe(l.Istruttore)}
+        </div>
+
+        <div class="card-sub">
+          👥 ${prenotati}/${max}
+        </div>
+
+        <div class="card-actions">
+          <button onclick="mostraDettaglioLezione('${escapeQuote(l.ID_Lezione)}')">
+            👁️ Apri
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function giornoPrecedente() {
+  const d = new Date(calendarioDataCorrente + "T00:00:00");
+  d.setDate(d.getDate() - 1);
+  calendarioDataCorrente = formatDateLocal(d);
+  renderCalendario();
+}
+
+function giornoSuccessivo() {
+  const d = new Date(calendarioDataCorrente + "T00:00:00");
+  d.setDate(d.getDate() + 1);
+  calendarioDataCorrente = formatDateLocal(d);
+  renderCalendario();
+}
+
+
 
 function inviaWhatsAppCliente(idCliente) {
   const cliente = clientiData.find(c => String(c.ID_Cliente) === String(idCliente));
