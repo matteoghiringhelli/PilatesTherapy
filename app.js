@@ -4,7 +4,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const APP_VERSION = "v-dashboard-ricavi-2026-06-22";
+const APP_VERSION = "v-pacchetti-edit-2026-06-22";
 
 const MAX_PARTECIPANTI = {
   "Privata": 1,
@@ -2716,6 +2716,30 @@ async function loadPacchetti() {
 
   pacchettiData = data || [];
 
+  pacchettiData.sort((a, b) => {
+    const clienteA = clientiData.find(c =>
+      String(c.ID_Cliente) === String(a.ID_Cliente)
+    );
+
+    const clienteB = clientiData.find(c =>
+      String(c.ID_Cliente) === String(b.ID_Cliente)
+    );
+
+    const nomeA = String(clienteA?.Nome || "").toLowerCase();
+    const nomeB = String(clienteB?.Nome || "").toLowerCase();
+
+    if (nomeA < nomeB) return -1;
+    if (nomeA > nomeB) return 1;
+
+    const cognomeA = String(clienteA?.Cognome || "").toLowerCase();
+    const cognomeB = String(clienteB?.Cognome || "").toLowerCase();
+
+    if (cognomeA < cognomeB) return -1;
+    if (cognomeA > cognomeB) return 1;
+
+    return String(b.Valido_Da || "").localeCompare(String(a.Valido_Da || ""));
+  });
+
   renderSelectPacchettoClienti();
   renderSelectTipiPacchetto();
   renderPacchetti();
@@ -2726,6 +2750,7 @@ async function loadPacchetti() {
     renderReportPacchetti();
   }
 }
+
 
 function renderSelectPacchettoClienti() {
   const sel = document.getElementById("pac_cliente");
@@ -3127,40 +3152,62 @@ function renderPacchetti() {
 
 function renderPacchettiMobileSafe() {
   try {
+    // ✅ SOLO MOBILE
     if (window.innerWidth > 768) return;
 
     const out = document.getElementById("outputPacchetti");
     if (!out) return;
 
-    const cards = pacchettiData.map(p => {
-      
-      const cliente = clientiData.find(c =>
-        String(c.ID_Cliente) === String(p.ID_Cliente)
-      );
+    const table = out.querySelector("table");
+    if (!table) return;
 
-      const clienteNome = cliente
-        ? `${cliente.Nome} ${cliente.Cognome}`
-        : "Cliente non trovato";
+    const rows = table.querySelectorAll("tr");
+    if (!rows || rows.length <= 1) return;
 
-      const lezioniTotali = Number(p.Lezioni_Totali || 0);
-      const lezioniUsate = contaPrenotazioniPacchetto(p.ID_Pacchetto);
-      const lezioniRimanenti = lezioniTotali - lezioniUsate;
+    const cards = [];
 
-      const prezzo = Number(p.Prezzo || 0);
-      const daPagare = Number(p.Da_Pagare || 0);
+    for (let i = 1; i < rows.length; i++) {
+      const cells = rows[i].querySelectorAll("td");
+      if (!cells || cells.length < 16) continue;
 
-      const alertDaPagare = daPagare > 0;
-      const alertInScadenza = lezioniRimanenti <= 2;
+      const idPacchetto = cells[0].innerText;
+      const cliente = cells[1].innerText;
+      const tipo = cells[3].innerText;
 
-      return `
+      const lezioniBase = cells[4].innerText;
+      const lezioniAdd = cells[5].innerText;
+      const lezioniTot = cells[6].innerText;
+
+      const prezzo = cells[7].innerText;
+      const pagato = cells[8].innerText;
+      const daPagare = cells[10].innerText;
+
+      const validoDa = cells[13].innerText;
+      const validoA = cells[14].innerText;
+
+      // ✅ calcolo contatori
+      const usate = contaPrenotazioniPacchetto(idPacchetto);
+      const totNum = Number(lezioniTot || 0);
+      const saldo = totNum - usate;
+
+      const daPagareNum = Number(daPagare || 0);
+
+      const alertDaPagare = daPagareNum > 0;
+      const alertInScadenza = saldo <= 2;
+
+      cards.push(`
         <div class="card-ios">
-          
+
           <div class="card-title">
-            ${clienteNome}
+            ${cliente}
           </div>
 
           <div class="card-sub">
-            🎟️ ${p.Tipo_Pacchetto}
+            🎟️ ${tipo}
+          </div>
+
+          <div class="card-sub">
+            📊 ${lezioniTot} lezioni (usate ${usate} • saldo ${saldo})
           </div>
 
           <div class="card-sub">
@@ -3172,15 +3219,7 @@ function renderPacchettiMobileSafe() {
           </div>
 
           <div class="card-sub">
-            📊 Lezioni totali: ${lezioniTotali}
-          </div>
-
-          <div class="card-sub">
-            ⚖️ Lezioni rimanenti: ${lezioniRimanenti}
-          </div>
-
-          <div class="card-sub">
-            📅 Validità: ${p.Valido_Da} → ${p.Valido_A}
+            📅 ${validoDa} → ${validoA}
           </div>
 
           ${
@@ -3196,24 +3235,22 @@ function renderPacchettiMobileSafe() {
           }
 
           <div class="card-actions">
-            <button onclick="mostraDettaglioPacchetto('${escapeQuote(p.ID_Pacchetto)}')">
+            <button onclick="mostraDettaglioPacchetto('${escapeQuote(idPacchetto)}')">
               🔎 Dettaglio
-            </button>
-
-            <button onclick="modificaPacchettoInline('${escapeQuote(p.ID_Pacchetto)}')">
-              ✏️ Modifica
-            </button>
-
-            <button onclick="eliminaPacchetto('${escapeQuote(p.ID_Pacchetto)}')">
-              🗑️ Elimina
             </button>
           </div>
 
         </div>
-      `;
-    });
+      `);
+    }
 
-    out.innerHTML = cards.join("");
+    if (cards.length > 0) {
+      out.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          ${cards.join("")}
+        </div>
+      `;
+    }
 
   } catch (err) {
     console.error("Errore renderPacchettiMobileSafe:", err);
@@ -3222,7 +3259,11 @@ function renderPacchettiMobileSafe() {
 
 
 async function eliminaPacchetto(idPacchetto) {
-  if (!confirm("Eliminare questo pacchetto?")) return;
+  const conferma = confirm(
+    "Eliminare questo pacchetto? Le prenotazioni già collegate potrebbero perdere il riferimento al pacchetto."
+  );
+
+  if (!conferma) return;
 
   const { error } = await supabaseClient
     .from("pacchetti")
@@ -3236,52 +3277,145 @@ async function eliminaPacchetto(idPacchetto) {
   }
 
   await loadPacchetti();
-  setStatus("Pacchetto eliminato ✅", "ok");
+  await loadPrenotazioni();
+
+  const reportBox = document.getElementById("reportPacchettiBox");
+  if (reportBox && !reportBox.classList.contains("hidden")) {
+    renderReportPacchetti();
+  }
+
+  setStatus("Pacchetto eliminato correttamente ✅", "ok");
 }
 
 
 function mostraDettaglioPacchetto(idPacchetto) {
   const out = document.getElementById("outputPacchetti");
+  if (!out) return;
 
   const p = pacchettiData.find(x =>
     String(x.ID_Pacchetto) === String(idPacchetto)
   );
 
-  if (!p) return;
+  if (!p) {
+    setStatus("Pacchetto non trovato", "err");
+    return;
+  }
 
   const cliente = clientiData.find(c =>
     String(c.ID_Cliente) === String(p.ID_Cliente)
   );
 
   const nomeCliente = cliente
-    ? `${cliente.Nome} ${cliente.Cognome}`
+    ? `${cliente.Nome || ""} ${cliente.Cognome || ""}`.trim()
     : "Cliente non trovato";
 
-  const usate = contaPrenotazioniPacchetto(p.ID_Pacchetto);
-  const tot = Number(p.Lezioni_Totali || 0);
-  const saldo = tot - usate;
+  const lezioniTotali = Number(p.Lezioni_Totali || 0);
+  const lezioniUsate = contaPrenotazioniPacchetto(p.ID_Pacchetto);
+  const lezioniRimanenti = lezioniTotali - lezioniUsate;
+
+  const daPagare = Number(p.Da_Pagare || 0);
+  const alertDaPagare = !isPacchettoChiuso(p) && daPagare > 0;
+  const alertInScadenza = !isPacchettoChiuso(p) && lezioniRimanenti <= 2;
 
   animateView(out, `
     <div class="app-toolbar">
-      <button class="app-back-btn" onclick="loadPacchetti()">← Indietro</button>
+      <button class="app-back-btn" onclick="loadPacchetti()">
+        ← Pacchetti
+      </button>
     </div>
 
     <div class="card-ios">
-      <div class="card-title">${nomeCliente}</div>
 
-      <div class="card-sub">🎟️ ${p.Tipo_Pacchetto}</div>
-      <div class="card-sub">💰 Prezzo: ${p.Prezzo}</div>
-      <div class="card-sub">💸 Da pagare: ${p.Da_Pagare}</div>
+      <div class="card-title">
+        🔎 Dettaglio Pacchetto
+      </div>
 
-      <div class="card-sub">📊 Totali: ${tot}</div>
-      <div class="card-sub">✅ Usate: ${usate}</div>
-      <div class="card-sub">⚖️ Rimanenti: ${saldo}</div>
+      <div class="card-sub">
+        <strong>Cliente:</strong> ${safe(nomeCliente)}
+      </div>
 
-      <div class="card-sub">📅 Validità: ${p.Valido_Da} → ${p.Valido_A}</div>
-      <div class="card-sub">📌 Stato: ${p.Stato}</div>
+      <div class="card-sub">
+        <strong>ID Pacchetto:</strong> ${safe(p.ID_Pacchetto)}
+      </div>
+
+      <div class="card-sub">
+        <strong>ID Cliente:</strong> ${safe(p.ID_Cliente)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Tipo Pacchetto:</strong> ${safe(p.Tipo_Pacchetto)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Lezioni Base:</strong> ${safe(p.Lezioni_Base)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Lezioni Add:</strong> ${safe(p.Lezioni_Add)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Lezioni Totali:</strong> ${safe(p.Lezioni_Totali)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Lezioni Usate:</strong> ${safe(lezioniUsate)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Lezioni Rimanenti:</strong> ${safe(lezioniRimanenti)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Prezzo:</strong> ${safe(p.Prezzo)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Flag Pagato:</strong> ${safe(p.Flag_Pagato)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Da Pagare:</strong> ${safe(p.Da_Pagare)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Flag C:</strong> ${safe(p.Flag_C)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Fattura Nr:</strong> ${safe(p.Fattura_Nr || "-")}
+      </div>
+
+      <div class="card-sub">
+        <strong>Data Fattura:</strong> ${safe(p.Data_Fattura || "-")}
+      </div>
+
+      <div class="card-sub">
+        <strong>Valido Da:</strong> ${safe(p.Valido_Da)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Valido A:</strong> ${safe(p.Valido_A)}
+      </div>
+
+      <div class="card-sub">
+        <strong>Stato:</strong> ${safe(p.Stato || "Attivo")}
+      </div>
+
+      ${
+        alertDaPagare
+          ? `<div class="report-warning">⚠️ Da pagare: ${safe(daPagare)}</div>`
+          : ""
+      }
+
+      ${
+        alertInScadenza
+          ? `<div class="report-warning">⚠️ In scadenza: ${safe(lezioniRimanenti)} lezioni rimanenti</div>`
+          : ""
+      }
 
       <div class="card-actions">
-        <button onclick="modificaPacchettoInline('${escapeQuote(p.ID_Pacchetto)}')">
+        <button onclick="mostraModificaPacchettoInline('${escapeQuote(p.ID_Pacchetto)}')">
           ✏️ Modifica
         </button>
 
@@ -3289,46 +3423,284 @@ function mostraDettaglioPacchetto(idPacchetto) {
           🗑️ Elimina
         </button>
 
-        <button onclick="loadPacchetti()">← Indietro</button>
+        <button onclick="loadPacchetti()">
+          ← Indietro
+        </button>
       </div>
+
     </div>
   `);
 }
 
 
-function modificaPacchettoInline(idPacchetto) {
+function mostraModificaPacchettoInline(idPacchetto) {
+  const out = document.getElementById("outputPacchetti");
+  if (!out) return;
+
   const p = pacchettiData.find(x =>
     String(x.ID_Pacchetto) === String(idPacchetto)
   );
 
-  if (!p) return;
+  if (!p) {
+    setStatus("Pacchetto non trovato", "err");
+    return;
+  }
 
-  const nuovoPrezzo = prompt("Prezzo", p.Prezzo || "");
-  if (nuovoPrezzo === null) return;
+  const clientiOptions = clientiData.map(c => {
+    const selected =
+      String(c.ID_Cliente) === String(p.ID_Cliente)
+        ? "selected"
+        : "";
 
-  const nuovoDaPagare = prompt("Da Pagare", p.Da_Pagare || "");
-  if (nuovoDaPagare === null) return;
+    return `
+      <option value="${escapeAttr(c.ID_Cliente)}" ${selected}>
+        ${safe(c.Nome)} ${safe(c.Cognome)}
+      </option>
+    `;
+  }).join("");
 
-  aggiornaPacchetto(idPacchetto, {
-    Prezzo: Number(nuovoPrezzo || 0),
-    Da_Pagare: Number(nuovoDaPagare || 0)
-  });
+  const tipiOptions = Object.keys(TIPI_PACCHETTO).map(tipo => {
+    const selected =
+      String(tipo) === String(p.Tipo_Pacchetto)
+        ? "selected"
+        : "";
+
+    return `
+      <option value="${escapeAttr(tipo)}" ${selected}>
+        ${safe(tipo)}
+      </option>
+    `;
+  }).join("");
+
+  animateView(out, `
+    <div class="app-toolbar">
+      <button class="app-back-btn" onclick="mostraDettaglioPacchetto('${escapeQuote(idPacchetto)}')">
+        ← Dettaglio
+      </button>
+    </div>
+
+    <div class="card-ios">
+
+      <div class="card-title">
+        ✏️ Modifica Pacchetto
+      </div>
+
+      <div class="card-sub">
+        <strong>ID Pacchetto:</strong> ${safe(p.ID_Pacchetto)}
+      </div>
+
+      <div class="form-row">
+        <label class="field-block">
+          <span class="field-label">Cliente</span>
+          <select id="edit_pac_cliente">
+            ${clientiOptions}
+          </select>
+        </label>
+
+        <label class="field-block">
+          <span class="field-label">Tipo Pacchetto</span>
+          <select id="edit_pac_tipo" onchange="aggiornaCalcoliModificaPacchetto()">
+            ${tipiOptions}
+          </select>
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label class="field-block">
+          <span class="field-label">Lezioni Base</span>
+          <input id="edit_pac_lezioni_base" type="number" value="${escapeAttr(p.Lezioni_Base)}">
+        </label>
+
+        <label class="field-block">
+          <span class="field-label">Lezioni Add</span>
+          <input id="edit_pac_lezioni_add" type="number" value="${escapeAttr(p.Lezioni_Add)}" oninput="aggiornaCalcoliModificaPacchetto()">
+        </label>
+
+        <label class="field-block">
+          <span class="field-label">Lezioni Totali</span>
+          <input id="edit_pac_lezioni_totali" type="number" value="${escapeAttr(p.Lezioni_Totali)}">
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label class="field-block">
+          <span class="field-label">Prezzo</span>
+          <input id="edit_pac_prezzo" type="number" step="0.01" value="${escapeAttr(p.Prezzo)}">
+        </label>
+
+        <label class="field-block">
+          <span class="field-label">Pagato</span>
+          <select id="edit_pac_flag_pagato" onchange="aggiornaDaPagareModificaPacchetto()">
+            <option value="Si" ${String(p.Flag_Pagato) === "Si" ? "selected" : ""}>Si</option>
+            <option value="No" ${String(p.Flag_Pagato) === "No" ? "selected" : ""}>No</option>
+          </select>
+        </label>
+
+        <label class="field-block">
+          <span class="field-label">Da Pagare</span>
+          <input id="edit_pac_da_pagare" type="number" step="0.01" value="${escapeAttr(p.Da_Pagare)}">
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label class="field-block">
+          <span class="field-label">Flag C</span>
+          <select id="edit_pac_flag_c">
+            <option value="Si" ${String(p.Flag_C) === "Si" ? "selected" : ""}>Si</option>
+            <option value="No" ${String(p.Flag_C) === "No" ? "selected" : ""}>No</option>
+          </select>
+        </label>
+
+        <label class="field-block">
+          <span class="field-label">Fattura Nr</span>
+          <input id="edit_pac_fattura_nr" value="${escapeAttr(p.Fattura_Nr)}">
+        </label>
+
+        <label class="field-block">
+          <span class="field-label">Data Fattura</span>
+          <input id="edit_pac_data_fattura" type="date" value="${escapeAttr(p.Data_Fattura)}">
+        </label>
+      </div>
+
+      <div class="form-row">
+        <label class="field-block">
+          <span class="field-label">Valido Da</span>
+          <input id="edit_pac_valido_da" type="date" value="${escapeAttr(p.Valido_Da)}" onchange="aggiornaCalcoliModificaPacchetto()">
+        </label>
+
+        <label class="field-block">
+          <span class="field-label">Valido A</span>
+          <input id="edit_pac_valido_a" type="date" value="${escapeAttr(p.Valido_A)}">
+        </label>
+
+        <label class="field-block">
+          <span class="field-label">Stato</span>
+          <select id="edit_pac_stato">
+            <option value="Attivo" ${String(p.Stato) === "Attivo" ? "selected" : ""}>Attivo</option>
+            <option value="Chiuso" ${String(p.Stato) === "Chiuso" ? "selected" : ""}>Chiuso</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="card-actions">
+        <button onclick="salvaModificaPacchettoInline('${escapeQuote(p.ID_Pacchetto)}')">
+          💾 Salva
+        </button>
+
+        <button onclick="mostraDettaglioPacchetto('${escapeQuote(p.ID_Pacchetto)}')">
+          Annulla
+        </button>
+      </div>
+
+    </div>
+  `);
 }
 
-async function aggiornaPacchetto(idPacchetto, payload) {
+function aggiornaCalcoliModificaPacchetto() {
+  const tipoValue = document.getElementById("edit_pac_tipo")?.value || "";
+  const tipo = TIPI_PACCHETTO[tipoValue];
+
+  const lezioniBaseInput = document.getElementById("edit_pac_lezioni_base");
+  const lezioniAddInput = document.getElementById("edit_pac_lezioni_add");
+  const lezioniTotaliInput = document.getElementById("edit_pac_lezioni_totali");
+  const validoDaInput = document.getElementById("edit_pac_valido_da");
+  const validoAInput = document.getElementById("edit_pac_valido_a");
+
+  if (tipo && lezioniBaseInput) {
+    lezioniBaseInput.value = Number(tipo.Lezioni_Base || 0);
+  }
+
+  const base = Number(lezioniBaseInput?.value || 0);
+  const add = Number(lezioniAddInput?.value || 0);
+
+  if (lezioniTotaliInput) {
+    lezioniTotaliInput.value = base + add;
+  }
+
+  if (tipo && validoDaInput?.value && validoAInput) {
+    validoAInput.value = aggiungiMesiAData(
+      validoDaInput.value,
+      tipo.Scadenza_Mesi
+    );
+  }
+}
+
+function aggiornaDaPagareModificaPacchetto() {
+  const flagPagato = document.getElementById("edit_pac_flag_pagato")?.value || "Si";
+  const daPagareInput = document.getElementById("edit_pac_da_pagare");
+
+  if (!daPagareInput) return;
+
+  if (flagPagato === "Si") {
+    daPagareInput.value = "0";
+  }
+}
+
+async function salvaModificaPacchettoInline(idPacchetto) {
+  const payload = {
+    ID_Cliente: document.getElementById("edit_pac_cliente")?.value || "",
+    Tipo_Pacchetto: document.getElementById("edit_pac_tipo")?.value || "",
+
+    Lezioni_Base: Number(document.getElementById("edit_pac_lezioni_base")?.value || 0),
+    Lezioni_Add: Number(document.getElementById("edit_pac_lezioni_add")?.value || 0),
+    Lezioni_Totali: Number(document.getElementById("edit_pac_lezioni_totali")?.value || 0),
+
+    Prezzo: Number(document.getElementById("edit_pac_prezzo")?.value || 0),
+    Flag_Pagato: document.getElementById("edit_pac_flag_pagato")?.value || "Si",
+    Da_Pagare: Number(document.getElementById("edit_pac_da_pagare")?.value || 0),
+
+    Flag_C: document.getElementById("edit_pac_flag_c")?.value || "Si",
+    Fattura_Nr: document.getElementById("edit_pac_fattura_nr")?.value.trim() || "",
+    Data_Fattura: document.getElementById("edit_pac_data_fattura")?.value || null,
+
+    Valido_Da: document.getElementById("edit_pac_valido_da")?.value || "",
+    Valido_A: document.getElementById("edit_pac_valido_a")?.value || "",
+    Stato: document.getElementById("edit_pac_stato")?.value || "Attivo"
+  };
+
+  if (!payload.ID_Cliente) {
+    setStatus("Cliente obbligatorio", "err");
+    return;
+  }
+
+  if (!payload.Tipo_Pacchetto) {
+    setStatus("Tipo Pacchetto obbligatorio", "err");
+    return;
+  }
+
+  if (!payload.Valido_Da || !payload.Valido_A) {
+    setStatus("Valido Da e Valido A sono obbligatori", "err");
+    return;
+  }
+
+  if (payload.Flag_Pagato === "Si") {
+    payload.Da_Pagare = 0;
+  }
+
   const { error } = await supabaseClient
     .from("pacchetti")
     .update(payload)
     .eq("ID_Pacchetto", idPacchetto);
 
   if (error) {
-    console.error("Errore modifica pacchetto:", error);
-    setStatus(`Errore modifica: ${error.message}`, "err");
+    console.error("Errore salvaModificaPacchettoInline:", error);
+    setStatus(`Errore modifica pacchetto: ${error.message}`, "err");
     return;
   }
 
   await loadPacchetti();
-  setStatus("Pacchetto aggiornato ✅", "ok");
+  await loadPrenotazioni();
+
+  const reportBox = document.getElementById("reportPacchettiBox");
+  if (reportBox && !reportBox.classList.contains("hidden")) {
+    renderReportPacchetti();
+  }
+
+  setStatus("Pacchetto modificato correttamente ✅", "ok");
+
+  setTimeout(() => {
+    mostraDettaglioPacchetto(idPacchetto);
+  }, 100);
 }
 
 
