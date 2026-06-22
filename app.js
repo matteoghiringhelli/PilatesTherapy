@@ -31,7 +31,8 @@ let searchClienti = "";
 let reportPacchettiFiltro = "da_pagare";
 let calendarioDataCorrente = getTodayString();
 let dettaglioLezioneBoxAttivo = "dettaglioLezioneBox";
-let graficoRicaviMensiliInstance = null;
+let graficoRicaviSettimanaliInstance = null;
+let graficoRicaviMensiliTipologiaInstance = null;
 
 
 
@@ -5383,7 +5384,7 @@ function calcolaDashboardMensile() {
 
   renderDashboardMensile(result);
   renderDashboardKpiMensile(result);
-  renderGraficoRicaviMensili(result);
+  renderGraficoRicaviMensiliTipologia(result);
 }
 
 function renderDashboardMensile(data) {
@@ -5577,6 +5578,7 @@ function calcolaDashboardSettimanale() {
 
   renderDashboardSettimanale(result);
   renderDashboardKpiSettimanale(result);
+  renderGraficoRicaviSettimanali(result);
 }
 
 function renderDashboardSettimanale(data) {
@@ -5655,6 +5657,258 @@ function renderDashboardKpiSettimanale(dataSettimanale) {
   const valore = dataSettimanale[settimanaCorrente]?.Totale || 0;
 
   out.textContent = formatEuro(valore);
+}
+
+function getLabelMeseDashboard(meseKey) {
+  if (!meseKey) return "";
+
+  const mesi = [
+    "Gen",
+    "Feb",
+    "Mar",
+    "Apr",
+    "Mag",
+    "Giu",
+    "Lug",
+    "Ago",
+    "Set",
+    "Ott",
+    "Nov",
+    "Dic"
+  ];
+
+  const parti = String(meseKey).split("-");
+  const anno = parti[0] || "";
+  const meseNumero = Number(parti[1] || 0);
+  const nomeMese = mesi[meseNumero - 1] || meseKey;
+
+  return `${nomeMese} ${anno}`;
+}
+
+function getLabelSettimanaDashboard(settimanaKey) {
+  if (!settimanaKey) return "";
+
+  const start = new Date(settimanaKey + "T00:00:00");
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+
+  const giornoStart = String(start.getDate()).padStart(2, "0");
+  const meseStart = String(start.getMonth() + 1).padStart(2, "0");
+
+  const giornoEnd = String(end.getDate()).padStart(2, "0");
+  const meseEnd = String(end.getMonth() + 1).padStart(2, "0");
+
+  return `${giornoStart}/${meseStart} - ${giornoEnd}/${meseEnd}`;
+}
+
+function renderGraficoRicaviSettimanali(dataSettimanale) {
+  const canvas = document.getElementById("graficoRicaviSettimanali");
+
+  if (!canvas) return;
+
+  if (typeof Chart === "undefined") {
+    console.warn("Chart.js non caricato: impossibile renderizzare grafico settimanale.");
+    return;
+  }
+
+  const entries = Object.entries(dataSettimanale || {});
+
+  if (!entries.length) {
+    if (graficoRicaviSettimanaliInstance) {
+      graficoRicaviSettimanaliInstance.destroy();
+      graficoRicaviSettimanaliInstance = null;
+    }
+    return;
+  }
+
+  const entriesOrdinate = [...entries].reverse();
+
+  const labels = entriesOrdinate.map(([settimana]) => {
+    return getLabelSettimanaDashboard(settimana);
+  });
+
+  const datiLunedi = entriesOrdinate.map(([, valori]) => Number(valori[1] || 0));
+  const datiMartedi = entriesOrdinate.map(([, valori]) => Number(valori[2] || 0));
+  const datiMercoledi = entriesOrdinate.map(([, valori]) => Number(valori[3] || 0));
+  const datiGiovedi = entriesOrdinate.map(([, valori]) => Number(valori[4] || 0));
+  const datiVenerdi = entriesOrdinate.map(([, valori]) => Number(valori[5] || 0));
+  const datiSabato = entriesOrdinate.map(([, valori]) => Number(valori[6] || 0));
+  const datiDomenica = entriesOrdinate.map(([, valori]) => Number(valori[0] || 0));
+
+  if (graficoRicaviSettimanaliInstance) {
+    graficoRicaviSettimanaliInstance.destroy();
+  }
+
+  graficoRicaviSettimanaliInstance = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Lunedì",
+          data: datiLunedi,
+          backgroundColor: "#007aff"
+        },
+        {
+          label: "Martedì",
+          data: datiMartedi,
+          backgroundColor: "#34c759"
+        },
+        {
+          label: "Mercoledì",
+          data: datiMercoledi,
+          backgroundColor: "#ffcc00"
+        },
+        {
+          label: "Giovedì",
+          data: datiGiovedi,
+          backgroundColor: "#ff9500"
+        },
+        {
+          label: "Venerdì",
+          data: datiVenerdi,
+          backgroundColor: "#af52de"
+        },
+        {
+          label: "Sabato",
+          data: datiSabato,
+          backgroundColor: "#5ac8fa"
+        },
+        {
+          label: "Domenica",
+          data: datiDomenica,
+          backgroundColor: "#ff3b30"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: "index",
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          position: "bottom"
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              const value = Number(context.parsed.y || 0);
+              return `${context.dataset.label}: ${formatEuro(value)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          stacked: false
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function (value) {
+              return formatEuro(value);
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderGraficoRicaviMensiliTipologia(dataMensile) {
+  const canvas = document.getElementById("graficoRicaviMensiliTipologia");
+
+  if (!canvas) return;
+
+  if (typeof Chart === "undefined") {
+    console.warn("Chart.js non caricato: impossibile renderizzare grafico mensile.");
+    return;
+  }
+
+  const entries = Object.entries(dataMensile || {});
+
+  if (!entries.length) {
+    if (graficoRicaviMensiliTipologiaInstance) {
+      graficoRicaviMensiliTipologiaInstance.destroy();
+      graficoRicaviMensiliTipologiaInstance = null;
+    }
+    return;
+  }
+
+  const entriesOrdinate = [...entries].reverse();
+
+  const labels = entriesOrdinate.map(([mese]) => {
+    return getLabelMeseDashboard(mese);
+  });
+
+  const datiPrivata = entriesOrdinate.map(([, valori]) => Number(valori.Privata || 0));
+  const datiDuetto = entriesOrdinate.map(([, valori]) => Number(valori.Duetto || 0));
+  const datiMiniGruppo = entriesOrdinate.map(([, valori]) => Number(valori["Mini-Gruppo"] || 0));
+
+  if (graficoRicaviMensiliTipologiaInstance) {
+    graficoRicaviMensiliTipologiaInstance.destroy();
+  }
+
+  graficoRicaviMensiliTipologiaInstance = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Privata",
+          data: datiPrivata,
+          backgroundColor: "#007aff"
+        },
+        {
+          label: "Duetto",
+          data: datiDuetto,
+          backgroundColor: "#34c759"
+        },
+        {
+          label: "Mini-Gruppo",
+          data: datiMiniGruppo,
+          backgroundColor: "#ff9500"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: "index",
+        intersect: false
+      },
+      plugins: {
+        legend: {
+          position: "bottom"
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              const value = Number(context.parsed.y || 0);
+              return `${context.dataset.label}: ${formatEuro(value)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          stacked: false
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function (value) {
+              return formatEuro(value);
+            }
+          }
+        }
+      }
+    }
+  });
 }
 
 
