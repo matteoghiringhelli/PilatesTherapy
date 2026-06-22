@@ -2579,7 +2579,7 @@ function renderHome() {
         </button>
 
         <button class="home-action-card purple" onclick="apriNuovaLezioneDaHome()">
-          <div class="home-action-icon">📅</div>
+          <div class="home-action-icon">🧘</div>
           <div>
             <div class="home-action-title">Lezione</div>
             <div class="home-action-sub">Aggiungi una nuova lezione in agenda.</div>
