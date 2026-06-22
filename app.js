@@ -2044,7 +2044,12 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
     `;
 
   animateView(box, `
-    <div class="app-toolbar">
+      <div class="app-toolbar">
+       >    <button class="app-back-btn" onclick="...">← Indietro</button>
+      </div>
+      <div class="view-content">
+      
+
       <button class="app-back-btn" onclick="chiudiDettaglioLezione('${escapeQuote(boxId)}')">← Indietro</button>
     </div>
 
@@ -2321,7 +2326,12 @@ function mostraSchedaCliente(idCliente) {
   if (!cliente) return;
 
   animateView(box, `
-  <div class="app-toolbar">
+    <div class="app-toolbar">
+    <button class="app-back-btn" onclick="...">← Indietro</button>
+  </div>
+
+  <div class="view-content">
+
     <button class="app-back-btn" onclick="chiudiDettaglioCliente()">← Clienti</button>
   </div>
 
