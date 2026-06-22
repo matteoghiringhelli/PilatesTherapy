@@ -1074,7 +1074,7 @@ body {
 
 </div>
 
-  <!-- ===================== DASHBOARD ===================== -->
+<!-- ===================== DASHBOARD ===================== -->
 <div class="section">
   <h2>Dashboard</h2>
 
@@ -1090,6 +1090,14 @@ body {
         <div class="dashboard-kpi-title">Settimana corrente</div>
         <div id="dashboardKpiSettimana" class="dashboard-kpi-value">-</div>
       </div>
+    </div>
+
+    <div class="dashboard-card">
+      <div class="dashboard-card-title">📈 Grafico Ricavi Mensili</div>
+      <p class="muted">
+        Ricavo economico calcolato dalle prenotazioni: Prezzo pacchetto / Lezioni Totali.
+      </p>
+      <canvas id="graficoRicaviMensili"></canvas>
     </div>
 
     <h3>📊 Ricavi Mensili</h3>
@@ -1561,7 +1569,8 @@ body {
   
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
- <script src="app.js?v=43-fix-toolbar-clienti"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="app.js?v=46-grafico-ricavi"></script>
   
   <script>
     if ("serviceWorker" in navigator) {
