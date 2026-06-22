@@ -1080,37 +1080,56 @@ body {
 
   <div id="dashboardSection">
 
+    <!-- KPI: ordine richiesto -->
     <div class="dashboard-kpi-row">
-      <div class="dashboard-kpi-card">
-        <div class="dashboard-kpi-title">Mese corrente</div>
-        <div id="dashboardKpiMese" class="dashboard-kpi-value">-</div>
-      </div>
 
       <div class="dashboard-kpi-card">
         <div class="dashboard-kpi-title">Settimana corrente</div>
         <div id="dashboardKpiSettimana" class="dashboard-kpi-value">-</div>
       </div>
+
+      <div class="dashboard-kpi-card">
+        <div class="dashboard-kpi-title">Mese corrente</div>
+        <div id="dashboardKpiMese" class="dashboard-kpi-value">-</div>
+      </div>
+
     </div>
 
+    <!-- GRAFICO SETTIMANALE -->
     <div class="dashboard-card">
-      <div class="dashboard-card-title">📈 Grafico Ricavi Mensili</div>
+      <div class="dashboard-card-title">📅 Grafico Settimanale</div>
       <p class="muted">
-        Ricavo economico calcolato dalle prenotazioni: Prezzo pacchetto / Lezioni Totali.
+        Ricavi settimanali a colonne suddivisi per giorno della settimana.
       </p>
-      <canvas id="graficoRicaviMensili"></canvas>
+      <div style="height:280px;">
+        <canvas id="graficoRicaviSettimanali"></canvas>
+      </div>
     </div>
 
+    <!-- GRAFICO MENSILE -->
+    <div class="dashboard-card">
+      <div class="dashboard-card-title">📊 Grafico Mensile per Tipologia</div>
+      <p class="muted">
+        Ricavi mensili a colonne suddivisi per tipologia: Privata, Duetto e Mini-Gruppo.
+      </p>
+      <div style="height:300px;">
+        <canvas id="graficoRicaviMensiliTipologia"></canvas>
+      </div>
+    </div>
+
+    <!-- RICAVI SETTIMANALI NUMERICI -->
+    <h3>📅 Ricavi Settimanali</h3>
+    <p class="muted">
+      Split per giorno della settimana, basato sul prezzo per lezione del pacchetto usato nella prenotazione.
+    </p>
+    <div id="dashboardSettimanale"></div>
+
+    <!-- RICAVI MENSILI NUMERICI -->
     <h3>📊 Ricavi Mensili</h3>
     <p class="muted">
       Ricavo calcolato da prenotazioni con pacchetto associato: Prezzo pacchetto / Lezioni Totali.
     </p>
     <div id="dashboardMensile"></div>
-
-    <h3>📅 Ricavi Settimanali</h3>
-    <p class="muted">
-      Split per giorno della settimana, sempre basato sul prezzo per lezione del pacchetto usato nella prenotazione.
-    </p>
-    <div id="dashboardSettimanale"></div>
 
   </div>
 </div>
@@ -1568,9 +1587,11 @@ body {
 
   
 
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="app.js?v=46-grafico-ricavi"></script>
+<script src="app.js?v=46-dashboard-grafici-settimanale-mensile"></script
+
   
   <script>
     if ("serviceWorker" in navigator) {
