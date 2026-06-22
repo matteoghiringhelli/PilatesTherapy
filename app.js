@@ -2690,11 +2690,17 @@ function apriNuovaPrenotazioneDaHome() {
 
   setTimeout(() => {
     const box = document.getElementById("nuovaPrenotazioneBox");
-    if (box) box.classList.add("hidden");
+    if (box && box.classList.contains("hidden")) {
+      box.classList.remove("hidden");
 
-    const section = document.getElementById("prenotazioniSection");
-    if (section) {
-      section.scrollIntoView({
+      renderSelectClienti();
+      renderSelectLezioni();
+      aggiornaPacchettiPrenotazione();
+
+      const firstField = document.getElementById("select_cliente");
+      if (firstField) firstField.focus();
+
+      box.scrollIntoView({
         behavior: "smooth",
         block: "start"
       });
@@ -2710,9 +2716,11 @@ function apriNuovaLezioneDaHome() {
 
     if (box && box.classList.contains("hidden")) {
       toggleNuovaLezioneAgenda();
-    } else {
+
+    } else if (typeof preparaNuovaLezioneAgenda === "function") {
       preparaNuovaLezioneAgenda();
     }
+
 
     const target = document.getElementById("nuovaLezioneAgendaBox");
     if (target) {
@@ -2729,7 +2737,9 @@ function apriNuovoPacchettoDaHome() {
 
   setTimeout(() => {
     const box = document.getElementById("nuovoPacchettoBox");
-    if (box) box.classList.add("hidden");
+    if (box && box.classList.contains("hidden")) {
+      toggleNuovoPacchetto();
+    }
 
     const section = document.getElementById("pacchettiSection");
     if (section) {
@@ -3389,7 +3399,9 @@ async function aggiungiPacchetto() {
   pulisciFormPacchetto();
 
   const box = document.getElementById("nuovoPacchettoBox");
-  if (box) box.classList.add("hidden");
+    if (box && box.classList.contains("hidden")) {
+      toggleNuovoPacchetto();
+    }
 
   await loadPacchetti();
 
