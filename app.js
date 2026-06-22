@@ -35,6 +35,60 @@ let graficoRicaviSettimanaliInstance = null;
 let graficoRicaviMensiliTipologiaInstance = null;
 
 
+// ============================
+// PLUGIN TOTALI SOPRA COLONNE
+// ============================
+
+const pluginTotaliColonne = {
+  id: 'totaliColonne',
+
+  afterDatasetsDraw(chart) {
+
+    const { ctx, data, scales } = chart;
+
+    if (!data.datasets || !data.datasets.length) return;
+
+    ctx.save();
+
+    ctx.font = "bold 12px sans-serif";
+    ctx.fillStyle = "#333";
+    ctx.textAlign = "center";
+
+    const labelsCount = data.labels.length;
+
+    for (let i = 0; i < labelsCount; i++) {
+
+      let totale = 0;
+
+      // somma tutti i dataset (stack)
+      chart.data.datasets.forEach(dataset => {
+        const value = Number(dataset.data[i] || 0);
+        totale += value;
+      });
+
+      if (totale === 0) continue;
+
+      // prendi la posizione Y del punto più alto dello stack
+      const meta = chart.getDatasetMeta(chart.data.datasets.length - 1);
+      const element = meta.data[i];
+
+      if (!element) continue;
+
+      const posizioneY = element.y - 6;
+
+      ctx.fillText(
+        formatEuro(totale),
+        element.x,
+        posizioneY
+      );
+    }
+
+    ctx.restore();
+  }
+};
+
+
+
 
 window.addEventListener("DOMContentLoaded", async () => {
   try {
@@ -5737,6 +5791,41 @@ function renderGraficoRicaviSettimanali(dataSettimanale) {
     stack: "stack1"
   }));
 
+  // ✅ plugin totale sopra colonne
+  const pluginTotali = {
+    id: 'totaliSettimanali',
+    afterDatasetsDraw(chart) {
+
+      const { ctx } = chart;
+      ctx.save();
+
+      ctx.font = "bold 12px sans-serif";
+      ctx.fillStyle = "#333";
+      ctx.textAlign = "center";
+
+      const labelsCount = chart.data.labels.length;
+
+      for (let i = 0; i < labelsCount; i++) {
+
+        let totale = 0;
+
+        chart.data.datasets.forEach(dataset => {
+          totale += Number(dataset.data[i] || 0);
+        });
+
+        if (totale === 0) continue;
+
+        const meta = chart.getDatasetMeta(chart.data.datasets.length - 1);
+        const el = meta.data[i];
+        if (!el) continue;
+
+        ctx.fillText(formatEuro(totale), el.x, el.y - 8);
+      }
+
+      ctx.restore();
+    }
+  };
+
   if (graficoRicaviSettimanaliInstance) {
     graficoRicaviSettimanaliInstance.destroy();
   }
@@ -5744,41 +5833,39 @@ function renderGraficoRicaviSettimanali(dataSettimanale) {
   graficoRicaviSettimanaliInstance = new Chart(canvas, {
     type: "bar",
     data: { labels, datasets },
+
     options: {
       responsive: true,
       maintainAspectRatio: false,
 
       plugins: {
         legend: { position: "bottom" },
-
         tooltip: {
           mode: "index",
           intersect: false,
           callbacks: {
-            footer: function (tooltipItems) {
-              let totale = 0;
-              tooltipItems.forEach(item => {
-                totale += Number(item.parsed.y || 0);
-              });
-              return "Totale: " + formatEuro(totale);
+            footer: function (items) {
+              let tot = 0;
+              items.forEach(i => tot += Number(i.parsed.y || 0));
+              return "Totale: " + formatEuro(tot);
             }
           }
         }
       },
 
       scales: {
-        x: {
-          stacked: true
-        },
+        x: { stacked: true },
         y: {
           stacked: true,
           beginAtZero: true,
           ticks: {
-            callback: value => formatEuro(value)
+            callback: v => formatEuro(v)
           }
         }
       }
-    }
+    },
+
+    plugins: [pluginTotali]
   });
 }
 
@@ -5822,6 +5909,41 @@ function renderGraficoRicaviMensiliTipologia(dataMensile) {
     }
   ];
 
+  // ✅ plugin totale sopra colonne
+  const pluginTotali = {
+    id: 'totaliMensili',
+    afterDatasetsDraw(chart) {
+
+      const { ctx } = chart;
+      ctx.save();
+
+      ctx.font = "bold 12px sans-serif";
+      ctx.fillStyle = "#333";
+      ctx.textAlign = "center";
+
+      const labelsCount = chart.data.labels.length;
+
+      for (let i = 0; i < labelsCount; i++) {
+
+        let totale = 0;
+
+        chart.data.datasets.forEach(dataset => {
+          totale += Number(dataset.data[i] || 0);
+        });
+
+        if (totale === 0) continue;
+
+        const meta = chart.getDatasetMeta(chart.data.datasets.length - 1);
+        const el = meta.data[i];
+        if (!el) continue;
+
+        ctx.fillText(formatEuro(totale), el.x, el.y - 8);
+      }
+
+      ctx.restore();
+    }
+  };
+
   if (graficoRicaviMensiliTipologiaInstance) {
     graficoRicaviMensiliTipologiaInstance.destroy();
   }
@@ -5829,45 +5951,42 @@ function renderGraficoRicaviMensiliTipologia(dataMensile) {
   graficoRicaviMensiliTipologiaInstance = new Chart(canvas, {
     type: "bar",
     data: { labels, datasets },
+
     options: {
       responsive: true,
       maintainAspectRatio: false,
 
       plugins: {
-        legend: {
-          position: "bottom"
-        },
-
+        legend: { position: "bottom" },
         tooltip: {
           mode: "index",
           intersect: false,
           callbacks: {
-            footer: function (tooltipItems) {
-              let totale = 0;
-              tooltipItems.forEach(item => {
-                totale += Number(item.parsed.y || 0);
-              });
-              return "Totale: " + formatEuro(totale);
+            footer: function (items) {
+              let tot = 0;
+              items.forEach(i => tot += Number(i.parsed.y || 0));
+              return "Totale: " + formatEuro(tot);
             }
           }
         }
       },
 
       scales: {
-        x: {
-          stacked: true
-        },
+        x: { stacked: true },
         y: {
           stacked: true,
           beginAtZero: true,
           ticks: {
-            callback: value => formatEuro(value)
+            callback: v => formatEuro(v)
           }
         }
       }
-    }
+    },
+
+    plugins: [pluginTotali]
   });
 }
+
 
 
 // ============================
