@@ -743,7 +743,7 @@ function renderLezioni() {
             <td>
             <button onclick="mostraDettaglioLezione('${escapeQuote(l.ID_Lezione)}')">🔎 Dettaglio</button>
             <button onclick="mostraDettaglioLezione('${escapeQuote(l.ID_Lezione)}')">📅 Prenota</button>
-            <button onclick="mostraPrenotazioniLezione('${escapeQuote(l.ID_Lezione)}')">👥 Lista</button>
+            <button onclick="mostraPrenotazioniLezione('${escapeQuote(l.ID_Lezione)}')">🧑‍🤝‍🧑 Lista</button>
             <br>
             <button onclick="eliminaLezione('${escapeQuote(l.ID_Lezione)}')">Elimina</button>
             </td>
@@ -1671,7 +1671,7 @@ function renderLezioniMobileSafe() {
     </div>
 
     <div class="card-row">
-      👥 ${prenotati}/${max} • Rimasti: ${rimasti}
+      🧑‍🤝‍🧑 ${prenotati}/${max} • Rimasti: ${rimasti}
     </div>
 
     <div class="card-actions">
@@ -2555,7 +2555,7 @@ function renderHome() {
       <div class="home-action-grid">
 
         <button class="home-action-card primary" onclick="vaiTab('calendario')">
-          <div class="home-action-icon">🗓️</div>
+          <div class="home-action-icon">📅</div>
           <div>
             <div class="home-action-title">Agenda</div>
             <div class="home-action-sub">Apri la giornata e gestisci le lezioni.</div>
@@ -2563,7 +2563,7 @@ function renderHome() {
         </button>
 
         <button class="home-action-card blue-soft" onclick="vaiTab('clienti')">
-          <div class="home-action-icon">👥</div>
+          <div class="home-action-icon">🧑‍🤝‍🧑</div>
           <div>
             <div class="home-action-title">Clienti</div>
             <div class="home-action-sub">Cerca, modifica e apri schede cliente.</div>
@@ -2595,10 +2595,11 @@ function renderHome() {
         </button>
 
         <button class="home-action-card warning" onclick="vaiTab('reportPacchetti')">
-          <div class="home-action-icon">⚠️</div>
+          <div class="home-action-icon">🚨</div>
           <div>
-            <div class="home-action-title">Report</div>
-            <div class="home-action-sub">Da pagare, in scadenza e fatture mancanti.</div>
+            <div class="home-action-title">Alert</div>
+            <div class="home-action-sub">Pagamenti, scadenze e anomalie da gestire.</div>
+
           </div>
         </button>
 
@@ -2614,7 +2615,7 @@ function renderHome() {
                 ${safe(formatOraHHMM(prossimaLezione.Ora))} · ${safe(prossimaLezione.Tipologia)}
               </div>
               <div class="home-wide-line">👤 Istruttore: ${safe(prossimaLezione.Istruttore)}</div>
-              <div class="home-wide-line">👥 Prenotati: ${prossimaLezionePrenotati}/${prossimaLezioneMax}</div>
+              <div class="home-wide-line">🧑‍🤝‍🧑 Prenotati: ${prossimaLezionePrenotati}/${prossimaLezioneMax}</div>
               <div class="home-wide-line">📅 Data: ${safe(formatDataEstesaIt(prossimaLezione.Data))}</div>
               <div class="home-quick-row">
                 <button onclick="vaiTab('calendario')">Apri Agenda</button>
@@ -4318,7 +4319,7 @@ function renderReportPacchetti() {
 
     </div>
 
-    <h3>${titoloCorrente}</h3>
+    <h3>Alert ${titoloCorrente}</h3>
 
     ${
       corrente.length
@@ -4558,7 +4559,7 @@ function renderCalendario() {
   const summaryHtml = `
     <div class="agenda-day-summary">
       📊 ${stats.totaleLezioni} lezioni · 
-      👥 ${stats.totalePrenotati}/${stats.totalePosti} prenotazioni · 
+      🧑‍🤝‍🧑 ${stats.totalePrenotati}/${stats.totalePosti} prenotazioni · 
       🟢 ${stats.postiLiberi} posti liberi
     </div>
   `;
@@ -4603,7 +4604,7 @@ function renderCalendario() {
         </div>
 
         <div class="card-sub">
-          👥 ${prenotati}/${max} · Rimasti: ${rimasti}
+          🧑‍🤝‍🧑 ${prenotati}/${max} · Rimasti: ${rimasti}
         </div>
 
         <span class="agenda-status-pill ${statoPillClasse}">
@@ -4717,7 +4718,7 @@ function mostraSceltaWhatsApp(idCliente) {
     <div class="wa-choice-box">
 
       <button onclick="inviaWhatsAppClienteConScelta('${escapeQuote(idCliente)}', 'lezioni')">
-        📅 Lezioni
+        🧘 Lezioni
       </button>
 
       <button onclick="inviaWhatsAppClienteConScelta('${escapeQuote(idCliente)}', 'pacchetti')">
