@@ -5702,24 +5702,17 @@ function getLabelSettimanaDashboard(settimanaKey) {
 }
 
 function renderGraficoRicaviSettimanali(dataSettimanale) {
-  const canvas = document.getElementById("graficoRicaviSettimanali");
 
+  const canvas = document.getElementById("graficoRicaviSettimanali");
   if (!canvas) return;
 
   if (typeof Chart === "undefined") {
-    console.warn("Chart.js non caricato: impossibile renderizzare grafico settimanale.");
+    console.warn("Chart.js non caricato");
     return;
   }
 
   const entries = Object.entries(dataSettimanale || {});
-
-  if (!entries.length) {
-    if (graficoRicaviSettimanaliInstance) {
-      graficoRicaviSettimanaliInstance.destroy();
-      graficoRicaviSettimanaliInstance = null;
-    }
-    return;
-  }
+  if (!entries.length) return;
 
   const entriesOrdinate = [...entries].reverse();
 
@@ -5727,13 +5720,22 @@ function renderGraficoRicaviSettimanali(dataSettimanale) {
     return getLabelSettimanaDashboard(settimana);
   });
 
-  const datiLunedi = entriesOrdinate.map(([, valori]) => Number(valori[1] || 0));
-  const datiMartedi = entriesOrdinate.map(([, valori]) => Number(valori[2] || 0));
-  const datiMercoledi = entriesOrdinate.map(([, valori]) => Number(valori[3] || 0));
-  const datiGiovedi = entriesOrdinate.map(([, valori]) => Number(valori[4] || 0));
-  const datiVenerdi = entriesOrdinate.map(([, valori]) => Number(valori[5] || 0));
-  const datiSabato = entriesOrdinate.map(([, valori]) => Number(valori[6] || 0));
-  const datiDomenica = entriesOrdinate.map(([, valori]) => Number(valori[0] || 0));
+  const giorni = [
+    { key: 1, label: "Lun", color: "#1f4e5f" },
+    { key: 2, label: "Mar", color: "#ff8c42" },
+    { key: 3, label: "Mer", color: "#2b7a0b" },
+    { key: 4, label: "Gio", color: "#2aa1c0" },
+    { key: 5, label: "Ven", color: "#8e3aa5" },
+    { key: 6, label: "Sab", color: "#9aa0a6" },
+    { key: 0, label: "Dom", color: "#c0392b" }
+  ];
+
+  const datasets = giorni.map(g => ({
+    label: g.label,
+    data: entriesOrdinate.map(([, val]) => Number(val[g.key] || 0)),
+    backgroundColor: g.color,
+    stack: "stack1"
+  }));
 
   if (graficoRicaviSettimanaliInstance) {
     graficoRicaviSettimanaliInstance.destroy();
@@ -5741,76 +5743,38 @@ function renderGraficoRicaviSettimanali(dataSettimanale) {
 
   graficoRicaviSettimanaliInstance = new Chart(canvas, {
     type: "bar",
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: "Lunedì",
-          data: datiLunedi,
-          backgroundColor: "#007aff"
-        },
-        {
-          label: "Martedì",
-          data: datiMartedi,
-          backgroundColor: "#34c759"
-        },
-        {
-          label: "Mercoledì",
-          data: datiMercoledi,
-          backgroundColor: "#ffcc00"
-        },
-        {
-          label: "Giovedì",
-          data: datiGiovedi,
-          backgroundColor: "#ff9500"
-        },
-        {
-          label: "Venerdì",
-          data: datiVenerdi,
-          backgroundColor: "#af52de"
-        },
-        {
-          label: "Sabato",
-          data: datiSabato,
-          backgroundColor: "#5ac8fa"
-        },
-        {
-          label: "Domenica",
-          data: datiDomenica,
-          backgroundColor: "#ff3b30"
-        }
-      ]
-    },
+    data: { labels, datasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      interaction: {
-        mode: "index",
-        intersect: false
-      },
+
       plugins: {
-        legend: {
-          position: "bottom"
-        },
+        legend: { position: "bottom" },
+
         tooltip: {
+          mode: "index",
+          intersect: false,
           callbacks: {
-            label: function (context) {
-              const value = Number(context.parsed.y || 0);
-              return `${context.dataset.label}: ${formatEuro(value)}`;
+            footer: function (tooltipItems) {
+              let totale = 0;
+              tooltipItems.forEach(item => {
+                totale += Number(item.parsed.y || 0);
+              });
+              return "Totale: " + formatEuro(totale);
             }
           }
         }
       },
+
       scales: {
         x: {
-          stacked: false
+          stacked: true
         },
         y: {
+          stacked: true,
           beginAtZero: true,
           ticks: {
-            callback: function (value) {
-              return formatEuro(value);
-            }
+            callback: value => formatEuro(value)
           }
         }
       }
@@ -5819,24 +5783,17 @@ function renderGraficoRicaviSettimanali(dataSettimanale) {
 }
 
 function renderGraficoRicaviMensiliTipologia(dataMensile) {
-  const canvas = document.getElementById("graficoRicaviMensiliTipologia");
 
+  const canvas = document.getElementById("graficoRicaviMensiliTipologia");
   if (!canvas) return;
 
   if (typeof Chart === "undefined") {
-    console.warn("Chart.js non caricato: impossibile renderizzare grafico mensile.");
+    console.warn("Chart.js non caricato");
     return;
   }
 
   const entries = Object.entries(dataMensile || {});
-
-  if (!entries.length) {
-    if (graficoRicaviMensiliTipologiaInstance) {
-      graficoRicaviMensiliTipologiaInstance.destroy();
-      graficoRicaviMensiliTipologiaInstance = null;
-    }
-    return;
-  }
+  if (!entries.length) return;
 
   const entriesOrdinate = [...entries].reverse();
 
@@ -5844,9 +5801,26 @@ function renderGraficoRicaviMensiliTipologia(dataMensile) {
     return getLabelMeseDashboard(mese);
   });
 
-  const datiPrivata = entriesOrdinate.map(([, valori]) => Number(valori.Privata || 0));
-  const datiDuetto = entriesOrdinate.map(([, valori]) => Number(valori.Duetto || 0));
-  const datiMiniGruppo = entriesOrdinate.map(([, valori]) => Number(valori["Mini-Gruppo"] || 0));
+  const datasets = [
+    {
+      label: "Privata",
+      data: entriesOrdinate.map(([, v]) => Number(v.Privata || 0)),
+      backgroundColor: "#1261a0",
+      stack: "stack1"
+    },
+    {
+      label: "Duetto",
+      data: entriesOrdinate.map(([, v]) => Number(v.Duetto || 0)),
+      backgroundColor: "#8e44ad",
+      stack: "stack1"
+    },
+    {
+      label: "Mini-Gruppo",
+      data: entriesOrdinate.map(([, v]) => Number(v["Mini-Gruppo"] || 0)),
+      backgroundColor: "#f4b400",
+      stack: "stack1"
+    }
+  ];
 
   if (graficoRicaviMensiliTipologiaInstance) {
     graficoRicaviMensiliTipologiaInstance.destroy();
@@ -5854,56 +5828,40 @@ function renderGraficoRicaviMensiliTipologia(dataMensile) {
 
   graficoRicaviMensiliTipologiaInstance = new Chart(canvas, {
     type: "bar",
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: "Privata",
-          data: datiPrivata,
-          backgroundColor: "#007aff"
-        },
-        {
-          label: "Duetto",
-          data: datiDuetto,
-          backgroundColor: "#34c759"
-        },
-        {
-          label: "Mini-Gruppo",
-          data: datiMiniGruppo,
-          backgroundColor: "#ff9500"
-        }
-      ]
-    },
+    data: { labels, datasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      interaction: {
-        mode: "index",
-        intersect: false
-      },
+
       plugins: {
         legend: {
           position: "bottom"
         },
+
         tooltip: {
+          mode: "index",
+          intersect: false,
           callbacks: {
-            label: function (context) {
-              const value = Number(context.parsed.y || 0);
-              return `${context.dataset.label}: ${formatEuro(value)}`;
+            footer: function (tooltipItems) {
+              let totale = 0;
+              tooltipItems.forEach(item => {
+                totale += Number(item.parsed.y || 0);
+              });
+              return "Totale: " + formatEuro(totale);
             }
           }
         }
       },
+
       scales: {
         x: {
-          stacked: false
+          stacked: true
         },
         y: {
+          stacked: true,
           beginAtZero: true,
           ticks: {
-            callback: function (value) {
-              return formatEuro(value);
-            }
+            callback: value => formatEuro(value)
           }
         }
       }
