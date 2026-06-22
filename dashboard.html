@@ -592,6 +592,38 @@ body {
   flex: 1;
 }
 
+/* ===== WHATSAPP CHOICE ===== *//* ===== WHATSAPP-choice-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.wa-choice-box {
+  background: white;
+  border-radius: 18px;
+  padding: 16px;
+  width: 90%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wa-choice-box button {
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 12px;
+}
+
+
+
     
     
   </style>
@@ -663,6 +695,19 @@ body {
 
 </div>
 
+  <!-- ===================== DASHBOARD ===================== -->
+
+<div class="section">
+  <h2>Dashboard</h2>
+
+  <h3>📊 Fatturato Mensile</h3>
+  <div id="dashboardMensile"></div>
+
+  <h3>📅 Fatturato Settimanale</h3>
+  <div id="dashboardSettimanale"></div>
+</div>
+
+  
   <!-- ===================== LEZIONI ===================== -->
   <div class="section">
     <h2>Lezioni</h2>
@@ -944,6 +989,7 @@ body {
   <div id="calendarioSection">
 
     <div class="app-toolbar calendario-toolbar">
+      <input type="date" id="agendaDatePicker" onchange="vaiADataAgenda()">
       <button onclick="giornoPrecedente()">←</button>
       <span id="calendarioDataLabel" class="calendario-data-label"></span>
       <button onclick="giornoSuccessivo()">→</button>
