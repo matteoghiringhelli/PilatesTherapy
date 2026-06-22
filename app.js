@@ -2792,6 +2792,7 @@ function getSaldoNegativoPrecedente(idCliente, tipologia) {
 
 
 function aggiornaAnteprimaPacchetto() {
+
   const clienteValue = document.getElementById("pac_cliente")?.value || "";
   const tipoValue = document.getElementById("pac_tipo")?.value || "";
   const tipo = TIPI_PACCHETTO[tipoValue];
@@ -2799,44 +2800,63 @@ function aggiornaAnteprimaPacchetto() {
   const lezioniBaseInput = document.getElementById("pac_lezioni_base");
   const lezioniAddInput = document.getElementById("pac_lezioni_add");
   const lezioniTotaliInput = document.getElementById("pac_lezioni_totali");
+
   const prezzoInput = document.getElementById("pac_prezzo");
   const flagPagatoInput = document.getElementById("pac_flag_pagato");
   const daPagareInput = document.getElementById("pac_da_pagare");
+
   const flagCInput = document.getElementById("pac_flag_c");
   const fatturaNrInput = document.getElementById("pac_fattura_nr");
-  const validoDaInput = document.getElementById("pac_valido_da");
-  const dataFattura = document.getElementById("pac_data_fattura");
-  if (validoDaInput && dataFattura && !dataFattura.value) {
-  dataFattura.value = validoDaInput.value;
-  }
 
+  const validoDaInput = document.getElementById("pac_valido_da");
   const validoAInput = document.getElementById("pac_valido_a");
+  const dataFatturaInput = document.getElementById("pac_data_fattura");
+
   const saldoWarning = document.getElementById("pac_saldo_warning");
+
+  // ✅ Default Data Fattura = Valido Da
+  if (
+    validoDaInput &&
+    dataFatturaInput &&
+    validoDaInput.value &&
+    !dataFatturaInput.value
+  ) {
+    dataFatturaInput.value = validoDaInput.value;
+  }
 
   const lezioniBase = tipo ? Number(tipo.Lezioni_Base || 0) : 0;
 
   let saldoNegativoDaTrasferire = 0;
 
   if (clienteValue && tipo) {
-    saldoNegativoDaTrasferire = getSaldoNegativoPrecedente(clienteValue, tipo.Tipologia);
+    saldoNegativoDaTrasferire = getSaldoNegativoPrecedente(
+      clienteValue,
+      tipo.Tipologia
+    );
   }
 
   if (lezioniAddInput && !lezioniAddManuale) {
-    lezioniAddInput.value = saldoNegativoDaTrasferire < 0
-      ? String(saldoNegativoDaTrasferire)
-      : "0";
+    lezioniAddInput.value =
+      saldoNegativoDaTrasferire < 0
+        ? String(saldoNegativoDaTrasferire)
+        : "0";
   }
 
   const lezioniAdd = Number(lezioniAddInput?.value || 0);
   const lezioniTotali = lezioniBase + lezioniAdd;
 
-  if (lezioniBaseInput) lezioniBaseInput.value = tipo ? lezioniBase : "";
-  if (lezioniTotaliInput) lezioniTotaliInput.value = tipo ? lezioniTotali : "";
+  if (lezioniBaseInput) {
+    lezioniBaseInput.value = tipo ? lezioniBase : "";
+  }
+
+  if (lezioniTotaliInput) {
+    lezioniTotaliInput.value = tipo ? lezioniTotali : "";
+  }
 
   if (saldoWarning) {
     if (saldoNegativoDaTrasferire < 0 && !lezioniAddManuale) {
       saldoWarning.textContent =
-        `Saldo negativo precedente rilevato: ${saldoNegativoDaTrasferire}. Il nuovo pacchetto parte già rettificato.`;
+        `Saldo negativo precedente rilevato: ${saldoNegativoDaTrasferire}`;
       saldoWarning.style.color = "#b00020";
     } else {
       saldoWarning.textContent = "";
@@ -2864,9 +2884,10 @@ function aggiornaAnteprimaPacchetto() {
   }
 
   if (validoAInput) {
-    validoAInput.value = tipo && validoDaInput?.value
-      ? aggiungiMesiAData(validoDaInput.value, tipo.Scadenza_Mesi)
-      : "";
+    validoAInput.value =
+      tipo && validoDaInput?.value
+        ? aggiungiMesiAData(validoDaInput.value, tipo.Scadenza_Mesi)
+        : "";
   }
 
   const flagC = flagCInput?.value || "Si";
@@ -2881,7 +2902,9 @@ function aggiornaAnteprimaPacchetto() {
       fatturaNrInput.placeholder = "Fattura Nr non richiesta";
     }
   }
+
 }
+
 
 function generaNuovoIdPacchetto() {
   return generaNuovoIdProgressivo("PC", pacchettiData, "ID_Pacchetto");
