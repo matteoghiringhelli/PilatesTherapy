@@ -846,8 +846,29 @@ body {
   </div>
 </div>
 
+<!-- ===================== CALENDARIO ===================== -->
+<div class="section">
+  <h2>Calendario</h2>
+
+  <div id="calendarioSection">
+
+    <div class="app-toolbar">
+      <button onclick="giornoPrecedente()">←</button>
+      <span id="calendarioDataLabel"></span>
+      <button onclick="giornoSuccessivo()">→</button>
+    </div>
+
+    <div id="outputCalendario"></div>
+
+  </div>
+</div>
+  
 <!-- ===================== FOOTER MENU APP ===================== -->
-<div class="app-footer">
+<div class="app-footer"><div class-tab" onclick="vaiTab('calendario')">
+    <span>🗓️</span>
+    Agenda
+  </button>
+
   <button id="tabClienti" class="footer-tab" onclick="vaiTab('clienti')">
     <span>👥</span>
     Clienti
@@ -863,14 +884,14 @@ body {
     Prenotazioni
   </button>
 
-  
   <button id="tabPacchetti" class="footer-tab" onclick="vaiTab('pacchetti')">
     <span>🎟️</span>
     Pacchetti
   </button>
 
 </div>
-  
+
+ 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="app.js?v=id-progressivi-v1"></script>
   
