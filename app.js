@@ -4421,24 +4421,35 @@ async function riconciliaAccontoNuovoPacchetto(nuovoPacchetto) {
   try {
     const pending = window.pendingAccontoNuovoPacchetto;
 
+    // ============================
+    // 0) NESSUN ACCONTO PENDING
+    // ============================
     if (!pending || !pending.idCliente || !pending.acconto) {
       console.log("ℹ️ Nessun acconto pending da riconciliare");
-      return {
-        ok: true,
-        skipped: true
-      };
+      return { ok: true, skipped: true, reason: "nessun_acconto_pending" };
     }
 
-    console.log("🔄 Avvio riconciliazione acconto nuovo pacchetto:", {
-      pending,
-      nuovoPacchetto
-    });
+    // ============================
+    // 1) VALIDAZIONE PACCHETTO
+    // ============================
+    if (!nuovoPacchetto || !nuovoPacchetto.ID_Pacchetto) {
+      console.error("❌ Nuovo pacchetto non valido:", nuovoPacchetto);
+      return { ok: false, error: new Error("Nuovo pacchetto non valido") };
+    }
+
+    if (String(nuovoPacchetto.ID_Cliente) !== String(pending.idCliente)) {
+      console.error("❌ Cliente mismatch tra acconto e pacchetto");
+      return { ok: false, error: new Error("Cliente mismatch") };
+    }
+
+    console.log("🔄 Avvio riconciliazione:", { pending, nuovoPacchetto });
 
     const idMovimentoPreciso = pending.accontoMovimentoId || null;
-    let movimentiDaRiconciliare = [];
+    const importoAcconto = Number(pending.acconto || 0);
+    let movimento = null;
 
     // ============================
-    // 1) MATCH SICURO PER ID MOVIMENTO
+    // 2) MATCH PER ID_MOVIMENTO
     // ============================
     if (idMovimentoPreciso) {
       const { data, error } = await supabaseClient
@@ -4448,21 +4459,21 @@ async function riconciliaAccontoNuovoPacchetto(nuovoPacchetto) {
         .limit(1);
 
       if (error) {
-        console.error("❌ Errore ricerca acconto per ID:", error);
-        return {
-          ok: false,
-          error
-        };
+        console.error("❌ Errore ricerca per id_movimento:", error);
+        return { ok: false, error };
       }
 
-      movimentiDaRiconciliare = data || [];
+      if (data && data.length) {
+        movimento = data[0];
+        console.log("✅ Movimento trovato per id:", movimento.id_movimento);
+      }
     }
 
     // ============================
-    // 2) FALLBACK CONTROLLATO
+    // 3) FALLBACK CONTROLLATO
     // ============================
-    if (!movimentiDaRiconciliare.length) {
-      console.warn("⚠️ Nessun movimento trovato per ID. Uso fallback controllato.");
+    if (!movimento) {
+      console.warn("⚠️ Uso fallback controllato");
 
       const { data, error } = await supabaseClient
         .from("studio_act")
@@ -4470,53 +4481,69 @@ async function riconciliaAccontoNuovoPacchetto(nuovoPacchetto) {
         .eq("id_cliente", pending.idCliente)
         .eq("riferimento", "acconto_nuovo_pacchetto")
         .eq("flag_c", "Da definire")
-        .eq("importo", Number(pending.acconto || 0))
         .order("data", { ascending: false })
-        .limit(1);
+        .limit(10);
 
       if (error) {
-        console.error("❌ Errore fallback ricerca acconto:", error);
-        return {
-          ok: false,
-          error
-        };
+        console.error("❌ Errore fallback:", error);
+        return { ok: false, error };
       }
 
-      movimentiDaRiconciliare = data || [];
-    }
+      movimento = (data || []).find(m => {
+        const imp = Number(m.importo || 0);
+        return Math.abs(imp - importoAcconto) < 0.01;
+      }) || null;
 
-    if (!movimentiDaRiconciliare.length) {
-      console.warn("⚠️ Nessun movimento acconto trovato da riconciliare");
-      return {
-        ok: true,
-        skipped: true
-      };
+      if (movimento) {
+        console.log("✅ Movimento trovato via fallback:", movimento.id_movimento);
+      }
     }
-
-    const movimento = movimentiDaRiconciliare[0];
 
     // ============================
-    // 3) PROTEZIONE: NON RICONCILIARE MOVIMENTI GIÀ RICONCILIATI
+    // 4) NESSUN MOVIMENTO
     // ============================
-    if (
-      String(movimento.riferimento || "") !== "acconto_nuovo_pacchetto" ||
-      String(movimento.flag_c || "") !== "Da definire"
-    ) {
-      console.warn("⚠️ Movimento non più riconciliabile:", movimento);
-      return {
-        ok: true,
-        skipped: true
-      };
+    if (!movimento) {
+      console.warn("⚠️ Nessun movimento trovato");
+      return { ok: true, skipped: true, reason: "nss_movimento" };
     }
 
+    // ============================
+    // 5) VALIDAZIONI SICUREZZA
+    // ============================
+    if (!movimento.id_movimento) {
+      return { ok: false, error: new Error("Movimento senza id_movimento") };
+    }
+
+    if (String(movimento.id_cliente) !== String(pending.idCliente)) {
+      return { ok: false, error: new Error("Movimento cliente diverso") };
+    }
+
+    if (movimento.riferimento !== "acconto_nuovo_pacchetto") {
+      return { ok: true, skipped: true, reason: "gia_riconciliato" };
+    }
+
+    if (movimento.flag_c !== "Da definire") {
+      return { ok: true, skipped: true, reason: "flag_gia_definito" };
+    }
+
+    if (movimento.id_pacchetto) {
+      return { ok: true, skipped: true, reason: "gia_collegato" };
+    }
+
+    // ============================
+    // 6) DATI CLIENTE
+    // ============================
     const cliente = clientiData.find(c =>
       String(c.ID_Cliente) === String(nuovoPacchetto.ID_Cliente)
     );
 
     const nomeCliente = cliente
       ? `${cliente.Nome || ""} ${cliente.Cognome || ""}`.trim()
-      : "Cliente non trovato";
+      : "Cliente";
 
+    // ============================
+    // 7) PREPARA UPDATE
+    // ============================
     const updatePayload = {
       id_pacchetto: nuovoPacchetto.ID_Pacchetto,
       flag_c: nuovoPacchetto.Flag_C || "No",
@@ -4525,37 +4552,37 @@ async function riconciliaAccontoNuovoPacchetto(nuovoPacchetto) {
       descrizione: `${nomeCliente} - ${nuovoPacchetto.Tipo_Pacchetto || ""} - acconto riconciliato`
     };
 
-    console.log("🧾 Update riconciliazione acconto:", {
-      movimento,
-      updatePayload
-    });
+    console.log("🧾 Update:", updatePayload);
 
-    const { error: updateError } = await supabaseClient
+    // ============================
+    // 8) UPDATE SU DB
+    // ============================
+    const { data: updatedData, error: updateError } = await supabaseClient
       .from("studio_act")
       .update(updatePayload)
-      .eq("id_movimento", movimento.id_movimento);
+      .eq("id_movimento", movimento.id_movimento)
+      .select("*");
 
     if (updateError) {
-      console.error("❌ Errore update riconciliazione acconto:", updateError);
-      return {
-        ok: false,
-        error: updateError
-      };
+      console.error("❌ Errore update:", updateError);
+      return { ok: false, error: updateError };
     }
 
-    console.log("✅ Acconto riconciliato correttamente:", movimento.id);
+    if (!updatedData || !updatedData.length) {
+      return { ok: false, error: new Error("Nessuna riga aggiornata") };
+    }
+
+    console.log("✅ Acconto riconciliato correttamente:", movimento.id_movimento);
 
     return {
       ok: true,
-      movimentoId: movimento.id_movimento
+      movimentoId: movimento.id_movimento,
+      updatedRow: updatedData[0]
     };
 
   } catch (err) {
-    console.error("❌ Errore imprevisto riconciliazione acconto:", err);
-    return {
-      ok: false,
-      error: err
-    };
+    console.error("❌ Errore generale riconciliazione:", err);
+    return { ok: false, error: err };
   }
 }
 
