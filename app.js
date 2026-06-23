@@ -7244,42 +7244,132 @@ function renderContiKpi() {
   // ============================
 
   if (kpiExtra) {
-    kpiExtra.innerHTML = `
-      <div style="margin-top:10px; font-size:13px;">
+  kpiExtra.innerHTML = `
+  <div style="margin-top:10px; font-size:13px;">
 
-        <div style="margin-bottom:4px;">
-          💳 Incassi reali (no acconti): <b>€ ${incassiValidi.toFixed(2)}</b>
-        </div>
+    <div style="margin-bottom:4px;">
+      💳 Incassi reali: <b>€ ${incassiValidi.toFixed(2)}</b>
+    </div>
 
-        <div style="margin-bottom:8px;">
-          ⚠️ Incassi da definire: <b>€ ${incassiDaDefinire.toFixed(2)}</b>
-        </div>
+    <div style="margin-bottom:8px;">
+      ⚠️ Da definire: <b>€ ${incassiDaDefinire.toFixed(2)}</b>
+    </div>
 
-        <hr style="margin:8px 0;"/>
+    <hr style="margin:8px 0;"/>
 
-        <div style="margin-bottom:4px;">
-          📊 Imponibile (78%): <b>€ ${imponibile.toFixed(2)}</b>
-        </div>
+    <div>📊 Imponibile: € ${imponibile.toFixed(2)}</div>
+    <div>🧾 Imposta: € ${imposta.toFixed(2)}</div>
+    <div>🏦 INPS: € ${inps.toFixed(2)}</div>
 
-        <div style="margin-bottom:4px;">
-          🧾 Imposta (5%): <b>€ ${imposta.toFixed(2)}</b>
-        </div>
+    <hr style="margin:8px 0;"/>
 
-        <div style="margin-bottom:4px;">
-          🏦 INPS (26.07%): <b>€ ${inps.toFixed(2)}</b>
-        </div>
+    <div style="font-size:16px; font-weight:600;">
+      💰 Utile Netto: 
+      <span style="color:#34c759;">€ ${utileNetto.toFixed(2)}</span>
+    </div>
 
-        <hr style="margin:8px 0;"/>
-
-        <div style="font-size:15px; font-weight:600;">
-          💰 Utile netto: <span style="color:#34c759;">€ ${utileNetto.toFixed(2)}</span>
-        </div>
-
-      </div>
-    `;
+  </div>
+`;
   }
+  renderGraficoFiscale();
 }
 
+
+function calcolaFiscalePerMese() {
+  const COEFF_REDDITIVITA = 0.78;
+  const ALIQUOTA_IMPOSTA = 0.05;
+  const ALIQUOTA_INPS = 0.2607;
+
+  const mesi = {};
+
+  contiData.forEach(m => {
+    const data = m.data;
+    if (!data) return;
+
+    const mese = data.substring(0, 7); // YYYY-MM
+
+    if (!mesi[mese]) {
+      mesi[mese] = {
+        incassi: 0,
+        imponibile: 0,
+        imposta: 0,
+        inps: 0,
+        utile: 0
+      };
+    }
+
+    if (String(m.tipo).toLowerCase() === "entrata") {
+      if (String(m.riferimento) !== "acconto_nuovo_pacchetto") {
+        mesi[mese].incassi += Number(m.importo || 0);
+      }
+    }
+  });
+
+  Object.keys(mesi).forEach(mese => {
+    const inc = mesi[mese].incassi;
+    const imponibile = inc * COEFF_REDDITIVITA;
+    const imposta = imponibile * ALIQUOTA_IMPOSTA;
+    const inps = imponibile * ALIQUOTA_INPS;
+    const utile = inc - imposta - inps;
+
+    mesi[mese].imponibile = imponibile;
+    mesi[mese].imposta = imposta;
+    mesi[mese].inps = inps;
+    mesi[mese].utile = utile;
+  });
+
+  return mesi;
+}
+
+
+let chartFiscale = null;
+
+function renderGraficoFiscale() {
+  const canvas = document.getElementById("chartFiscale");
+  if (!canvas) return;
+
+  const dati = calcolaFiscalePerMese();
+
+  const labels = Object.keys(dati).sort();
+  const utili = labels.map(m => dati[m].utile);
+  const imposte = labels.map(m => dati[m].imposta);
+  const inps = labels.map(m => dati[m].inps);
+
+  if (chartFiscale) {
+    chartFiscale.destroy();
+  }
+
+  chartFiscale = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Utile Netto",
+          data: utili,
+          backgroundColor: "#34c759"
+        },
+        {
+          label: "Imposte",
+          data: imposte,
+          backgroundColor: "#ff9500"
+        },
+        {
+          label: "INPS",
+          data: inps,
+          backgroundColor: "#007aff"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "top" },
+        title: { display: true, text: "Dashboard Fiscale Mensile" }
+      }
+    }
+  });
+}
 
 
 // RENDER LISTA (mobile-first)
