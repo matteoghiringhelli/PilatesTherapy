@@ -4807,33 +4807,131 @@ function renderPacchettiMobileSafe() {
 
 
 async function eliminaPacchetto(idPacchetto) {
-  const conferma = confirm(
-    "Eliminare questo pacchetto? Le prenotazioni già collegate potrebbero perdere il riferimento al pacchetto."
-  );
+  try {
+    if (!idPacchetto) {
+      alert("ID pacchetto mancante");
+      return;
+    }
 
-  if (!conferma) return;
+    console.log("🗑️ Eliminazione pacchetto:", idPacchetto);
 
-  const { error } = await supabaseClient
-    .from("pacchetti")
-    .delete()
-    .eq("ID_Pacchetto", idPacchetto);
+    // ============================
+    // 1) RECUPERA MOVIMENTI COLLEGATI
+    // ============================
+    const { data: movimenti, error: errorMov } = await supabaseClient
+      .from("studio_act")
+      .select("*")
+      .eq("id_pacchetto", idPacchetto);
 
-  if (error) {
-    console.error("Errore eliminaPacchetto:", error);
-    setStatus(`Errore eliminazione pacchetto: ${error.message}`, "err");
-    return;
+    if (errorMov) {
+      console.error("❌ Errore recupero movimenti:", errorMov);
+      alert("Errore recupero movimenti collegati");
+      return;
+    }
+
+    const hasMovimenti = movimenti && movimenti.length > 0;
+
+    let azioneUtente = "nessuna";
+
+    // ============================
+    // 2) CHIEDI ALL’UTENTE
+    // ============================
+    if (hasMovimenti) {
+      const scelta = confirm(
+        "Questo pacchetto ha incassi collegati.\n\n" +
+        "OK = elimina anche gli incassi\n" +
+        "Annulla = mantieni incassi come acconto per futuro pacchetto"
+      );
+
+      azioneUtente = scelta ? "cancella_movimenti" : "mantieni_movimenti";
+    }
+
+    // ============================
+    // 3) GESTIONE MOVIMENTI
+    // ============================
+
+    if (azioneUtente === "cancella_movimenti") {
+      console.log("🗑️ Cancello movimenti collegati");
+
+      const { error } = await supabaseClient
+        .from("studio_act")
+        .delete()
+        .eq("id_pacchetto", idPacchetto);
+
+      if (error) {
+        console.error("❌ Errore cancellazione movimenti:", error);
+        alert("Errore cancellazione movimenti");
+        return;
+      }
+    }
+
+    if (azioneUtente === "mantieni_movimenti") {
+      console.log("♻️ Riconverto movimenti in acconto");
+
+      const updates = movimenti.map(m => ({
+        id_movimento: m.id_movimento,
+        categoria: "Acconto Nuovo Pacchetto",
+        riferimento: "acconto_nuovo_pacchetto",
+        id_pacchetto: "",
+        flag_c: "Da definire",
+        descrizione: (m.descrizione || "") + " (riassegnato a nuovo acconto)"
+      }));
+
+      for (const u of updates) {
+        const { error } = await supabaseClient
+          .from("studio_act")
+          .update({
+            categoria: u.categoria,
+            riferimento: u.riferimento,
+            id_pacchetto: u.id_pacchetto,
+            flag_c: u.flag_c,
+            descrizione: u.descrizione
+          })
+          .eq("id_movimento", u.id_movimento);
+
+        if (error) {
+          console.error("❌ Errore update movimento:", error);
+          alert("Errore aggiornamento movimenti");
+          return;
+        }
+      }
+    }
+
+    // ============================
+    // 4) CANCELLA PACCHETTO
+    // ============================
+    const { error: errorDelete } = await supabaseClient
+      .from("pacchetti")
+      .delete()
+      .eq("ID_Pacchetto", idPacchetto);
+
+    if (errorDelete) {
+      console.error("❌ Errore eliminazione pacchetto:", errorDelete);
+      alert("Errore eliminazione pacchetto");
+      return;
+    }
+
+    console.log("✅ Pacchetto eliminato");
+
+    // ============================
+    // 5) REFRESH
+    // ============================
+    await loadPacchetti();
+    await loadPrenotazioni();
+
+    const reportBox = document.getElementById("reportPacchettiBox");
+    if (reportBox && !reportBox.classList.contains("hidden")) {
+      renderReportPacchetti();
+    }
+
+    alert("✅ Pacchetto eliminato correttamente");
+
+  } catch (err) {
+    console.error("❌ Errore generale eliminaPacchetto:", err);
+    alert("Errore imprevisto eliminazione pacchetto");
   }
-
-  await loadPacchetti();
-  await loadPrenotazioni();
-
-  const reportBox = document.getElementById("reportPacchettiBox");
-  if (reportBox && !reportBox.classList.contains("hidden")) {
-    renderReportPacchetti();
-  }
-
-  setStatus("Pacchetto eliminato correttamente ✅", "ok");
 }
+
 
 
 function mostraDettaglioPacchetto(idPacchetto, origine = null) {
