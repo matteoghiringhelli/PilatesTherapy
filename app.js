@@ -2712,7 +2712,11 @@ async function registraIncassoCliente(idCliente) {
 
     await loadConti();
 
-    preparaNuovoPacchettoConAcconto(idCliente, importo);
+    preparaNuovoPacchettoConAcconto(
+      idCliente,
+      importo,
+      contiResult.accontoMovimentoId
+    );
     return;
   }
 
@@ -2803,7 +2807,11 @@ async function registraIncassoCliente(idCliente) {
     );
 
     if (confermaEccedenza) {
-      preparaNuovoPacchettoConAcconto(idCliente, residuoIncasso);
+      preparaNuovoPacchettoConAcconto(
+        idCliente,
+        residuoIncasso,
+        contiResult.accontoMovimentoId
+      );
       return;
     }
   }
@@ -2814,12 +2822,17 @@ async function registraIncassoCliente(idCliente) {
   mostraPacchettiCliente(idCliente);
 }
 
-function preparaNuovoPacchettoConAcconto(idCliente, acconto) {
-  console.log("➕ Nuovo pacchetto con acconto:", { idCliente, acconto });
+function preparaNuovoPacchettoConAcconto(idCliente, acconto, accontoMovimentoId = null) {
+  console.log("➕ Nuovo pacchetto con acconto:", {
+    idCliente,
+    acconto,
+    accontoMovimentoId
+  });
 
   window.pendingAccontoNuovoPacchetto = {
     idCliente: idCliente,
-    acconto: Number(acconto || 0)
+    acconto: Number(acconto || 0),
+    accontoMovimentoId: accontoMovimentoId
   };
 
   vaiTab("pacchetti");
@@ -4359,10 +4372,23 @@ async function aggiungiPacchetto() {
       return;
     }
 
-    if (!response.data || !response.data.length) {
+      if (!response.data || !response.data.length) {
       setStatus("Pacchetto non restituito da Supabase: controlla le policy RLS", "err");
       alert("Pacchetto non restituito da Supabase: controlla le policy RLS");
       return;
+    }
+
+    const nuovoPacchetto = response.data[0];
+
+    // ✅ Riconcilia eventuale acconto nuovo pacchetto PRIMA di pulire la memoria pending
+    const riconciliaResult = await riconciliaAccontoNuovoPacchetto(nuovoPacchetto);
+
+    if (!riconciliaResult.ok) {
+      console.error("Errore riconciliazione acconto:", riconciliaResult.error);
+      alert(
+        "Pacchetto salvato, ma errore nella riconciliazione acconto: " +
+        (riconciliaResult.error?.message || "errore sconosciuto")
+      );
     }
 
     window.pendingAccontoNuovoPacchetto = null;
@@ -4459,6 +4485,148 @@ async function riconciliaAccontoNuovoPacchetto(nuovoPacchetto) {
 
   } catch (err) {
     console.error("❌ Errore riconciliazione:", err);
+  }
+}
+
+async function riconciliaAccontoNuovoPacchetto(nuovoPacchetto) {
+  try {
+    const pending = window.pendingAccontoNuovoPacchetto;
+
+    if (!pending || !pending.idCliente || !pending.acconto) {
+      console.log("ℹ️ Nessun acconto pending da riconciliare");
+      return {
+        ok: true,
+        skipped: true
+      };
+    }
+
+    console.log("🔄 Avvio riconciliazione acconto nuovo pacchetto:", {
+      pending,
+      nuovoPacchetto
+    });
+
+    const idMovimentoPreciso = pending.accontoMovimentoId || null;
+    let movimentiDaRiconciliare = [];
+
+    // ============================
+    // 1) MATCH SICURO PER ID MOVIMENTO
+    // ============================
+    if (idMovimentoPreciso) {
+      const { data, error } = await supabaseClient
+        .from("studio_act")
+        .select("*")
+        .eq("id_movimento", idMovimentoPreciso)
+        .limit(1);
+
+      if (error) {
+        console.error("❌ Errore ricerca acconto per ID:", error);
+        return {
+          ok: false,
+          error
+        };
+      }
+
+      movimentiDaRiconciliare = data || [];
+    }
+
+    // ============================
+    // 2) FALLBACK CONTROLLATO
+    // ============================
+    if (!movimentiDaRiconciliare.length) {
+      console.warn("⚠️ Nessun movimento trovato per ID. Uso fallback controllato.");
+
+      const { data, error } = await supabaseClient
+        .from("studio_act")
+        .select("*")
+        .eq("id_cliente", pending.idCliente)
+        .eq("riferimento", "acconto_nuovo_pacchetto")
+        .eq("flag_c", "Da definire")
+        .eq("importo", Number(pending.acconto || 0))
+        .order("data", { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error("❌ Errore fallback ricerca acconto:", error);
+        return {
+          ok: false,
+          error
+        };
+      }
+
+      movimentiDaRiconciliare = data || [];
+    }
+
+    if (!movimentiDaRiconciliare.length) {
+      console.warn("⚠️ Nessun movimento acconto trovato da riconciliare");
+      return {
+        ok: true,
+        skipped: true
+      };
+    }
+
+    const movimento = movimentiDaRiconciliare[0];
+
+    // ============================
+    // 3) PROTEZIONE: NON RICONCILIARE MOVIMENTI GIÀ RICONCILIATI
+    // ============================
+    if (
+      String(movimento.riferimento || "") !== "acconto_nuovo_pacchetto" ||
+      String(movimento.flag_c || "") !== "Da definire"
+    ) {
+      console.warn("⚠️ Movimento non più riconciliabile:", movimento);
+      return {
+        ok: true,
+        skipped: true
+      };
+    }
+
+    const cliente = clientiData.find(c =>
+      String(c.ID_Cliente) === String(nuovoPacchetto.ID_Cliente)
+    );
+
+    const nomeCliente = cliente
+      ? `${cliente.Nome || ""} ${cliente.Cognome || ""}`.trim()
+      : "Cliente non trovato";
+
+    const updatePayload = {
+      id_pacchetto: nuovoPacchetto.ID_Pacchetto,
+      flag_c: nuovoPacchetto.Flag_C || "No",
+      categoria: "Incasso Pacchetto",
+      riferimento: nuovoPacchetto.ID_Pacchetto,
+      descrizione: `${nomeCliente} - ${nuovoPacchetto.Tipo_Pacchetto || ""} - acconto riconciliato`
+    };
+
+    console.log("🧾 Update riconciliazione acconto:", {
+      movimento,
+      updatePayload
+    });
+
+    const { error: updateError } = await supabaseClient
+      .from("studio_act")
+      .update(updatePayload)
+      .eq("id_movimento", movimento.id_movimento);
+
+    if (updateError) {
+      console.error("❌ Errore update riconciliazione acconto:", updateError);
+      return {
+        ok: false,
+        error: updateError
+      };
+    }
+
+    console.log("✅ Acconto riconciliato correttamente:", movimento.id);
+
+    return {
+      ok: true,
+      movimentoId: movimento.id_movimento
+    };
+
+  } catch (err) {
+    console.error("❌ Errore imprevisto riconciliazione acconto:", err);
+    return {
+      ok: false,
+      error: err
+    };
   }
 }
 
@@ -6680,7 +6848,9 @@ async function registraMovimentiContiDaIncasso(idCliente, metodo, note, allocazi
 
   const movimenti = [];
 
-  // ✅ Movimenti su pacchetti esistenti
+  // ============================
+  // MOVIMENTI SU PACCHETTI ESISTENTI
+  // ============================
   (allocazioni || []).forEach(item => {
     if (!item || !item.idPacchetto || Number(item.quotaAllocata || 0) <= 0) return;
 
@@ -6700,7 +6870,9 @@ async function registraMovimentiContiDaIncasso(idCliente, metodo, note, allocazi
     });
   });
 
-  // ✅ Eccedenza / acconto nuovo pacchetto
+  // ============================
+  // MOVIMENTO ECCEDENZA / ACCONTO NUOVO PACCHETTO
+  // ============================
   if (Number(eccedenza || 0) > 0) {
     movimenti.push({
       data: getTodayDataConti(),
@@ -6720,22 +6892,46 @@ async function registraMovimentiContiDaIncasso(idCliente, metodo, note, allocazi
 
   if (!movimenti.length) {
     console.warn("Nessun movimento Conti Studio da registrare");
-    return { ok: true, skipped: true };
+    return {
+      ok: true,
+      skipped: true,
+      data: [],
+      accontoMovimentoId: null
+    };
   }
 
   console.log("💼 Movimenti Conti Studio da inserire:", movimenti);
 
-  const { error } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from("studio_act")
-    .insert(movimenti);
+    .insert(movimenti)
+    .select();
 
   if (error) {
     console.error("❌ Errore registrazione movimenti Conti Studio:", error);
-    return { ok: false, error };
+    return {
+      ok: false,
+      error,
+      data: [],
+      accontoMovimentoId: null
+    };
   }
 
-  console.log("✅ Movimenti Conti Studio registrati");
-  return { ok: true };
+  const movimentoAcconto = (data || []).find(m =>
+    String(m.riferimento || "") === "acconto_nuovo_pacchetto" &&
+    String(m.flag_c || "") === "Da definire"
+  );
+
+  const accontoMovimentoId = movimentoAcconto ? movimentoAcconto.id_movimento : null;
+
+  console.log("✅ Movimenti Conti Studio registrati:", data);
+  console.log("✅ ID movimento acconto:", accontoMovimentoId);
+
+  return {
+    ok: true,
+    data: data || [],
+    accontoMovimentoId: accontoMovimentoId
+  };
 }
 
 
