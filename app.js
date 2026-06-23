@@ -7134,6 +7134,7 @@ async function loadConti() {
     }
 
     contiData = data || [];
+    contiDataOriginal = [...contiData]; // ✅ FIX filtro mese
 
     console.log("✅ Conti caricati:", contiData);
 
