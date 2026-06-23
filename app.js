@@ -28,7 +28,7 @@ let filtroPrenotazioni = "tutte";
 let filtroPrenotazioniData = "";
 let searchPrenotazioni = "";
 let searchClienti = "";
-let reportPacchettiFiltro = "da_pagare";
+let reportPacchettiFiltro = null;
 let calendarioDataCorrente = getTodayString();
 let dettaglioLezioneBoxAttivo = "dettaglioLezioneBox";
 let graficoRicaviSettimanaliInstance = null;
@@ -5539,55 +5539,58 @@ function renderReportFattureMancanti(items) {
 
 function renderReportPacchetti() {
   const out = document.getElementById("outputReportPacchetti");
-  if (!out) return;
 
   const daPagareItems = getPacchettiReportDaPagare();
   const inScadenzaItems = getPacchettiReportInScadenza();
-  const fattureMancantiItems = getPacchettiReportFattureMancanti();
+  const fattureItems = getPacchettiReportFattureMancanti();
 
-  const corrente = getReportPacchettiCorrente();
+  // ✅ AGGIORNO CONTATORI BOTTONI
+  const elDaPagare = document.getElementById("alertCountDaPagare");
+  const elInScadenza = document.getElementById("alertCountInScadenza");
+  const elFatture = document.getElementById("alertCountFatture");
 
-let titoloCorrente = "Da Pagare";
+  if (elDaPagare) elDaPagare.textContent = daPagareItems.length;
+  if (elInScadenza) elInScadenza.textContent = inScadenzaItems.length;
+  if (elFatture) elFatture.textContent = fattureItems.length;
 
-if (reportPacchettiFiltro === "in_scadenza") {
-  titoloCorrente = "In Scadenza";
-}
+  // ✅ se nessun filtro selezionato NON mostro nulla sotto
+  if (!reportPacchettiFiltro) {
+    if (out) out.innerHTML = "";
+    return;
+  }
 
-if (reportPacchettiFiltro === "fatture") {
-  titoloCorrente = "Fatture da emettere";
-}
+  // ✅ selezione filtro
+  let corrente = [];
+  let titolo = "";
 
+  if (reportPacchettiFiltro === "da_pagare") {
+    corrente = daPagareItems;
+    titolo = "Da Pagare";
+  }
+
+  if (reportPacchettiFiltro === "in_scadenza") {
+    corrente = inScadenzaItems;
+    titolo = "In Scadenza";
+  }
+
+  if (reportPacchettiFiltro === "fatture") {
+    corrente = fattureItems;
+    titolo = "Fatture da emettere";
+  }
+
+  // ✅ render lista
+  if (!out) return;
 
   out.innerHTML = `
-    <div class="report-summary">
-
-      <button
-        class="report-filter-btn ${reportPacchettiFiltro === "da_pagare" ? "active" : ""}"
-        onclick="setReportPacchettiFiltro('da_pagare')"
-      >
-        💰 Da Pagare: ${daPagareItems.length}
-      </button>
-
-      <button
-        class="report-filter-btn ${reportPacchettiFiltro === "in_scadenza" ? "active" : ""}"
-        onclick="setReportPacchettiFiltro('in_scadenza')"
-      >
-        ⚠️ In Scadenza: ${inScadenzaItems.length}
-      </button>
-
-    </div>
-
-    <h3>Alert ${titoloCorrente}</h3>
+    <h3>Alert ${titolo}</h3>
 
     ${
       corrente.length
         ? corrente
             .map(item => renderReportPacchettiCard(item, reportPacchettiFiltro))
             .join("")
-        : `<div class="report-empty">Nessun pacchetto nella categoria ${safe(titoloCorrente)}.</div>`
+        : `<div class="report-empty">Nessun elemento.</div>`
     }
-
-    ${renderReportFattureMancanti(fattureMancantiItems)}
   `;
 }
 
