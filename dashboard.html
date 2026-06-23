@@ -1508,12 +1508,33 @@ body {
     </div>
   </div>
 
-  <!-- KPI -->
-  <div id="contiKpiRow"></div>
 
-  <div class="card-ios" style="margin-top:15px;">
-  <canvas id="chartFiscale"></canvas>
+<!-- KPI -->
+<div id="contiKpiRow" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+
+  <div class="card-ios" style="flex:1;">
+    <div style="font-size:12px; opacity:0.6;">Entrate</div>
+    <div id="contiEntrate">€ 0</div>
   </div>
+
+  <div class="card-ios" style="flex:1;">
+    <div style="font-size:12px; opacity:0.6;">Uscite</div>
+    <div id="contiUscite">€ 0</div>
+  </div>
+
+  <div class="card-ios" style="flex:1;">
+    <div style="font-size:12px; opacity:0.6;">Saldo</div>
+    <div id="contiSaldo">€ 0</div>
+  </div>
+
+</div>
+
+<div class="card-ios" style="margin-top:15px;">
+  <canvas id="chartFiscale"></canvas>
+</div>
+
+<div id="contiExtra"></div>
+
 
   <!-- LISTA -->
   <div id="contiList"></div>
