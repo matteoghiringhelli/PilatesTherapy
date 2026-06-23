@@ -3723,120 +3723,76 @@ function generaNuovoIdPacchetto() {
 }
 
 async function aggiungiPacchetto() {
+  console.log("➡️ Avvio inserimento pacchetto");
+
+  // ✅ LETTURA CAMPI FORM (allineati al tuo HTML)
+  const cliente_id = document.getElementById("pac_cliente").value;
+  const tipo = document.getElementById("pac_tipo").value;
+  const lezioni_totali = parseInt(document.getElementById("pac_lezioni_base").value) || 0;
+  const prezzo = parseFloat(document.getElementById("pac_prezzo").value) || 0;
+  const da_pagare = parseFloat(document.getElementById("pac_da_pagare").value) || 0;
+  const flag_c = document.getElementById("pac_flag_c").value === "Si";
+  const data_inizio = document.getElementById("pac_data_inizio").value || null;
+  const durata = parseInt(document.getElementById("pac_durata").value) || null;
+
+  // ✅ VALIDAZIONE BASE
+  if (!cliente_id) {
+    alert("Seleziona un cliente");
+    return;
+  }
+
+  if (!tipo) {
+    alert("Inserisci tipo pacchetto");
+    return;
+  }
+
+  if (lezioni_totali <= 0) {
+    alert("Lezioni non valide");
+    return;
+  }
+
+  // ✅ CALCOLO LEZIONI RESIDUE
+  const lezioni_residue = lezioni_totali;
+
+  // ✅ COSTRUZIONE PAYLOAD
+  const payload = {
+    cliente_id: cliente_id,
+    tipo: tipo,
+    lezioni_totali: lezioni_totali,
+    lezioni_residue: lezioni_residue,
+    prezzo: prezzo,
+    da_pagare: da_pagare,
+    flag_c: flag_c,
+    data_inizio: data_inizio,
+    durata: durata
+  };
+
+  console.log("📦 Payload pacchetto:", payload);
 
   try {
-
-    // =====================================
-    // 1. COSTRUZIONE PACCHETTO
-    // =====================================
-
-    const pacchetto = {
-
-      ID_Cliente: clienteSelezionatoId || null,
-
-      Data_Inizio: document.getElementById("pac_data_inizio")?.value || new Date().toISOString().split("T")[0],
-      Data_Fine: document.getElementById("pac_data_fine")?.value || null,
-
-      Tipo_Pacchetto: tipoPacchettoSelezionato || "",
-      Lezioni_Totali: Number(document.getElementById("pac_lezioni")?.value || 0),
-      Lezioni_Utilizzate: 0,
-
-      Importo: Number(document.getElementById("pac_importo")?.value || 0),
-      Metodo_Pagamento: document.getElementById("pac_metodo")?.value || "",
-
-      // ✅ FLAG FISCALE
-      Flag_C: document.getElementById("pac_flag_c")?.value || "No",
-
-      Note: document.getElementById("pac_note")?.value || ""
-
-    };
-
-    // Validazione
-    if (!pacchetto.ID_Cliente || !pacchetto.Importo || pacchetto.Lezioni_Totali === 0) {
-      alert("Compila Cliente, Importo e Lezioni");
-      return;
-    }
-
-    // =====================================
-    // 2. INSERT PACCHETTO
-    // =====================================
-
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from("pacchetti")
-      .insert([pacchetto])
-      .select()
-      .single();
+      .insert([payload]);
 
     if (error) {
-      console.error(error);
-      alert("Errore salvataggio pacchetto");
+      console.error("❌ Errore inserimento:", error);
+      alert("Errore salvataggio pacchetto: " + error.message);
       return;
     }
 
-    // =====================================
-    // 3. AUTO CONTABILITA (VALORE BILANCIO)
-    // =====================================
+    console.log("✅ Pacchetto inserito:", data);
 
-    if (data && Number(data.Importo) > 0) {
+    alert("✅ Pacchetto salvato correttamente");
 
-      const movimento = {
-        Data: data.Data_Inizio || new Date().toISOString().split("T")[0],
-        Tipo: "Entrata",
-        Categoria: "Pacchetti",
+    // ✅ RESET FORM
+    document.getElementById("form_pacchetto").reset();
 
-        // ✅ descrizione leggibile
-        Descrizione: `${nomeClienteSelezionato || ""} - ${data.Tipo_Pacchetto || ""}`,
-
-        Importo: Number(data.Importo || 0),
-        Metodo_Pagamento: data.Metodo_Pagamento || "",
-
-        // ✅ FLAG_C salvato strutturato
-        Flag_C: data.Flag_C || "No",
-
-        // ✅ solo riferimento tecnico
-        Note: `Auto da Pacchetto ID: ${data.ID_Pacchetto || ""}`
-      };
-
-      const { error: errConti } = await supabaseClient
-        .from("studio_act")
-        .insert([movimento]);
-
-      if (errConti) {
-        console.error("Errore contabilità:", errConti);
-      }
-    }
-
-    // =====================================
-    // 4. RESET FORM
-    // =====================================
-
-    const fields = [
-      "pac_importo",
-      "pac_lezioni",
-      "pac_note"
-    ];
-
-    fields.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.value = "";
-    });
-
-    // =====================================
-    // 5. REFRESH DATI
-    // =====================================
-
-    if (typeof loadPacchetti === "function") {
-      await loadPacchetti();
-    }
-
-    if (typeof loadConti === "function") {
-      await loadConti();
-    }
-
-    alert("✅ Pacchetto creato");
+    // ✅ REFRESH LISTA
+    caricaPacchetti();
 
   } catch (err) {
-    console.error("Errore aggiungiPacchetto:", err);
+    console.error("❌ Errore generico:", err);
+    alert("Errore imprevisto");
   }
 }
 
