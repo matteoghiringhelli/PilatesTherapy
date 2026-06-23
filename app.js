@@ -16,6 +16,14 @@ function requireUser() {
 
 function withUserId(payload) {
   requireUser();
+
+  if (Array.isArray(payload)) {
+    return payload.map(item => ({
+      ...item,
+      user_id: window.currentUserId
+    }));
+  }
+
   return {
     ...payload,
     user_id: window.currentUserId
@@ -26,13 +34,16 @@ async function safeInsert(table, payload) {
   try {
     requireUser();
 
+    const payloadConUser = withUserId(payload);
+
     const { data, error } = await supabaseClient
       .from(table)
-      .insert(withUserId(payload))
+      .insert(payloadConUser)
       .select();
 
     if (error) throw error;
-    return data;
+
+    return data || [];
 
   } catch (error) {
     console.error(`Errore INSERT su ${table}:`, error);
@@ -800,29 +811,30 @@ async function aggiungiCliente() {
     Data_Registrazione: new Date().toISOString().split("T")[0]
   };
 
-if (!payload.Nome || !payload.Cognome) {
-  setStatus("Nome e Cognome sono obbligatori", "err");
-  return;
-}
-
-
- await safeInsert("clienti", payload);
-  
-  if (error) {
-    console.error("Errore aggiungiCliente:", error);
-    setStatus(`Errore salvataggio cliente: ${error.message}`, "err");
+  if (!payload.Nome || !payload.Cognome) {
+    setStatus("Nome e Cognome sono obbligatori", "err");
     return;
   }
 
-  pulisciFormCliente();
+  try {
+    await safeInsert("clienti", payload);
 
-const nuovoClienteBox = document.getElementById("nuovoClienteBox");
-if (nuovoClienteBox) {
-  nuovoClienteBox.classList.add("hidden");
-}
+    pulisciFormCliente();
 
-await loadClienti();
-setStatus("Cliente salvato correttamente ✅", "ok");
+    const nuovoClienteBox = document.getElementById("nuovoClienteBox");
+
+    if (nuovoClienteBox) {
+      nuovoClienteBox.classList.add("hidden");
+    }
+
+    await loadClienti();
+
+    setStatus("Cliente salvato correttamente ✅", "ok");
+
+  } catch (error) {
+    console.error("Errore aggiungiCliente:", error);
+    setStatus("Errore salvataggio cliente", "err");
+  }
 }
 
 async function modificaCliente(id) {
@@ -853,35 +865,41 @@ async function modificaCliente(id) {
   const Codice_Fiscale = prompt("Codice Fiscale", cliente.Codice_Fiscale || "");
   if (Codice_Fiscale === null) return;
 
-  await safeUpdate("clienti", { Nome, Cognome, Telefono, Email, Indirizzo, Cittá, CAP, Codice_Fiscale }, { ID_Cliente: id });
+  try {
+    await safeUpdate(
+      "clienti",
+      { Nome, Cognome, Telefono, Email, Indirizzo, Cittá, CAP, Codice_Fiscale },
+      { ID_Cliente: id }
+    );
 
+    await loadClienti();
+    await loadPrenotazioni();
 
-  if (error) {
+    mostraSchedaCliente(id);
+
+    setStatus("Cliente modificato correttamente ✅", "ok");
+
+  } catch (error) {
     console.error("Errore modificaCliente:", error);
-    setStatus(`Errore modifica cliente: ${error.message}`, "err");
-    return;
+    setStatus("Errore modifica cliente", "err");
   }
-
-  await loadClienti();
-  await loadPrenotazioni();
-  mostraSchedaCliente(id);
-  setStatus("Cliente modificato correttamente ✅", "ok");
 }
 
 async function eliminaCliente(id) {
   if (!confirm("Eliminare cliente?")) return;
 
-  await safeDelete("clienti", { ID_Cliente: id });
+  try {
+    await safeDelete("clienti", { ID_Cliente: id });
 
-  if (error) {
+    await loadClienti();
+    await loadPrenotazioni();
+
+    setStatus("Cliente eliminato correttamente ✅", "ok");
+
+  } catch (error) {
     console.error("Errore eliminaCliente:", error);
-    setStatus(`Errore eliminazione cliente: ${error.message}`, "err");
-    return;
+    setStatus("Errore eliminazione cliente", "err");
   }
-
-  await loadClienti();
-  await loadPrenotazioni();
-  setStatus("Cliente eliminato correttamente ✅", "ok");
 }
 
 function pulisciFormCliente() {
@@ -1345,43 +1363,38 @@ async function aggiungiLezione() {
     return;
   }
 
-  await safeInsert("lezioni", payload);
+  try {
+    await safeInsert("lezioni", payload);
 
+    pulisciFormLezione();
 
-  if (error) {
+    await loadLezioni();
+    await loadPrenotazioni();
+
+    setStatus("Lezione salvata correttamente ✅", "ok");
+
+  } catch (error) {
     console.error("Errore aggiungiLezione:", error);
-    setStatus(`Errore salvataggio lezione: ${error.message}`, "err");
-    return;
+    setStatus("Errore salvataggio lezione", "err");
   }
-
-  pulisciFormLezione();
-  await loadLezioni();
-  await loadPrenotazioni();
-  setStatus("Lezione salvata correttamente ✅", "ok");
 }
 
 async function eliminaLezione(id) {
   if (!confirm("Eliminare la lezione e le prenotazioni collegate?")) return;
 
-  await safeDelete("prenotazioni", { ID_Lezione: id });
+  try {
+    await safeDelete("prenotazioni", { ID_Lezione: id });
+    await safeDelete("lezioni", { ID_Lezione: id });
 
-  if (errorPren) {
-    console.error("Errore eliminazione prenotazioni collegate:", errorPren);
-    setStatus(`Errore eliminazione prenotazioni collegate: ${errorPren.message}`, "err");
-    return;
-  }
+    await loadLezioni();
+    await loadPrenotazioni();
 
-  await safeDelete("lezioni", { ID_Lezione: id });
+    setStatus("Lezione eliminata correttamente ✅", "ok");
 
-  if (error) {
+  } catch (error) {
     console.error("Errore eliminaLezione:", error);
-    setStatus(`Errore eliminazione lezione: ${error.message}`, "err");
-    return;
+    setStatus("Errore eliminazione lezione", "err");
   }
-
-  await loadLezioni();
-  await loadPrenotazioni();
-  setStatus("Lezione eliminata correttamente ✅", "ok");
 }
 
 function pulisciFormLezione() {
@@ -1592,7 +1605,9 @@ async function prenota() {
     return;
   }
 
-  const lezione = lezioniData.find(l => String(l.ID_Lezione) === String(idLezione));
+  const lezione = lezioniData.find(l =>
+    String(l.ID_Lezione) === String(idLezione)
+  );
 
   if (!lezione) {
     setStatus("Lezione non trovata", "err");
@@ -1635,71 +1650,72 @@ async function prenota() {
     }
   }
 
-  wait safeInsert("prenotazioni", {
+  try {
+    const data = await safeInsert("prenotazioni", {
       ID_Prenotazione: generaNuovoIdProgressivo("PR", prenotazioniData, "ID_Prenotazione"),
       ID_Cliente: idCliente,
       ID_Lezione: idLezione,
       ID_Pacchetto: idPacchetto
     });
 
-  console.log("Risposta insert prenotazioni:", response);
+    console.log("Risposta insert prenotazioni:", data);
 
-  if (response.error) {
-    console.error("Errore prenota:", response.error);
-    setStatus(`Errore salvataggio prenotazione: ${response.error.message}`, "err");
-    return;
+    if (!data || !data.length) {
+      setStatus("Prenotazione non restituita da Supabase: controlla le policy RLS", "err");
+      return;
+    }
+
+    ricordaSmartPrenotazione(idCliente, idLezione);
+
+    document.getElementById("select_cliente").value = "";
+    document.getElementById("select_lezione").value = "";
+
+    const selectPacchetto = document.getElementById("select_pacchetto");
+
+    if (selectPacchetto) {
+      selectPacchetto.innerHTML = `
+        <option value="">Seleziona prima cliente e lezione</option>
+      `;
+    }
+
+    await loadPrenotazioni();
+    await loadPacchetti();
+
+    const reportBox = document.getElementById("reportPacchettiBox");
+
+    if (reportBox && !reportBox.classList.contains("hidden")) {
+      renderReportPacchetti();
+    }
+
+    setStatus("Prenotazione salvata correttamente ✅", "ok");
+
+  } catch (error) {
+    console.error("Errore prenota:", error);
+    setStatus("Errore salvataggio prenotazione", "err");
   }
-
-  if (!response.data || !response.data.length) {
-    setStatus("Prenotazione non restituita da Supabase: controlla le policy RLS", "err");
-    return;
-  }
-
-  ricordaSmartPrenotazione(idCliente, idLezione);
-
-  document.getElementById("select_cliente").value = "";
-  document.getElementById("select_lezione").value = "";
-
-  const selectPacchetto = document.getElementById("select_pacchetto");
-  if (selectPacchetto) {
-    selectPacchetto.innerHTML = `
-      <option value="">Seleziona prima cliente e lezione</option>
-    `;
-  }
-
-  await loadPrenotazioni();
-  await loadPacchetti();
-
-const reportBox = document.getElementById("reportPacchettiBox");
-if (reportBox && !reportBox.classList.contains("hidden")) {
-  renderReportPacchetti();
-}
-
-setStatus("Prenotazione salvata correttamente ✅", "ok");
 }
 
 async function eliminaPrenotazione(id) {
   if (!confirm("Eliminare prenotazione?")) return;
 
-  await safeDelete("prenotazioni", { ID_Prenotazione: id });
+  try {
+    await safeDelete("prenotazioni", { ID_Prenotazione: id });
 
-  if (error) {
+    await loadPrenotazioni();
+    await loadPacchetti();
+
+    const reportBox = document.getElementById("reportPacchettiBox");
+
+    if (reportBox && !reportBox.classList.contains("hidden")) {
+      renderReportPacchetti();
+    }
+
+    setStatus("Prenotazione eliminata correttamente ✅", "ok");
+
+  } catch (error) {
     console.error("Errore eliminaPrenotazione:", error);
-    setStatus(`Errore eliminazione prenotazione: ${error.message}`, "err");
-    return;
+    setStatus("Errore eliminazione prenotazione", "err");
   }
-
-  await loadPrenotazioni();
-await loadPacchetti();
-
-const reportBox = document.getElementById("reportPacchettiBox");
-if (reportBox && !reportBox.classList.contains("hidden")) {
-  
-renderReportPacchetti();
-}
-
-setStatus("Prenotazione eliminata correttamente ✅", "ok");
-
 }
 
 function mostraStoricoCliente(idCliente) {
@@ -2422,69 +2438,73 @@ async function salvaPrenotazioniDaLezione(idLezione) {
   }
 
   const nuoviIdPrenotazione = generaNuoviIdProgressivi(
-  "PR",
-  prenotazioniData,
-  "ID_Prenotazione",
-  nuovePrenotazioni.length
-);
+    "PR",
+    prenotazioniData,
+    "ID_Prenotazione",
+    nuovePrenotazioni.length
+  );
 
-const payload = nuovePrenotazioni.map((p, index) => ({
-  ID_Prenotazione: nuoviIdPrenotazione[index],
-  ID_Cliente: p.ID_Cliente,
-  ID_Lezione: idLezione,
-  ID_Pacchetto: p.ID_Pacchetto
-}));
+  const payload = nuovePrenotazioni.map((p, index) => ({
+    ID_Prenotazione: nuoviIdPrenotazione[index],
+    ID_Cliente: p.ID_Cliente,
+    ID_Lezione: idLezione,
+    ID_Pacchetto: p.ID_Pacchetto
+  }));
 
-await safeInsert("prenotazioni", payload);
+  try {
+    const data = await safeInsert("prenotazioni", payload);
 
-  if (response.error) {
-    console.error("Errore salvaPrenotazioniDaLezione:", response.error);
-    setStatus(`Errore salvataggio prenotazioni: ${response.error.message}`, "err");
-    return;
+    if (!data || !data.length) {
+      setStatus("Prenotazioni non restituite da Supabase: controlla le policy RLS", "err");
+      return;
+    }
+
+    await loadPrenotazioni();
+    await loadPacchetti();
+
+    const reportBox = document.getElementById("reportPacchettiBox");
+
+    if (reportBox && !reportBox.classList.contains("hidden")) {
+      renderReportPacchetti();
+    }
+
+    renderCalendario();
+    mostraDettaglioLezione(idLezione, dettaglioLezioneBoxAttivo);
+
+    setStatus("Prenotazioni salvate correttamente ✅", "ok");
+
+  } catch (error) {
+    console.error("Errore salvaPrenotazioniDaLezione:", error);
+    setStatus("Errore salvataggio prenotazioni", "err");
   }
-
-  if (!response.data || !response.data.length) {
-    setStatus("Prenotazioni non restituite da Supabase: controlla le policy RLS", "err");
-    return;
-  }
-
-  await loadPrenotazioni();
-  await loadPacchetti();
-
-  const reportBox = document.getElementById("reportPacchettiBox");
-  if (reportBox && !reportBox.classList.contains("hidden")) {
-    renderReportPacchetti();
-  }
-
-  renderCalendario();
-  mostraDettaglioLezione(idLezione, dettaglioLezioneBoxAttivo);
-  setStatus("Prenotazioni salvate correttamente ✅", "ok");
 }
 
 async function eliminaPrenotazioneDaLezione(idPrenotazione, idLezione) {
   if (!confirm("Eliminare questa prenotazione?")) return;
 
-  await safeDelete("prenotazioni", { ID_Prenotazione: idPrenotazione });
+  try {
+    await safeDelete("prenotazioni", { ID_Prenotazione: idPrenotazione });
 
+    await loadPrenotazioni();
+    await loadPacchetti();
 
-  if (error) {
+    const reportBox = document.getElementById("reportPacchettiBox");
+
+    if (reportBox && !reportBox.classList.contains("hidden")) {
+      renderReportPacchetti();
+    }
+
+    renderCalendario();
+    mostraDettaglioLezione(idLezione, dettaglioLezioneBoxAttivo);
+
+    setStatus("Prenotazione eliminata correttamente ✅", "ok");
+
+  } catch (error) {
     console.error("Errore eliminaPrenotazioneDaLezione:", error);
-    setStatus(`Errore eliminazione prenotazione: ${error.message}`, "err");
-    return;
+    setStatus("Errore eliminazione prenotazione", "err");
   }
-
-  await loadPrenotazioni();
-  await loadPacchetti();
-
-  const reportBox = document.getElementById("reportPacchettiBox");
-  if (reportBox && !reportBox.classList.contains("hidden")) {
-    renderReportPacchetti();
-  }
-
-  renderCalendario();
-  mostraDettaglioLezione(idLezione, dettaglioLezioneBoxAttivo);
-  setStatus("Prenotazione eliminata correttamente ✅", "ok");
 }
+
 
 function mostraSchedaCliente(idCliente) {
   const box = document.getElementById("outputClienti");
@@ -2837,14 +2857,17 @@ async function registraIncassoCliente(idCliente) {
       Flag_Pagato: nuovoDaPagare <= 0 ? "Si" : "No"
     };
 
-    await safeUpdate("pacchetti", payloadUpdate, { ID_Pacchetto: idPacchetto });
-
-
-    if (error) {
-      console.error("Errore aggiornamento Da_Pagare pacchetto:", error);
-      alert("Errore aggiornamento pacchetto: " + error.message);
-      return;
-    }
+try {
+  await safeUpdate(
+    "pacchetti",
+    payloadUpdate,
+    { ID_Pacchetto: p.ID_Pacchetto }
+  );
+} catch (error) {
+  console.error("Errore aggiornamento Da_Pagare pacchetto:", error);
+  alert("Errore aggiornamento pacchetto");
+  return;
+}
 
     allocazioniConti.push({
       idPacchetto: p.ID_Pacchetto,
@@ -4429,23 +4452,15 @@ async function aggiungiPacchetto() {
     // ============================
     // 4) INSERT PACCHETTO
     // ============================
-await safeInsert("pacchetti", payload);
+const data = await safeInsert("pacchetti", payload);
 
-    // ✅ controllo errore
-    if (error) {
-      console.error("❌ Errore inserimento pacchetto:", error);
-      alert("Errore salvataggio pacchetto: " + error.message);
-      return;
-    }
+if (!data || !data.length) {
+  console.error("❌ Pacchetto non restituito da Supabase");
+  alert("Errore: pacchetto non restituito");
+  return;
+}
 
-    // ✅ controllo ritorno dati
-    if (!data || !data.length) {
-      console.error("❌ Pacchetto non restituito da Supabase");
-      alert("Errore: pacchetto non restituito");
-      return;
-    }
-
-    const nuovoPacchetto = data[0];
+const nuovoPacchetto = data[0];
 
     console.log("✅ Pacchetto creato:", nuovoPacchetto);
 
@@ -4643,27 +4658,21 @@ async function riconciliaAccontoNuovoPacchetto(nuovoPacchetto) {
     // 8) UPDATE SU DB
     // ============================
 
-await safeUpdate("studio_act", updatePayload, {
+const updatedData = await safeUpdate("studio_act", updatePayload, {
   id_movimento: movimento.id_movimento
 });
 
+if (!updatedData || !updatedData.length) {
+  return { ok: false, error: new Error("Nessuna riga aggiornata") };
+}
 
-    if (updateError) {
-      console.error("❌ Errore update:", updateError);
-      return { ok: false, error: updateError };
-    }
+console.log("✅ Acconto riconciliato correttamente:", movimento.id_movimento);
 
-    if (!updatedData || !updatedData.length) {
-      return { ok: false, error: new Error("Nessuna riga aggiornata") };
-    }
-
-    console.log("✅ Acconto riconciliato correttamente:", movimento.id_movimento);
-
-    return {
-      ok: true,
-      movimentoId: movimento.id_movimento,
-      updatedRow: updatedData[0]
-    };
+return {
+  ok: true,
+  movimentoId: movimento.id_movimento,
+  updatedRow: updatedData[0]
+};
 
   } catch (err) {
     console.error("❌ Errore generale riconciliazione:", err);
@@ -4933,13 +4942,13 @@ async function eliminaPacchetto(idPacchetto) {
     if (azioneUtente === "cancella_movimenti") {
       console.log("🗑️ Cancello movimenti collegati");
 
-      await safeDelete("studio_act", { id_pacchetto: idPacchetto });
-
-      if (error) {
-        console.error("❌ Errore cancellazione movimenti:", error);
-        alert("Errore cancellazione movimenti");
-        return;
-      }
+      try {
+  await safeDelete("studio_act", { id_pacchetto: idPacchetto });
+} catch (error) {
+  console.error("❌ Errore cancellazione movimenti:", error);
+  alert("Errore cancellazione movimenti");
+  return;
+}
     }
 
     if (azioneUtente === "mantieni_movimenti") {
@@ -4956,38 +4965,36 @@ async function eliminaPacchetto(idPacchetto) {
 
       for (const u of updates) {
         
-await safeUpdate(
-  "studio_act",
-  {
-    categoria: u.categoria,
-    riferimento: u.riferimento,
-    id_pacchetto: u.id_pacchetto,
-    flag_c: u.flag_c,
-    descrizione: u.descrizione
-  },
-  { id_movimento: u.id_movimento }
-);
-
-
-        if (error) {
-          console.error("❌ Errore update movimento:", error);
-          alert("Errore aggiornamento movimenti");
-          return;
-        }
+try {
+  await safeUpdate(
+    "studio_act",
+    {
+      categoria: u.categoria,
+      riferimento: u.riferimento,
+      id_pacchetto: u.id_pacchetto,
+      flag_c: u.flag_c,
+      descrizione: u.descrizione
+    },
+    { id_movimento: u.id_movimento }
+  );
+} catch (error) {
+  console.error("❌ Errore update movimento:", error);
+  alert("Errore aggiornamento movimenti");
+  return;
+}
       }
     }
 
     // ============================
     // 4) CANCELLA PACCHETTO
     // ============================
-    await safeDelete("pacchetti", { id_pacchetto: idPacchetto });
-
-
-    if (errorDelete) {
-      console.error("❌ Errore eliminazione pacchetto:", errorDelete);
-      alert("Errore eliminazione pacchetto");
-      return;
-    }
+    try {
+  await safeDelete("pacchetti", { ID_Pacchetto: idPacchetto });
+} catch (errorDelete) {
+  console.error("❌ Errore eliminazione pacchetto:", errorDelete);
+  alert("Errore eliminazione pacchetto");
+  return;
+}
 
     console.log("✅ Pacchetto eliminato");
 
@@ -5422,14 +5429,17 @@ async function salvaModificaPacchettoInline(idPacchetto) {
   }
 
   // ✅ UPDATE SU SUPABASE
-  await safeUpdate("pacchetti", payload, { ID_Pacchetto: p.ID_Pacchetto });
-
-
-  if (error) {
-    console.error("Errore salvaModificaPacchettoInline:", error);
-    setStatus(`Errore modifica pacchetto: ${error.message}`, "err");
-    return;
-  }
+  try {
+  await safeUpdate(
+    "pacchetti",
+    payload,
+    { ID_Pacchetto: idPacchetto }
+  );
+} catch (error) {
+  console.error("Errore salvaModificaPacchettoInline:", error);
+  setStatus("Errore modifica pacchetto", "err");
+  return;
+}
 
   // ✅ REFRESH DATI
   await loadPacchetti();
@@ -5858,13 +5868,13 @@ async function salvaLezioneDaAgenda() {
     }
   }
 
+  try {
   await safeInsert("lezioni", payload);
-
-  if (error) {
-    console.error("Errore salvaLezioneDaAgenda:", error);
-    setStatus(`Errore salvataggio lezione da Agenda: ${error.message}`, "err");
-    return;
-  }
+} catch (error) {
+  console.error("Errore salvaLezioneDaAgenda:", error);
+  setStatus("Errore salvataggio lezione da Agenda", "err");
+  return;
+}
 
   ricordaSmartLezione(Tipologia, Istruttore, Ora);
 
@@ -6062,32 +6072,23 @@ function giornoSuccessivo() {
 async function eliminaLezioneDaAgenda(idLezione) {
   if (!confirm("Eliminare questa lezione e le prenotazioni collegate?")) return;
 
-  await safeDelete("prenotazioni", { ID_Lezione: idLezione });
+  try {
+    await safeDelete("prenotazioni", { ID_Lezione: idLezione });
+    await safeDelete("lezioni", { ID_Lezione: idLezione });
 
+    chiudiDettaglioAgendaSeAperto();
 
-  if (errorPren) {
-    console.error("Errore eliminazione prenotazioni da Agenda:", errorPren);
-    setStatus(`Errore eliminazione prenotazioni collegate: ${errorPren.message}`, "err");
-    return;
-  }
+    await loadLezioni();
+    await loadPrenotazioni();
 
-  await safeDelete("lezioni", { ID_Lezione: idLezione });
+    renderCalendario();
 
+    setStatus("Lezione eliminata da Agenda correttamente ✅", "ok");
 
-  if (error) {
+  } catch (error) {
     console.error("Errore eliminazione lezione da Agenda:", error);
-    setStatus(`Errore eliminazione lezione: ${error.message}`, "err");
-    return;
+    setStatus("Errore eliminazione lezione", "err");
   }
-
-  chiudiDettaglioAgendaSeAperto();
-
-  await loadLezioni();
-  await loadPrenotazioni();
-
-  renderCalendario();
-
-  setStatus("Lezione eliminata da Agenda correttamente ✅", "ok");
 }
 
 
@@ -7094,20 +7095,9 @@ async function registraMovimentiContiDaIncasso(idCliente, metodo, note, allocazi
     console.log("💼 Movimenti Conti Studio da inserire:", movimenti);
 
     // ============================
-    // 6) INSERT SU SUPABASE
+    // 6) INSERT SU SUPABASE VIA SAFE INSERT
     // ============================
-    await safeInsert("studio_act", movimenti);
-
-    if (error) {
-      console.error("❌ Errore registrazione movimenti Conti Studio:", error);
-
-      return {
-        ok: false,
-        error,
-        data: [],
-        accontoMovimentoId: null
-      };
-    }
+    const data = await safeInsert("studio_act", movimenti);
 
     if (!data || !data.length) {
       console.error("❌ Supabase non ha restituito movimenti Conti Studio");
@@ -7146,6 +7136,7 @@ async function registraMovimentiContiDaIncasso(idCliente, metodo, note, allocazi
       }
 
       accontoMovimentoId = movimentoAcconto.id_movimento;
+
       console.log("✅ ID movimento acconto:", accontoMovimentoId);
     } else {
       console.log("ℹ️ Nessun movimento acconto nuovo pacchetto generato");
@@ -7159,12 +7150,13 @@ async function registraMovimentiContiDaIncasso(idCliente, metodo, note, allocazi
       data: data,
       accontoMovimentoId: accontoMovimentoId
     };
-  } catch (err) {
-    console.error("❌ Errore imprevisto registraMovimentiContiDaIncasso:", err);
+
+  } catch (error) {
+    console.error("❌ Errore imprevisto registraMovimentiContiDaIncasso:", error);
 
     return {
       ok: false,
-      error: err,
+      error: error,
       data: [],
       accontoMovimentoId: null
     };
@@ -7228,13 +7220,14 @@ async function aggiungiMovimentoConti() {
     return;
   }
 
+  try {
   await safeInsert("studio_act", movimento);
+} catch (error) {
+  console.error("Errore aggiungiMovimentoConti:", error);
+  alert("Errore salvataggio movimento");
+  return;
+}
 
-  if (error) {
-    console.error("Errore aggiungiMovimentoConti:", error);
-    alert("Errore salvataggio movimento: " + error.message);
-    return;
-  }
 
   document.getElementById("conti_data").value = "";
   document.getElementById("conti_categoria").value = "";
@@ -7569,10 +7562,6 @@ async function registraEntrataPacchetto(pacchetto) {
     }
 
     await safeInsert("studio_act", movimento);
-
-    if (error) {
-      console.error("Errore contabilità:", error);
-    }
 
   } catch (err) {
     console.error("Errore funzione contabilità:", err);
