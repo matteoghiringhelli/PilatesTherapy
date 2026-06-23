@@ -3119,6 +3119,12 @@ function apriNuovoPacchettoDaHome() {
 async function apriDettaglioPacchettoDaCliente(idPacchetto) {
   console.log("➡️ Apri dettaglio pacchetto da cliente:", idPacchetto);
 
+  // ✅ MEMORIZZA ORIGINE NAVIGAZIONE
+  window.lastPacchettoNavigation = {
+    origine: "clienti",
+  };
+
+
   if (!idPacchetto) {
     console.warn("❌ ID pacchetto mancante");
     setStatus("ID pacchetto mancante", "err");
@@ -6368,6 +6374,25 @@ async function login() {
     if (status) status.textContent = "❌ Errore login";
   }
 }
+
+
+function tornaDaDettaglioPacchetto() {
+  console.log("↩️ Torna da dettaglio pacchetto");
+
+  // ✅ controllo se arrivo da cliente
+  if (window.lastPacchettoNavigation?.origine === "clienti") {
+    console.log("✅ Ritorno a clienti");
+
+    vaiTab("clienti");
+
+    return;
+  }
+
+  // fallback standard
+  console.log("➡️ Ritorno a lista pacchetti");
+  vaiTab("pacchetti");
+}
+
 
 
 console.log("APP JS CARICATO OK");
