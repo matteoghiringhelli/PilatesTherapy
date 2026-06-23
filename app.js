@@ -7120,33 +7120,30 @@ let contiData = [];
 // LOAD
 async function loadConti() {
   try {
-    console.log("💼 Carico Conti Studio...");
-
     const { data, error } = await supabaseClient
       .from("studio_act")
       .select("*")
       .order("data", { ascending: false });
 
     if (error) {
-      console.error("❌ Errore loadConti:", error);
-      alert("Errore caricamento Conti Studio");
+      console.error(error);
       return;
     }
 
-    // ✅ salvataggio dati
+    // ✅ STEP 1 — salva dati
     contiData = data || [];
-    contiDataOriginal = [...contiData]; // 🔥 fondamentale
 
-    console.log("✅ Conti caricati:", contiData.length);
+    // ✅ STEP 2 — copia originale (fondamentale)
+    contiDataOriginal = [...contiData];
 
-    // ✅ APPLICO SUBITO FILTRO
+    // ✅ STEP 3 — APPLICA FILTRO (QUESTO È IL PUNTO CHIAVE)
     applicaFiltroConti();
 
   } catch (err) {
-    console.error("❌ Errore generale loadConti:", err);
-    alert("Errore imprevisto Conti Studio");
+    console.error(err);
   }
 }
+
 
 
 
