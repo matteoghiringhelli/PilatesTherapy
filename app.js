@@ -3119,41 +3119,51 @@ function apriNuovoPacchettoDaHome() {
 async function apriDettaglioPacchettoDaCliente(idPacchetto) {
   console.log("➡️ Apri dettaglio pacchetto da cliente:", idPacchetto);
 
-  // ✅ 1. Vai alla tab pacchetti
-  showTab("pacchetti");
+  if (!idPacchetto) {
+    console.warn("❌ ID pacchetto mancante");
+    setStatus("ID pacchetto mancante", "err");
+    return;
+  }
 
   try {
-    // ✅ 2. IMPORTANTE: aspetta che i pacchetti siano caricati
+    // ✅ 1. Vai alla tab Pacchetti usando la funzione reale della tua app
+    vaiTab("pacchetti");
+
+    // ✅ 2. Aspetta che i pacchetti siano davvero ricaricati
     await loadPacchetti();
 
-    console.log("✅ Pacchetti caricati, cerco dettaglio...");
+    // ✅ 3. Cerca il pacchetto nell'array reale del progetto
+    const pacchetto = pacchettiData.find(p =>
+      String(p.ID_Pacchetto) === String(idPacchetto)
+    );
 
-    // ✅ 3. Piccolo delay per assicurare render DOM
+    if (!pacchetto) {
+      console.warn("❌ Pacchetto non trovato in pacchettiData:", idPacchetto);
+      setStatus("Pacchetto non trovato", "err");
+      alert("Pacchetto non trovato");
+      return;
+    }
+
+    console.log("✅ Pacchetto trovato, apro dettaglio:", pacchetto);
+
+    // ✅ 4. Apri il dettaglio passando l'ID, come richiede la tua funzione mostraDettaglioPacchetto()
+    mostraDettaglioPacchetto(idPacchetto);
+
+    // ✅ 5. Scroll verso il contenitore reale dei pacchetti
     setTimeout(() => {
-      const pacchetto = window.pacchetti?.find(p => p.ID_Pacchetto === idPacchetto);
-
-      if (!pacchetto) {
-        console.warn("❌ Pacchetto NON trovato:", idPacchetto);
-        alert("Pacchetto non trovato");
-        return;
+      const container = document.getElementById("outputPacchetti");
+      if (container) {
+        container.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
       }
-
-      console.log("✅ Pacchetto trovato, apro dettaglio:", pacchetto);
-
-      // ✅ 4. Apri dettaglio
-      mostraDettaglioPacchetto(pacchetto);
-
-      // ✅ 5. Scroll automatico (UX iPhone)
-      const dettaglioBox = document.getElementById("dettaglioPacchetto");
-      if (dettaglioBox) {
-        dettaglioBox.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-
-    }, 100);
+    }, 150);
 
   } catch (err) {
-    console.error("❌ Errore apertura dettaglio pacchetto:", err);
-    alert("Errore apertura dettaglio pacchetto");
+    console.error("❌ Errore apertura dettaglio pacchetto da cliente:", err);
+    setStatus("Errore apertura dettaglio pacchetto", "err");
+    alert("Errore apertura dettaglio pacchetto. Controlla la console.");
   }
 }
 
