@@ -7177,209 +7177,136 @@ async function aggiungiMovimentoConti() {
 
 // KPI
 function renderContiKpi() {
-  let entrate = 0;
-  let uscite = 0;
-  let imponibile = 0;
-  let incassiDaDefinire = 0;
+  const kpiEntrate = document.getElementById("contiEntrate");
+  const kpiUscite = document.getElementById("contiUscite");
+  const kpiSaldo = document.getElementById("contiSaldo");
+  const kpiExtra = document.getElementById("contiExtra");
 
-  // ============================
-  // LOOP DATI
-  // ============================
-  contiData.forEach(r => {
-    const tipo = getContiTipo(r);
-    const importo = getContiImporto(r);
-    const flagC = String(getContiFlagC(r) || "").toLowerCase();
-
-    // ✅ Totali base
-    if (tipo === "Entrata") {
-      entrate += importo;
-    }
-
-    if (tipo === "Uscita") {
-      uscite += importo;
-    }
-
-    // ✅ LOGICA FISCALE
-    // Solo Flag_C = No entra in imponibile
-    if (tipo === "Entrata" && flagC === "no") {
-      imponibile += importo;
-    }
-
-    // ✅ Acconti / non ancora classificati
-    if (tipo === "Entrata" && flagC === "da definire") {
-      incassiDaDefinire += importo;
-    }
-  });
-
-  const saldo = entrate - uscite;
-
-  // ============================
-  // CALCOLI FISCALI
-  // ============================
-  const base78 = imponibile * 0.78;
-  const imposta = base78 * 0.05;
-  const inps = base78 * 0.2607;
-  const totaleImposte = imposta + inps;
-
-  const box = document.getElementById("contiKpiRow");
-  if (!box) {
-    console.warn("❌ contiKpiRow non trovato");
+  if (!contiData || !contiData.length) {
+    if (kpiEntrate) kpiEntrate.innerText = "€ 0";
+    if (kpiUscite) kpiUscite.innerText = "€ 0";
+    if (kpiSaldo) kpiSaldo.innerText = "€ 0";
+    if (kpiExtra) kpiExtra.innerText = "";
     return;
   }
 
-  box.innerHTML = `
-    <!-- PRIMA RIGA -->
-    <div class="dashboard-kpi-row">
+  let entrate = 0;
+  let uscite = 0;
+  let incassiDaDefinire = 0;
+  let acconti = 0;
 
-      <div class="dashboard-kpi-card">
-        <div class="dashboard-kpi-title">Entrate</div>
-        <div class="dashboard-kpi-value" style="color:#34c759;">
-          ${formatEuro(entrate)}
-        </div>
-      </div>
+  contiData.forEach(m => {
+    const importo = Number(m.importo || 0);
 
-      <div class="dashboard-kpi-card">
-        <div class="dashboard-kpi-title">Uscite</div>
-        <div class="dashboard-kpi-value" style="color:#ff3b30;">
-          ${formatEuro(uscite)}
-        </div>
-      </div>
-
-      <div class="dashboard-kpi-card">
-        <div class="dashboard-kpi-title">Saldo</div>
-        <div class="dashboard-kpi-value">
-          ${formatEuro(saldo)}
-        </div>
-      </div>
-
-    </div>
-
-    <!-- SECONDA RIGA -->
-    <div class="dashboard-kpi-row">
-
-      <div class="dashboard-kpi-card">
-        <div class="dashboard-kpi-title">Imponibile (Flag C = No)</div>
-        <div class="dashboard-kpi-value">
-          ${formatEuro(imponibile)}
-        </div>
-      </div>
-
-      <div class="dashboard-kpi-card">
-        <div class="dashboard-kpi-title">Base 78%</div>
-        <div class="dashboard-kpi-value">
-          ${formatEuro(base78)}
-        </div>
-      </div>
-
-      <div class="dashboard-kpi-card">
-        <div class="dashboard-kpi-title">Imposta 5%</div>
-        <div class="dashboard-kpi-value" style="color:#ff9500;">
-          ${formatEuro(imposta)}
-        </div>
-      </div>
-
-      <div class="dashboard-kpi-card">
-        <div class="dashboard-kpi-title">INPS 26.07%</div>
-        <div class="dashboard-kpi-value" style="color:#af52de;">
-          ${formatEuro(inps)}
-        </div>
-      </div>
-
-    </div>
-
-    <!-- TERZA RIGA -->
-    <div class="dashboard-kpi-row">
-
-      <div class="dashboard-kpi-card">
-        <div class="dashboard-kpi-title">Totale imposte + INPS</div>
-        <div class="dashboard-kpi-value" style="color:#b00020;">
-          ${formatEuro(totaleImposte)}
-        </div>
-      </div>
-
-      <div class="dashboard-kpi-card">
-        <div class="dashboard-kpi-title">Incassi da definire</div>
-        <div class="dashboard-kpi-value" style="color:#ff9500;">
-          ${formatEuro(incassiDaDefinire)}
-        </div>
-      </div>
-
-    </div>
-
-    ${
-      incassiDaDefinire > 0
-        ? `
-          <div class="card-ios">
-            <div class="report-warning">
-              ⚠️ Incassi da definire: ${formatEuro(incassiDaDefinire)}<br>
-              Questi importi sono acconti non ancora collegati a un pacchetto definitivo (Flag C).
-              Verranno inclusi nei KPI fiscali solo dopo la riconciliazione.
-            </div>
-          </div>
-        `
-        : ""
+    if (String(m.tipo).toLowerCase() === "entrata") {
+      entrate += importo;
+    } else {
+      uscite += importo;
     }
-  `;
+
+    if (String(m.flag_c) === "Da definire") {
+      incassiDaDefinire += importo;
+    }
+
+    if (String(m.riferimento) === "acconto_nuovo_pacchetto") {
+      acconti += importo;
+    }
+  });
+
+  if (kpiEntrate) kpiEntrate.innerText = `€ ${entrate.toFixed(2)}`;
+  if (kpiUscite) kpiUscite.innerText = `€ ${uscite.toFixed(2)}`;
+  if (kpiSaldo) kpiSaldo.innerText = `€ ${(entrate - uscite).toFixed(2)}`;
+
+  if (kpiExtra) {
+    kpiExtra.innerHTML = `
+      <div style="margin-top:8px; font-size:13px;">
+
+        <div style="margin-bottom:4px;">
+          💳 Incassi da definire: <b>€ ${incassiDaDefinire.toFixed(2)}</b>
+        </div>
+
+        <div>
+          🔵 Acconti disponibili: <b>€ ${acconti.toFixed(2)}</b>
+        </div>
+
+      </div>
+    `;
+  }
 }
 
 
 
 // RENDER LISTA (mobile-first)
 function renderConti() {
-  renderContiKpi();
-
   const container = document.getElementById("contiList");
   if (!container) return;
 
-  if (!contiData.length) {
-    container.innerHTML = `<div class="muted">Nessun movimento</div>`;
+  if (!contiData || !contiData.length) {
+    container.innerHTML = `<div style="padding:15px;">Nessun movimento</div>`;
     return;
   }
 
-  container.innerHTML = contiData.map(r => {
-    const tipo = getContiTipo(r);
-    const categoria = getContiCategoria(r);
-    const data = getContiData(r);
-    const descrizione = getContiDescrizione(r);
-    const importo = getContiImporto(r);
-    const metodo = getContiMetodo(r);
-    const flagC = getContiFlagC(r);
-    const note = getContiNote(r);
+  const html = contiData
+    .map(row => {
 
-    return `
-      <div class="card-ios">
-        <div class="card-title">
-          ${tipo === "Entrata" ? "💰" : "💸"} ${safe(categoria)}
+      const isAcconto = row.riferimento === "acconto_nuovo_pacchetto";
+      const isDaDefinire = String(row.flag_c) === "Da definire";
+      const isEntrata = String(row.tipo).toLowerCase() === "entrata";
+
+      const borderColor =
+        isDaDefinire ? "#ff9500" :
+        isAcconto ? "#007aff" :
+        isEntrata ? "#34c759" : "#ff3b30";
+
+      return `
+      <div class="card-ios" style="border-left:4px solid ${borderColor}; margin-bottom:10px;">
+
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+
+          <div>
+            <div style="font-weight:600;">
+              ${row.descrizione || ""}
+            </div>
+
+            <div style="font-size:12px; opacity:0.6;">
+              ${row.data || ""} • ${row.categoria || ""}
+            </div>
+          </div>
+
+          <div style="font-weight:600; font-size:16px; color:${isEntrata ? "#34c759" : "#ff3b30"};">
+            € ${Number(row.importo || 0).toFixed(2)}
+          </div>
+
         </div>
 
-        <div class="card-sub">
-          📅 ${safe(data)}
+        <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+
+          ${
+            isDaDefinire
+              ? `<div class="tag-warning">Da definire</div>`
+              : ""
+          }
+
+          ${
+            isAcconto
+              ? `<div class="tag-acconto">Acconto</div>`
+              : ""
+          }
+
+          ${
+            row.id_pacchetto
+              ? `<div class="tag-success">Collegato</div>`
+              : ""
+          }
+
         </div>
 
-        <div class="card-row">
-          ${safe(descrizione || "")}
-        </div>
-
-        <div class="card-row" style="font-weight:700; color:${tipo === "Entrata" ? "#34c759" : "#ff3b30"};">
-          ${formatEuro(importo)}
-        </div>
-
-        <div class="card-sub">
-          Metodo: ${safe(metodo || "-")}
-        </div>
-
-        <div class="card-sub">
-          Flag C: ${safe(flagC || "-")}
-        </div>
-
-        ${
-          note
-            ? `<div class="card-sub">Note: ${safe(note)}</div>`
-            : ""
-        }
       </div>
-    `;
-  }).join("");
+      `;
+    })
+    .join("");
+
+  container.innerHTML = html;
 }
 
 
