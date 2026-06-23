@@ -4415,71 +4415,7 @@ async function aggiungiPacchetto() {
   }
 }
 
-async function riconciliaAccontoNuovoPacchetto(nuovoPacchetto) {
-  try {
-    const pending = window.pendingAccontoNuovoPacchetto;
 
-    // ✅ niente acconto da riconciliare
-    if (!pending || !pending.idCliente || !pending.acconto) {
-      return;
-    }
-
-    console.log("🔄 Riconciliazione acconto:", pending);
-
-    // ✅ cerca movimenti da riconciliare
-    const { data, error } = await supabaseClient
-      .from("studio_act")
-      .select("*")
-      .eq("origine", "incasso_cliente")
-      .eq("riferimento", "acconto_nuovo_pacchetto")
-      .eq("id_cliente", pending.idCliente)
-      .eq("flag_c", "Da definire");
-
-    if (error) {
-      console.error("❌ Errore ricerca acconti:", error);
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      console.warn("⚠️ Nessun acconto da riconciliare");
-      return;
-    }
-
-    console.log("📦 Movimenti trovati da riconciliare:", data);
-
-    // ✅ aggiorna tutti gli acconti trovati
-    for (const mov of data) {
-
-      const updatePayload = {
-        id_pacchetto: nuovoPacchetto.ID_Pacchetto,
-        flag_c: nuovoPacchetto.Flag_C || "No",
-        categoria: "Incasso Pacchetto",
-        riferimento: nuovoPacchetto.ID_Pacchetto,
-        descrizione: `Incasso collegato pacchetto ${nuovoPacchetto.ID_Pacchetto}`
-      };
-
-      const { error: updateError } = await supabaseClient
-        .from("studio_act")
-        .update(updatePayload)
-        .eq("id", mov.id);
-
-      if (updateError) {
-        console.error("❌ Errore update acconto:", updateError);
-        continue;
-      }
-
-      console.log("✅ Acconto riconciliato:", mov.id);
-    }
-
-    // ✅ reset memoria
-    window.pendingAccontoNuovoPacchetto = null;
-
-    console.log("✅ Riconciliazione completata");
-
-  } catch (err) {
-    console.error("❌ Errore riconciliazione:", err);
-  }
-}
 
 async function riconciliaAccontoNuovoPacchetto(nuovoPacchetto) {
   try {
