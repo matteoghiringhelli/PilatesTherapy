@@ -6805,100 +6805,200 @@ function getTodayDataConti() {
 }
 
 async function registraMovimentiContiDaIncasso(idCliente, metodo, note, allocazioni, eccedenza) {
-  const cliente = clientiData.find(c =>
-    String(c.ID_Cliente) === String(idCliente)
-  );
-
-  const clienteNome = cliente
-    ? `${cliente.Nome || ""} ${cliente.Cognome || ""}`.trim()
-    : "Cliente non trovato";
-
-  const movimenti = [];
-
-  // ============================
-  // MOVIMENTI SU PACCHETTI ESISTENTI
-  // ============================
-  (allocazioni || []).forEach(item => {
-    if (!item || !item.idPacchetto || Number(item.quotaAllocata || 0) <= 0) return;
-
-    movimenti.push({
-      data: getTodayDataConti(),
-      tipo: "Entrata",
-      categoria: "Incasso Pacchetto",
-      descrizione: `${clienteNome} - ${item.tipoPacchetto || ""}`,
-      importo: Number(item.quotaAllocata || 0),
-      metodo_pagamento: metodo || "",
-      note: note || `Incasso su pacchetto ${item.idPacchetto}`,
-      id_cliente: idCliente,
-      id_pacchetto: item.idPacchetto,
-      flag_c: item.flagC || "No",
-      origine: "incasso_cliente",
-      riferimento: item.idPacchetto
+  try {
+    console.log("💼 Avvio registraMovimentiContiDaIncasso:", {
+      idCliente,
+      metodo,
+      note,
+      allocazioni,
+      eccedenza
     });
-  });
 
-  // ============================
-  // MOVIMENTO ECCEDENZA / ACCONTO NUOVO PACCHETTO
-  // ============================
-  if (Number(eccedenza || 0) > 0) {
-    movimenti.push({
-      data: getTodayDataConti(),
-      tipo: "Entrata",
-      categoria: "Acconto Nuovo Pacchetto",
-      descrizione: `${clienteNome} - Acconto nuovo pacchetto`,
-      importo: Number(eccedenza || 0),
-      metodo_pagamento: metodo || "",
-      note: note || "Acconto da incasso eccedente / senza Da_Pagare aperti",
-      id_cliente: idCliente,
-      id_pacchetto: "",
-      flag_c: "Da definire",
-      origine: "incasso_cliente",
-      riferimento: "acconto_nuovo_pacchetto"
+    // ============================
+    // 1) VALIDAZIONE CLIENTE
+    // ============================
+    if (!idCliente) {
+      console.error("❌ idCliente mancante per registrazione Conti Studio");
+
+      return {
+        ok: false,
+        error: new Error("idCliente mancante per registrazione Conti Studio"),
+        data: [],
+        accontoMovimentoId: null
+      };
+    }
+
+    const cliente = clientiData.find(c =>
+      String(c.ID_Cliente) === String(idCliente)
+    );
+
+    const clienteNome = cliente
+      ? `${cliente.Nome || ""} ${cliente.Cognome || ""}`.trim()
+      : "Cliente non trovato";
+
+    // ============================
+    // 2) NORMALIZZAZIONE INPUT
+    // ============================
+    const metodoPagamento = String(metodo || "").trim();
+    const notePulite = String(note || "").trim();
+    const listaAllocazioni = Array.isArray(allocazioni) ? allocazioni : [];
+    const importoEccedenza = Number(eccedenza || 0);
+
+    const movimenti = [];
+
+    // ============================
+    // 3) MOVIMENTI SU PACCHETTI ESISTENTI
+    // ============================
+    listaAllocazioni.forEach(item => {
+      if (!item) return;
+
+      const idPacchetto = String(item.idPacchetto || "").trim();
+      const tipoPacchetto = String(item.tipoPacchetto || "").trim();
+      const flagC = String(item.flagC || "No").trim();
+      const quotaAllocata = Number(item.quotaAllocata || 0);
+
+      if (!idPacchetto) {
+        console.warn("⚠️ Allocazione senza idPacchetto ignorata:", item);
+        return;
+      }
+
+      if (!quotaAllocata || quotaAllocata <= 0) {
+        console.warn("⚠️ Allocazione con importo non valido ignorata:", item);
+        return;
+      }
+
+      movimenti.push({
+        data: getTodayDataConti(),
+        tipo: "Entrata",
+        categoria: "Incasso Pacchetto",
+        descrizione: `${clienteNome} - ${tipoPacchetto}`,
+        importo: Number(quotaAllocata.toFixed(2)),
+        metodo_pagamento: metodoPagamento,
+        note: notePulite || `Incasso su pacchetto ${idPacchetto}`,
+        id_cliente: idCliente,
+        id_pacchetto: idPacchetto,
+        flag_c: flagC || "No",
+        origine: "incasso_cliente",
+        riferimento: idPacchetto
+      });
     });
-  }
 
-  if (!movimenti.length) {
-    console.warn("Nessun movimento Conti Studio da registrare");
+    // ============================
+    // 4) MOVIMENTO ECCEDENZA / ACCONTO NUOVO PACCHETTO
+    // ============================
+    if (importoEccedenza > 0.009) {
+      movimenti.push({
+        data: getTodayDataConti(),
+        tipo: "Entrata",
+        categoria: "Acconto Nuovo Pacchetto",
+        descrizione: `${clienteNome} - Acconto nuovo pacchetto`,
+        importo: Number(importoEccedenza.toFixed(2)),
+        metodo_pagamento: metodoPagamento,
+        note: notePulite || "Acconto da incasso eccedente / senza Da_Pagare aperti",
+        id_cliente: idCliente,
+        id_pacchetto: "",
+        flag_c: "Da definire",
+        origine: "incasso_cliente",
+        riferimento: "acconto_nuovo_pacchetto"
+      });
+    }
+
+    // ============================
+    // 5) NESSUN MOVIMENTO DA REGISTRARE
+    // ============================
+    if (!movimenti.length) {
+      console.warn("⚠️ Nessun movimento Conti Studio da registrare");
+
+      return {
+        ok: true,
+        skipped: true,
+        reason: "nessun_movimento_da_registrare",
+        data: [],
+        accontoMovimentoId: null
+      };
+    }
+
+    console.log("💼 Movimenti Conti Studio da inserire:", movimenti);
+
+    // ============================
+    // 6) INSERT SU SUPABASE
+    // ============================
+    const { data, error } = await supabaseClient
+      .from("studio_act")
+      .insert(movimenti)
+      .select("*");
+
+    if (error) {
+      console.error("❌ Errore registrazione movimenti Conti Studio:", error);
+
+      return {
+        ok: false,
+        error,
+        data: [],
+        accontoMovimentoId: null
+      };
+    }
+
+    if (!data || !data.length) {
+      console.error("❌ Supabase non ha restituito movimenti Conti Studio");
+
+      return {
+        ok: false,
+        error: new Error("Supabase non ha restituito movimenti Conti Studio"),
+        data: [],
+        accontoMovimentoId: null
+      };
+    }
+
+    console.log("✅ Movimenti Conti Studio registrati:", data);
+
+    // ============================
+    // 7) RECUPERO MOVIMENTO ACCONTO
+    // ============================
+    const movimentoAcconto = data.find(m =>
+      String(m.riferimento || "") === "acconto_nuovo_pacchetto" &&
+      String(m.flag_c || "") === "Da definire" &&
+      String(m.id_cliente || "") === String(idCliente)
+    );
+
+    let accontoMovimentoId = null;
+
+    if (movimentoAcconto) {
+      if (!movimentoAcconto.id_movimento) {
+        console.error("❌ Movimento acconto creato ma senza id_movimento:", movimentoAcconto);
+
+        return {
+          ok: false,
+          error: new Error("Movimento acconto creato ma senza id_movimento"),
+          data: data,
+          accontoMovimentoId: null
+        };
+      }
+
+      accontoMovimentoId = movimentoAcconto.id_movimento;
+      console.log("✅ ID movimento acconto:", accontoMovimentoId);
+    } else {
+      console.log("ℹ️ Nessun movimento acconto nuovo pacchetto generato");
+    }
+
+    // ============================
+    // 8) RETURN OK
+    // ============================
     return {
       ok: true,
-      skipped: true,
-      data: [],
-      accontoMovimentoId: null
+      data: data,
+      accontoMovimentoId: accontoMovimentoId
     };
-  }
+  } catch (err) {
+    console.error("❌ Errore imprevisto registraMovimentiContiDaIncasso:", err);
 
-  console.log("💼 Movimenti Conti Studio da inserire:", movimenti);
-
-  const { data, error } = await supabaseClient
-    .from("studio_act")
-    .insert(movimenti)
-    .select();
-
-  if (error) {
-    console.error("❌ Errore registrazione movimenti Conti Studio:", error);
     return {
       ok: false,
-      error,
+      error: err,
       data: [],
       accontoMovimentoId: null
     };
   }
-
-  const movimentoAcconto = (data || []).find(m =>
-    String(m.riferimento || "") === "acconto_nuovo_pacchetto" &&
-    String(m.flag_c || "") === "Da definire"
-  );
-
-  const accontoMovimentoId = movimentoAcconto ? movimentoAcconto.id_movimento : null;
-
-  console.log("✅ Movimenti Conti Studio registrati:", data);
-  console.log("✅ ID movimento acconto:", accontoMovimentoId);
-
-  return {
-    ok: true,
-    data: data || [],
-    accontoMovimentoId: accontoMovimentoId
-  };
 }
 
 
