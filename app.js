@@ -93,18 +93,38 @@ const pluginTotaliColonne = {
 window.addEventListener("DOMContentLoaded", async () => {
   try {
     console.log("APP VERSION:", APP_VERSION);
+
+    // ============================
+    // ✅ CONTROLLO AUTENTICAZIONE
+    // ============================
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+      console.warn("Utente non autenticato, redirect al login");
+
+      window.location.href = "/index.html";
+      return;
+    }
+
+    // ✅ salva utente globale (preparazione per RLS futuro)
+    window.currentUser = user;
+
+    // ============================
+    // APP INIT
+    // ============================
     generaOrari();
     await reloadAll();
 
-    // apertura iniziale stile app
     setTimeout(() => {
       vaiTab("home");
     }, 150);
 
-    setStatus("Dashboard caricata correttamente ✅ - " + APP_VERSION, "ok");
+    setStatus("Dashboard caricata ✅", "ok");
+
   } catch (error) {
     console.error("Errore inizializzazione:", error);
-    setStatus("Errore inizializzazione dashboard. Controlla la console F12.", "err");
+
+    setStatus("Errore caricamento app. Contattare supporto.", "err");
   }
 });
 
@@ -2678,6 +2698,10 @@ async function registraIncassoCliente(idCliente) {
   console.log("💳 Registra incasso cliente:", idCliente);
 
   const importo = Number(document.getElementById("incasso_importo")?.value || 0);
+  if (!Number.isFinite(importo) || importo <= 0 || importo > 10000) {
+  setStatus("Importo non valido", "err");
+  return;
+  }
   const sceltaPacchetto = document.getElementById("incasso_pacchetto")?.value || "";
   const metodo = document.getElementById("incasso_metodo")?.value || "";
   const note = document.getElementById("incasso_note")?.value.trim() || "";
