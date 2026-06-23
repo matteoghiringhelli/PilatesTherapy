@@ -3725,86 +3725,149 @@ function generaNuovoIdPacchetto() {
 async function aggiungiPacchetto() {
   console.log("➡️ Avvio inserimento pacchetto");
 
-  // ✅ funzione helper per evitare crash
-  function getVal(id) {
-    const el = document.getElementById(id);
-    if (!el) {
-      console.warn("⚠️ Campo NON trovato:", id);
-      return null;
-    }
-    return el.value;
-  }
+  const idCliente = document.getElementById("pac_cliente")?.value || "";
+  const tipoPacchetto = document.getElementById("pac_tipo")?.value || "";
 
-  // ✅ LETTURA SICURA CAMPI
-  const cliente_id = getVal("pac_cliente");
-  const tipo = getVal("pac_tipo");
-  const lezioni_totali = parseInt(getVal("pac_lezioni_base")) || 0;
-  const prezzo = parseFloat(getVal("pac_prezzo")) || 0;
-  const da_pagare = parseFloat(getVal("pac_da_pagare")) || 0;
-  const flag_c = getVal("pac_flag_c") === "Si";
-  const data_inizio = getVal("pac_data_inizio") || null;
-  const durata = parseInt(getVal("pac_durata")) || null;
+  const lezioniBase = Number(document.getElementById("pac_lezioni_base")?.value || 0);
+  const lezioniAdd = Number(document.getElementById("pac_lezioni_add")?.value || 0);
+  const lezioniTotali = Number(document.getElementById("pac_lezioni_totali")?.value || 0);
 
-  console.log("DEBUG valori:", {
-    cliente_id,
-    tipo,
-    lezioni_totali,
-    prezzo,
-    da_pagare,
-    flag_c,
-    data_inizio,
-    durata
-  });
+  const prezzo = Number(document.getElementById("pac_prezzo")?.value || 0);
+  const flagPagato = document.getElementById("pac_flag_pagato")?.value || "Si";
+  let daPagare = Number(document.getElementById("pac_da_pagare")?.value || 0);
 
-  // ✅ VALIDAZIONI MINIME
-  if (!cliente_id) {
+  const flagC = document.getElementById("pac_flag_c")?.value || "Si";
+  let fatturaNr = document.getElementById("pac_fattura_nr")?.value.trim() || "";
+  let dataFattura = document.getElementById("pac_data_fattura")?.value || null;
+
+  const validoDa = document.getElementById("pac_valido_da")?.value || "";
+  const validoA = document.getElementById("pac_valido_a")?.value || "";
+  const stato = document.getElementById("pac_stato")?.value || "Attivo";
+
+  // ============================
+  // VALIDAZIONI
+  // ============================
+  if (!idCliente) {
+    setStatus("Seleziona un cliente", "err");
     alert("Seleziona un cliente");
     return;
   }
 
-  if (lezioni_totali <= 0) {
-    alert("Lezioni non valide");
+  if (!tipoPacchetto) {
+    setStatus("Seleziona un tipo pacchetto", "err");
+    alert("Seleziona un tipo pacchetto");
     return;
   }
 
-  // ✅ PAYLOAD
+  if (!lezioniTotali || lezioniTotali <= 0) {
+    setStatus("Lezioni totali non valide", "err");
+    alert("Lezioni totali non valide");
+    return;
+  }
+
+  if (!validoDa || !validoA) {
+    setStatus("Valido Da e Valido A sono obbligatori", "err");
+    alert("Valido Da e Valido A sono obbligatori");
+    return;
+  }
+
+  if (prezzo < 0) {
+    setStatus("Prezzo non valido", "err");
+    alert("Prezzo non valido");
+    return;
+  }
+
+  if (daPagare < 0) {
+    setStatus("Da Pagare non può essere negativo", "err");
+    alert("Da Pagare non può essere negativo");
+    return;
+  }
+
+  // ============================
+  // LOGICA BUSINESS
+  // ============================
+
+  // Se è pagato, il saldo deve essere sempre zero
+  if (flagPagato === "Si") {
+    daPagare = 0;
+  }
+
+  // Se Flag C = Si, fattura non richiesta
+  if (flagC === "Si") {
+    fatturaNr = "";
+    dataFattura = null;
+  }
+
+  // Se Flag C = No e Data Fattura è vuota ma Valido Da esiste,
+  // uso Valido Da come default coerente con la tua anteprima.
+  if (flagC === "No" && !dataFattura && validoDa) {
+    dataFattura = validoDa;
+  }
+
+  const nuovoIdPacchetto = generaNuovoIdPacchetto();
+
   const payload = {
-    cliente_id: cliente_id,
-    tipo: tipo,
-    lezioni_totali: lezioni_totali,
-    lezioni_residue: lezioni_totali,
-    prezzo: prezzo,
-    da_pagare: da_pagare,
-    flag_c: flag_c,
-    data_inizio: data_inizio,
-    durata: durata
+    ID_Pacchetto: nuovoIdPacchetto,
+    ID_Cliente: idCliente,
+    Tipo_Pacchetto: tipoPacchetto,
+    Lezioni_Base: lezioniBase,
+    Lezioni_Add: lezioniAdd,
+    Lezioni_Totali: lezioniTotali,
+    Prezzo: prezzo,
+    Flag_Pagato: flagPagato,
+    Da_Pagare: daPagare,
+    Flag_C: flagC,
+    Fattura_Nr: fatturaNr,
+    Data_Fattura: dataFattura,
+    Valido_Da: validoDa,
+    Valido_A: validoA,
+    Stato: stato
   };
 
-  console.log("📦 Payload pacchetto:", payload);
+  console.log("📦 Payload pacchetto corretto:", payload);
 
   try {
-    const { data, error } = await supabase
+    const response = await supabaseClient
       .from("pacchetti")
-      .insert([payload]);
+      .insert([payload])
+      .select();
 
-    if (error) {
-      console.error("❌ Errore Supabase:", error);
-      alert("Errore salvataggio: " + error.message);
+    console.log("Risposta insert pacchetto:", response);
+
+    if (response.error) {
+      console.error("❌ Errore Supabase aggiungiPacchetto:", response.error);
+      setStatus("Errore salvataggio pacchetto: " + response.error.message, "err");
+      alert("Errore salvataggio pacchetto: " + response.error.message);
       return;
     }
 
-    console.log("✅ Inserito:", data);
-    alert("✅ Pacchetto salvato");
+    if (!response.data || !response.data.length) {
+      setStatus("Pacchetto non restituito da Supabase: controlla le policy RLS", "err");
+      alert("Pacchetto non restituito da Supabase: controlla le policy RLS");
+      return;
+    }
 
-    // reset form se esiste
-    const form = document.getElementById("form_pacchetto");
-    if (form) form.reset();
+    pulisciFormPacchetto();
 
-    caricaPacchetti();
+    const nuovoPacchettoBox = document.getElementById("nuovoPacchettoBox");
+    if (nuovoPacchettoBox) {
+      nuovoPacchettoBox.classList.add("hidden");
+    }
 
+    await loadPacchetti();
+    await loadPrenotazioni();
+
+    const reportBox = document.getElementById("reportPacchettiBox");
+    if (reportBox && !reportBox.classList.contains("hidden")) {
+      renderReportPacchetti();
+    }
+
+    setStatus("Pacchetto salvato correttamente ✅", "ok");
+    alert("✅ Pacchetto salvato correttamente");
   } catch (err) {
-    console.error("❌ Errore generico:", err);
-    alert("Errore imprevisto");
+    console.error("❌ Errore generico aggiungiPacchetto:", err);
+    setStatus("Errore imprevisto salvataggio pacchetto", "err");
+    alert("Errore imprevisto salvataggio pacchetto");
   }
 }
 
