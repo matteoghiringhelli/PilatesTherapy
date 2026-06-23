@@ -4378,8 +4378,6 @@ async function aggiungiPacchetto() {
       return;
     }
 
-    const nuovoPacchetto = response.data[0];
-
     // ✅ Riconcilia eventuale acconto nuovo pacchetto PRIMA di pulire la memoria pending
     const riconciliaResult = await riconciliaAccontoNuovoPacchetto(nuovoPacchetto);
 
