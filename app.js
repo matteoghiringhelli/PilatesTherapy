@@ -2683,7 +2683,9 @@ async function registraIncassoCliente(idCliente) {
 
   let pacchettiDaPagare = getPacchettiDaPagareCliente(idCliente);
 
-  // ✅ Caso senza pacchetti aperti: tutto acconto nuovo pacchetto
+  // =====================================================
+  // CASO A — NESSUN DA_PAGARE APERTO
+  // =====================================================
   if (!pacchettiDaPagare.length || sceltaPacchetto === "__NUOVO__") {
     const confermaNuovo = confirm(
       "Non ci sono importi Da Pagare aperti per questo cliente.\n\nVuoi usare questo incasso come acconto per un nuovo pacchetto?"
@@ -2694,13 +2696,29 @@ async function registraIncassoCliente(idCliente) {
       return;
     }
 
+    // ✅ Registro tutto come acconto nuovo pacchetto in Conti Studio
+    const contiResult = await registraMovimentiContiDaIncasso(
+      idCliente,
+      metodo,
+      note,
+      [],
+      importo
+    );
+
+    if (!contiResult.ok) {
+      alert("Errore registrazione Conti Studio: " + contiResult.error.message);
+      return;
+    }
+
+    await loadConti();
+
     preparaNuovoPacchettoConAcconto(idCliente, importo);
     return;
   }
 
   let residuoIncasso = importo;
 
-  // ✅ Se viene selezionato un pacchetto specifico, lo metto per primo.
+  // ✅ Se hai scelto un pacchetto specifico, lo metto per primo.
   if (sceltaPacchetto && sceltaPacchetto !== "__AUTO__") {
     pacchettiDaPagare = pacchettiDaPagare.sort((a, b) => {
       if (String(a.ID_Pacchetto) === String(sceltaPacchetto)) return -1;
@@ -2709,8 +2727,11 @@ async function registraIncassoCliente(idCliente) {
     });
   }
 
-  const updates = [];
+  const allocazioniConti = [];
 
+  // =====================================================
+  // CASO B — SCALA IMPORTO DAI PACCHETTI APERTI
+  // =====================================================
   for (const p of pacchettiDaPagare) {
     if (residuoIncasso <= 0) break;
 
@@ -2725,13 +2746,6 @@ async function registraIncassoCliente(idCliente) {
       Flag_Pagato: nuovoDaPagare <= 0 ? "Si" : "No"
     };
 
-    updates.push({
-      idPacchetto: p.ID_Pacchetto,
-      quotaAllocata,
-      vecchioDaPagare: daPagareAttuale,
-      nuovoDaPagare
-    });
-
     const { error } = await supabaseClient
       .from("pacchetti")
       .update(payloadUpdate)
@@ -2743,16 +2757,44 @@ async function registraIncassoCliente(idCliente) {
       return;
     }
 
+    allocazioniConti.push({
+      idPacchetto: p.ID_Pacchetto,
+      tipoPacchetto: p.Tipo_Pacchetto,
+      flagC: p.Flag_C || "No",
+      quotaAllocata: quotaAllocata,
+      vecchioDaPagare: daPagareAttuale,
+      nuovoDaPagare: nuovoDaPagare
+    });
+
     residuoIncasso -= quotaAllocata;
+  }
+
+  // =====================================================
+  // CASO C — REGISTRA MOVIMENTI CONTI STUDIO
+  // =====================================================
+  const contiResult = await registraMovimentiContiDaIncasso(
+    idCliente,
+    metodo,
+    note,
+    allocazioniConti,
+    residuoIncasso
+  );
+
+  if (!contiResult.ok) {
+    alert("Errore registrazione Conti Studio: " + contiResult.error.message);
+    return;
   }
 
   await loadPacchetti();
   await loadPrenotazioni();
+  await loadConti();
 
-  console.log("✅ Allocazioni incasso:", updates);
+  console.log("✅ Allocazioni incasso:", allocazioniConti);
   console.log("💰 Residuo incasso:", residuoIncasso);
 
-  // ✅ Incasso superiore ai Da_Pagare aperti
+  // =====================================================
+  // CASO D — INCASSO SUPERIORE AI DA_PAGARE APERTI
+  // =====================================================
   if (residuoIncasso > 0.009) {
     const confermaEccedenza = confirm(
       "Incasso registrato sui pacchetti aperti.\n\nRimane un'eccedenza di " +
@@ -2766,8 +2808,8 @@ async function registraIncassoCliente(idCliente) {
     }
   }
 
-  setStatus("Incasso registrato correttamente ✅", "ok");
-  alert("✅ Incasso registrato correttamente");
+  setStatus("Incasso registrato e collegato a Conti Studio ✅", "ok");
+  alert("✅ Incasso registrato e collegato a Conti Studio");
 
   mostraPacchettiCliente(idCliente);
 }
@@ -6512,6 +6554,120 @@ function renderGraficoRicaviMensiliTipologia(dataMensile) {
 }
 
 
+function leggiCampoConti(row, ...nomi) {
+  for (const nome of nomi) {
+    if (row && row[nome] !== undefined && row[nome] !== null) {
+      return row[nome];
+    }
+  }
+  return "";
+}
+
+function getContiData(row) {
+  return leggiCampoConti(row, "data", "Data");
+}
+
+function getContiTipo(row) {
+  return leggiCampoConti(row, "tipo", "Tipo");
+}
+
+function getContiCategoria(row) {
+  return leggiCampoConti(row, "categoria", "Categoria");
+}
+
+function getContiDescrizione(row) {
+  return leggiCampoConti(row, "descrizione", "Descrizione");
+}
+
+function getContiImporto(row) {
+  return Number(leggiCampoConti(row, "importo", "Importo") || 0);
+}
+
+function getContiMetodo(row) {
+  return leggiCampoConti(row, "metodo_pagamento", "Metodo_Pagamento");
+}
+
+function getContiNote(row) {
+  return leggiCampoConti(row, "note", "Note");
+}
+
+function getContiFlagC(row) {
+  return leggiCampoConti(row, "flag_c", "Flag_C") || "";
+}
+
+function getTodayDataConti() {
+  return getTodayString();
+}
+
+async function registraMovimentiContiDaIncasso(idCliente, metodo, note, allocazioni, eccedenza) {
+  const cliente = clientiData.find(c =>
+    String(c.ID_Cliente) === String(idCliente)
+  );
+
+  const clienteNome = cliente
+    ? `${cliente.Nome || ""} ${cliente.Cognome || ""}`.trim()
+    : "Cliente non trovato";
+
+  const movimenti = [];
+
+  // ✅ Movimenti su pacchetti esistenti
+  (allocazioni || []).forEach(item => {
+    if (!item || !item.idPacchetto || Number(item.quotaAllocata || 0) <= 0) return;
+
+    movimenti.push({
+      data: getTodayDataConti(),
+      tipo: "Entrata",
+      categoria: "Incasso Pacchetto",
+      descrizione: `${clienteNome} - ${item.tipoPacchetto || ""}`,
+      importo: Number(item.quotaAllocata || 0),
+      metodo_pagamento: metodo || "",
+      note: note || `Incasso su pacchetto ${item.idPacchetto}`,
+      id_cliente: idCliente,
+      id_pacchetto: item.idPacchetto,
+      flag_c: item.flagC || "No",
+      origine: "incasso_cliente",
+      riferimento: item.idPacchetto
+    });
+  });
+
+  // ✅ Eccedenza / acconto nuovo pacchetto
+  if (Number(eccedenza || 0) > 0) {
+    movimenti.push({
+      data: getTodayDataConti(),
+      tipo: "Entrata",
+      categoria: "Acconto Nuovo Pacchetto",
+      descrizione: `${clienteNome} - Acconto nuovo pacchetto`,
+      importo: Number(eccedenza || 0),
+      metodo_pagamento: metodo || "",
+      note: note || "Acconto da incasso eccedente / senza Da_Pagare aperti",
+      id_cliente: idCliente,
+      id_pacchetto: "",
+      flag_c: "Da definire",
+      origine: "incasso_cliente",
+      riferimento: "acconto_nuovo_pacchetto"
+    });
+  }
+
+  if (!movimenti.length) {
+    console.warn("Nessun movimento Conti Studio da registrare");
+    return { ok: true, skipped: true };
+  }
+
+  console.log("💼 Movimenti Conti Studio da inserire:", movimenti);
+
+  const { error } = await supabaseClient
+    .from("studio_act")
+    .insert(movimenti);
+
+  if (error) {
+    console.error("❌ Errore registrazione movimenti Conti Studio:", error);
+    return { ok: false, error };
+  }
+
+  console.log("✅ Movimenti Conti Studio registrati");
+  return { ok: true };
+}
+
 
 // ============================
 // CONTI STUDIO
@@ -6524,10 +6680,11 @@ async function loadConti() {
   const { data, error } = await supabaseClient
     .from("studio_act")
     .select("*")
-    .order("Data", { ascending: false });
+    .order("data", { ascending: false });
 
   if (error) {
-    console.error(error);
+    console.error("Errore loadConti:", error);
+    setStatus("Errore caricamento Conti Studio: " + error.message, "err");
     return;
   }
 
@@ -6540,18 +6697,20 @@ async function loadConti() {
 
 // INSERT
 async function aggiungiMovimentoConti() {
-
   const movimento = {
-    Data: document.getElementById("conti_data").value,
-    Tipo: document.getElementById("conti_tipo").value,
-    Categoria: document.getElementById("conti_categoria").value,
-    Descrizione: document.getElementById("conti_descrizione").value,
-    Importo: parseFloat(document.getElementById("conti_importo").value || 0),
-    Metodo_Pagamento: document.getElementById("conti_metodo").value,
-    Note: document.getElementById("conti_note").value
+    data: document.getElementById("conti_data")?.value || "",
+    tipo: document.getElementById("conti_tipo")?.value || "",
+    categoria: document.getElementById("conti_categoria")?.value || "",
+    descrizione: document.getElementById("conti_descrizione")?.value || "",
+    importo: parseFloat(document.getElementById("conti_importo")?.value || 0),
+    metodo_pagamento: document.getElementById("conti_metodo")?.value || "",
+    note: document.getElementById("conti_note")?.value || "",
+    flag_c: "No",
+    origine: "manuale",
+    riferimento: ""
   };
 
-  if (!movimento.Data || !movimento.Categoria || !movimento.Importo) {
+  if (!movimento.data || !movimento.categoria || !movimento.importo) {
     alert("Compila Data, Categoria e Importo");
     return;
   }
@@ -6561,12 +6720,11 @@ async function aggiungiMovimentoConti() {
     .insert([movimento]);
 
   if (error) {
-    console.error(error);
-    alert("Errore salvataggio");
+    console.error("Errore aggiungiMovimentoConti:", error);
+    alert("Errore salvataggio movimento: " + error.message);
     return;
   }
 
-  // reset form
   document.getElementById("conti_data").value = "";
   document.getElementById("conti_categoria").value = "";
   document.getElementById("conti_descrizione").value = "";
@@ -6575,81 +6733,83 @@ async function aggiungiMovimentoConti() {
   document.getElementById("conti_note").value = "";
 
   await loadConti();
+
+  setStatus("Movimento Conti Studio salvato ✅", "ok");
 }
 
 
 // KPI
 function renderContiKpi() {
-
   let entrate = 0;
   let uscite = 0;
   let imponibile = 0;
+  let incassiDaDefinire = 0;
 
   contiData.forEach(r => {
+    const tipo = getContiTipo(r);
+    const importo = getContiImporto(r);
+    const flagC = String(getContiFlagC(r) || "").toLowerCase();
 
-    const importo = Number(r.Importo || 0);
-
-    // Totali base
-    if (r.Tipo === "Entrata") {
+    // ============================
+    // TOTALI BASE
+    // ============================
+    if (tipo === "Entrata") {
       entrate += importo;
-    } else {
+    }
+
+    if (tipo === "Uscita") {
       uscite += importo;
     }
 
-    // =========================
-    // LOGICA FLAG_C
-    // =========================
-
-    if (r.Tipo === "Entrata") {
-
-      const flagC = (r.Flag_C || "No").toLowerCase();
-
-      if (flagC === "no") {
-        imponibile += importo;
-      }
+    // ============================
+    // LOGICA FISCALE
+    // ============================
+    // Solo gli incassi con Flag_C = No entrano nell'imponibile fiscale.
+    // Flag_C = Si viene escluso.
+    // Flag_C = Da definire viene tenuto separato.
+    if (tipo === "Entrata" && flagC === "no") {
+      imponibile += importo;
     }
 
+    if (tipo === "Entrata" && flagC === "da definire") {
+      incassiDaDefinire += importo;
+    }
   });
 
   const saldo = entrate - uscite;
 
-  // =========================
-  // FISCALE
-  // =========================
-
+  // ============================
+  // CALCOLI FISCALI
+  // ============================
   const base78 = imponibile * 0.78;
   const imposta = base78 * 0.05;
   const inps = base78 * 0.2607;
+  const totaleFiscaleStimato = imposta + inps;
 
-  // =========================
-  // UI
-  // =========================
+  const box = document.getElementById("contiKpiRow");
+  if (!box) return;
 
-  document.getElementById("contiKpiRow").innerHTML = `
-    
+  box.innerHTML = `
     <div class="dashboard-kpi-row">
 
-      <!-- ENTRATE -->
       <div class="dashboard-kpi-card">
         <div class="dashboard-kpi-title">Entrate</div>
         <div class="dashboard-kpi-value" style="color:#34c759;">
-          € ${entrate.toFixed(2)}
+          ${formatEuro(entrate)}
         </div>
       </div>
 
-      <!-- USCITE -->
       <div class="dashboard-kpi-card">
         <div class="dashboard-kpi-title">Uscite</div>
         <div class="dashboard-kpi-value" style="color:#ff3b30;">
-          € ${uscite.toFixed(2)}
+          ${formatEuro(uscite)}
         </div>
       </div>
 
-      <!-- SALDO -->
       <div class="dashboard-kpi-card">
         <div class="dashboard-kpi-title">Saldo</div>
         <div class="dashboard-kpi-value">
-          € ${saldo.toFixed(2)}
+          ${formatEuro(saldo)}
         </div>
       </div>
 
@@ -6657,84 +6817,128 @@ function renderContiKpi() {
 
     <div class="dashboard-kpi-row">
 
-      <!-- IMPONIBILE -->
       <div class="dashboard-kpi-card">
-        <div class="dashboard-kpi-title">Imponibile</div>
+        <div class="dashboard-kpi-title">Imponibile Flag C = No</div>
         <div class="dashboard-kpi-value">
-          € ${imponibile.toFixed(2)}
+          ${formatEuro(imponibile)}
         </div>
       </div>
 
-      <!-- BASE 78% -->
       <div class="dashboard-kpi-card">
-        <div class="dashboard-kpi-title">Base (78%)</div>
+        <div class="dashboard-kpi-title">Base fiscale 78%</div>
         <div class="dashboard-kpi-value">
-          € ${base78.toFixed(2)}
+          ${formatEuro(base78)}
         </div>
       </div>
 
-      <!-- IMPOSTA -->
       <div class="dashboard-kpi-card">
-        <div class="dashboard-kpi-title">Imposta (5%)</div>
+        <div class="dashboard-kpi-title">Imposta sostitutiva 5%</div>
         <div class="dashboard-kpi-value" style="color:#ff9500;">
-          € ${imposta.toFixed(2)}
+          ${formatEuro(imposta)}
         </div>
       </div>
 
-      <!-- INPS -->
       <div class="dashboard-kpi-card">
-        <div class="dashboard-kpi-title">INPS (26.07%)</div>
+        <div class="dashboard-kpi-title">INPS 26.07%</div>
         <div class="dashboard-kpi-value" style="color:#af52de;">
-          € ${inps.toFixed(2)}
+          ${formatEuro(inps)}
         </div>
       </div>
 
     </div>
+
+    <div class="dashboard-kpi-row">
+
+      <div class="dashboard-kpi-card">
+        <div class="dashboard-kpi-title">Totale imposte + INPS stimato</div>
+        <div class="dashboard-kpi-value" style="color:#b00020;">
+          ${formatEuro(totaleFiscaleStimato)}
+        </div>
+      </div>
+
+      <div class="dashboard-kpi-card">
+        <div class="dashboard-kpi-title">Incassi da definire</div>
+        <div class="dashboard-kpi-value" style="color:#ff9500;">
+          ${formatEuro(incassiDaDefinire)}
+        </div>
+      </div>
+
+    </div>
+
+    ${
+      incassiDaDefinire > 0
+        ? `
+          <div class="card-ios">
+            <div class="report-warning">
+              ⚠️ Incassi da definire fiscalmente: ${formatEuro(incassiDaDefinire)}<br>
+              Questi importi sono acconti collegati a nuovi pacchetti non ancora qualificati con Flag C.
+              Quando il nuovo pacchetto verrà salvato, dovremo riconciliare l'acconto con il nuovo ID Pacchetto e il Flag C definitivo.
+            </div>
+          </div>
+        `
+        : ""
+    }
   `;
 }
 
 
 // RENDER LISTA (mobile-first)
 function renderConti() {
-
   renderContiKpi();
 
   const container = document.getElementById("contiList");
+  if (!container) return;
 
   if (!contiData.length) {
     container.innerHTML = `<div class="muted">Nessun movimento</div>`;
     return;
   }
 
-  container.innerHTML = contiData.map(r => `
-    <div class="card-ios">
+  container.innerHTML = contiData.map(r => {
+    const tipo = getContiTipo(r);
+    const categoria = getContiCategoria(r);
+    const data = getContiData(r);
+    const descrizione = getContiDescrizione(r);
+    const importo = getContiImporto(r);
+    const metodo = getContiMetodo(r);
+    const flagC = getContiFlagC(r);
+    const note = getContiNote(r);
 
-      <div class="card-title">
-        ${r.Tipo === "Entrata" ? "💰" : "💸"} ${r.Categoria}
+    return `
+      <div class="card-ios">
+        <div class="card-title">
+          ${tipo === "Entrata" ? "💰" : "💸"} ${safe(categoria)}
+        </div>
+
+        <div class="card-sub">
+          📅 ${safe(data)}
+        </div>
+
+        <div class="card-row">
+          ${safe(descrizione || "")}
+        </div>
+
+        <div class="card-row" style="font-weight:700; color:${tipo === "Entrata" ? "#34c759" : "#ff3b30"};">
+          ${formatEuro(importo)}
+        </div>
+
+        <div class="card-sub">
+          Metodo: ${safe(metodo || "-")}
+        </div>
+
+        <div class="card-sub">
+          Flag C: ${safe(flagC || "-")}
+        </div>
+
+        ${
+          note
+            ? `<div class="card-sub">Note: ${safe(note)}</div>`
+            : ""
+        }
       </div>
-
-      <div class="card-sub">${r.Data}</div>
-
-      <div class="card-row">${r.Descrizione || ""}</div>
-
-      <div class="card-row" style="font-weight:700;
-        color:${r.Tipo === "Entrata" ? "#34c759" : "#ff3b30"};">
-        € ${Number(r.Importo).toFixed(2)}
-      </div>
-
-      <div class="card-sub">${r.Metodo_Pagamento || ""}</div>
-
-    </div>
-  `).join("");
+    `;
+  }).join("");
 }
-
-
-// AUTO LOAD
-window.addEventListener("DOMContentLoaded", () => {
-  if (document.getElementById("contiSection")) {
-    loadConti();
-  }
-});
 
 
 // ============================
@@ -6779,8 +6983,7 @@ async function registraEntrataPacchetto(pacchetto) {
 let contiDataOriginal = [];
 
 function applicaFiltroConti() {
-
-  const mese = document.getElementById("conti_mese").value;
+  const mese = document.getElementById("conti_mese")?.value || "";
 
   if (!mese) {
     alert("Seleziona un mese");
@@ -6790,13 +6993,11 @@ function applicaFiltroConti() {
   const [annoFiltro, meseFiltro] = mese.split("-");
 
   const filtrati = contiDataOriginal.filter(r => {
+    const dataMovimento = getContiData(r);
+    if (!dataMovimento) return false;
 
-    if (!r.data) return false;
-
-    // ✅ parsing SICURO (no Date JS)
-    const [anno, mese] = r.data.split("-");
-
-    return anno === annoFiltro && mese === meseFiltro;
+    const [anno, meseMov] = String(dataMovimento).split("-");
+    return anno === annoFiltro && meseMov === meseFiltro;
   });
 
   contiData = filtrati;
