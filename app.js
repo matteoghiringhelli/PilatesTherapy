@@ -3725,24 +3725,40 @@ function generaNuovoIdPacchetto() {
 async function aggiungiPacchetto() {
   console.log("➡️ Avvio inserimento pacchetto");
 
-  // ✅ LETTURA CAMPI FORM (allineati al tuo HTML)
-  const cliente_id = document.getElementById("pac_cliente").value;
-  const tipo = document.getElementById("pac_tipo").value;
-  const lezioni_totali = parseInt(document.getElementById("pac_lezioni_base").value) || 0;
-  const prezzo = parseFloat(document.getElementById("pac_prezzo").value) || 0;
-  const da_pagare = parseFloat(document.getElementById("pac_da_pagare").value) || 0;
-  const flag_c = document.getElementById("pac_flag_c").value === "Si";
-  const data_inizio = document.getElementById("pac_data_inizio").value || null;
-  const durata = parseInt(document.getElementById("pac_durata").value) || null;
-
-  // ✅ VALIDAZIONE BASE
-  if (!cliente_id) {
-    alert("Seleziona un cliente");
-    return;
+  // ✅ funzione helper per evitare crash
+  function getVal(id) {
+    const el = document.getElementById(id);
+    if (!el) {
+      console.warn("⚠️ Campo NON trovato:", id);
+      return null;
+    }
+    return el.value;
   }
 
-  if (!tipo) {
-    alert("Inserisci tipo pacchetto");
+  // ✅ LETTURA SICURA CAMPI
+  const cliente_id = getVal("pac_cliente");
+  const tipo = getVal("pac_tipo");
+  const lezioni_totali = parseInt(getVal("pac_lezioni_base")) || 0;
+  const prezzo = parseFloat(getVal("pac_prezzo")) || 0;
+  const da_pagare = parseFloat(getVal("pac_da_pagare")) || 0;
+  const flag_c = getVal("pac_flag_c") === "Si";
+  const data_inizio = getVal("pac_data_inizio") || null;
+  const durata = parseInt(getVal("pac_durata")) || null;
+
+  console.log("DEBUG valori:", {
+    cliente_id,
+    tipo,
+    lezioni_totali,
+    prezzo,
+    da_pagare,
+    flag_c,
+    data_inizio,
+    durata
+  });
+
+  // ✅ VALIDAZIONI MINIME
+  if (!cliente_id) {
+    alert("Seleziona un cliente");
     return;
   }
 
@@ -3751,15 +3767,12 @@ async function aggiungiPacchetto() {
     return;
   }
 
-  // ✅ CALCOLO LEZIONI RESIDUE
-  const lezioni_residue = lezioni_totali;
-
-  // ✅ COSTRUZIONE PAYLOAD
+  // ✅ PAYLOAD
   const payload = {
     cliente_id: cliente_id,
     tipo: tipo,
     lezioni_totali: lezioni_totali,
-    lezioni_residue: lezioni_residue,
+    lezioni_residue: lezioni_totali,
     prezzo: prezzo,
     da_pagare: da_pagare,
     flag_c: flag_c,
@@ -3775,19 +3788,18 @@ async function aggiungiPacchetto() {
       .insert([payload]);
 
     if (error) {
-      console.error("❌ Errore inserimento:", error);
-      alert("Errore salvataggio pacchetto: " + error.message);
+      console.error("❌ Errore Supabase:", error);
+      alert("Errore salvataggio: " + error.message);
       return;
     }
 
-    console.log("✅ Pacchetto inserito:", data);
+    console.log("✅ Inserito:", data);
+    alert("✅ Pacchetto salvato");
 
-    alert("✅ Pacchetto salvato correttamente");
+    // reset form se esiste
+    const form = document.getElementById("form_pacchetto");
+    if (form) form.reset();
 
-    // ✅ RESET FORM
-    document.getElementById("form_pacchetto").reset();
-
-    // ✅ REFRESH LISTA
     caricaPacchetti();
 
   } catch (err) {
