@@ -4255,19 +4255,15 @@ async function aggiungiPacchetto() {
 
   const idCliente = document.getElementById("pac_cliente")?.value || "";
   const tipoPacchetto = document.getElementById("pac_tipo")?.value || "";
-
   const lezioniBase = Number(document.getElementById("pac_lezioni_base")?.value || 0);
   const lezioniAdd = Number(document.getElementById("pac_lezioni_add")?.value || 0);
   const lezioniTotali = Number(document.getElementById("pac_lezioni_totali")?.value || 0);
-
   const prezzo = Number(document.getElementById("pac_prezzo")?.value || 0);
   const flagPagato = document.getElementById("pac_flag_pagato")?.value || "Si";
   let daPagare = Number(document.getElementById("pac_da_pagare")?.value || 0);
-
   const flagC = document.getElementById("pac_flag_c")?.value || "Si";
   let fatturaNr = document.getElementById("pac_fattura_nr")?.value.trim() || "";
   let dataFattura = document.getElementById("pac_data_fattura")?.value || null;
-
   const validoDa = document.getElementById("pac_valido_da")?.value || "";
   const validoA = document.getElementById("pac_valido_a")?.value || "";
   const stato = document.getElementById("pac_stato")?.value || "Attivo";
@@ -4314,20 +4310,15 @@ async function aggiungiPacchetto() {
   // ============================
   // LOGICA BUSINESS
   // ============================
-
-  // Se è pagato, il saldo deve essere sempre zero
   if (flagPagato === "Si") {
     daPagare = 0;
   }
 
-  // Se Flag C = Si, fattura non richiesta
   if (flagC === "Si") {
     fatturaNr = "";
     dataFattura = null;
   }
 
-  // Se Flag C = No e Data Fattura è vuota ma Valido Da esiste,
-  // uso Valido Da come default coerente con la tua anteprima.
   if (flagC === "No" && !dataFattura && validoDa) {
     dataFattura = validoDa;
   }
@@ -4360,11 +4351,9 @@ async function aggiungiPacchetto() {
       .insert([payload])
       .select();
 
-    const nuovoPacchetto = response.data[0];
-    await riconciliaAccontoNuovoPacchetto(nuovoPacchetto);
-
     console.log("Risposta insert pacchetto:", response);
 
+    // ✅ 1. Prima controllo errore Supabase
     if (response.error) {
       console.error("❌ Errore Supabase aggiungiPacchetto:", response.error);
       setStatus("Errore salvataggio pacchetto: " + response.error.message, "err");
@@ -4372,16 +4361,20 @@ async function aggiungiPacchetto() {
       return;
     }
 
-      if (!response.data || !response.data.length) {
+    // ✅ 2. Poi controllo che Supabase abbia restituito il pacchetto
+    if (!response.data || !response.data.length) {
       setStatus("Pacchetto non restituito da Supabase: controlla le policy RLS", "err");
       alert("Pacchetto non restituito da Supabase: controlla le policy RLS");
       return;
     }
 
-    // ✅ Riconcilia eventuale acconto nuovo pacchetto PRIMA di pulire la memoria pending
+    // ✅ 3. Solo ora posso usare il nuovo pacchetto
+    const nuovoPacchetto = response.data[0];
+
+    // ✅ 4. Riconcilia eventuale acconto nuovo pacchetto UNA SOLA VOLTA
     const riconciliaResult = await riconciliaAccontoNuovoPacchetto(nuovoPacchetto);
 
-    if (!riconciliaResult.ok) {
+    if (riconciliaResult && riconciliaResult.ok === false) {
       console.error("Errore riconciliazione acconto:", riconciliaResult.error);
       alert(
         "Pacchetto salvato, ma errore nella riconciliazione acconto: " +
@@ -4389,6 +4382,7 @@ async function aggiungiPacchetto() {
       );
     }
 
+    // ✅ 5. Pulizia memoria acconto pending
     window.pendingAccontoNuovoPacchetto = null;
 
     const accontoInfo = document.getElementById("accontoNuovoPacchettoInfo");
@@ -4396,6 +4390,7 @@ async function aggiungiPacchetto() {
       accontoInfo.remove();
     }
 
+    // ✅ 6. Pulizia form e refresh dati
     pulisciFormPacchetto();
 
     const nuovoPacchettoBox = document.getElementById("nuovoPacchettoBox");
