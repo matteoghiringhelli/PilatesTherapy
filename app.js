@@ -6745,14 +6745,15 @@ function renderContiKpi() {
   let imponibile = 0;
   let incassiDaDefinire = 0;
 
+  // ============================
+  // LOOP DATI
+  // ============================
   contiData.forEach(r => {
     const tipo = getContiTipo(r);
     const importo = getContiImporto(r);
     const flagC = String(getContiFlagC(r) || "").toLowerCase();
 
-    // ============================
-    // TOTALI BASE
-    // ============================
+    // ✅ Totali base
     if (tipo === "Entrata") {
       entrate += importo;
     }
@@ -6761,16 +6762,13 @@ function renderContiKpi() {
       uscite += importo;
     }
 
-    // ============================
-    // LOGICA FISCALE
-    // ============================
-    // Solo gli incassi con Flag_C = No entrano nell'imponibile fiscale.
-    // Flag_C = Si viene escluso.
-    // Flag_C = Da definire viene tenuto separato.
+    // ✅ LOGICA FISCALE
+    // Solo Flag_C = No entra in imponibile
     if (tipo === "Entrata" && flagC === "no") {
       imponibile += importo;
     }
 
+    // ✅ Acconti / non ancora classificati
     if (tipo === "Entrata" && flagC === "da definire") {
       incassiDaDefinire += importo;
     }
@@ -6784,12 +6782,16 @@ function renderContiKpi() {
   const base78 = imponibile * 0.78;
   const imposta = base78 * 0.05;
   const inps = base78 * 0.2607;
-  const totaleFiscaleStimato = imposta + inps;
+  const totaleImposte = imposta + inps;
 
   const box = document.getElementById("contiKpiRow");
-  if (!box) return;
+  if (!box) {
+    console.warn("❌ contiKpiRow non trovato");
+    return;
+  }
 
   box.innerHTML = `
+    <!-- PRIMA RIGA -->
     <div class="dashboard-kpi-row">
 
       <div class="dashboard-kpi-card">
@@ -6815,24 +6817,25 @@ function renderContiKpi() {
 
     </div>
 
+    <!-- SECONDA RIGA -->
     <div class="dashboard-kpi-row">
 
       <div class="dashboard-kpi-card">
-        <div class="dashboard-kpi-title">Imponibile Flag C = No</div>
+        <div class="dashboard-kpi-title">Imponibile (Flag C = No)</div>
         <div class="dashboard-kpi-value">
           ${formatEuro(imponibile)}
         </div>
       </div>
 
       <div class="dashboard-kpi-card">
-        <div class="dashboard-kpi-title">Base fiscale 78%</div>
+        <div class="dashboard-kpi-title">Base 78%</div>
         <div class="dashboard-kpi-value">
           ${formatEuro(base78)}
         </div>
       </div>
 
       <div class="dashboard-kpi-card">
-        <div class="dashboard-kpi-title">Imposta sostitutiva 5%</div>
+        <div class="dashboard-kpi-title">Imposta 5%</div>
         <div class="dashboard-kpi-value" style="color:#ff9500;">
           ${formatEuro(imposta)}
         </div>
@@ -6847,12 +6850,13 @@ function renderContiKpi() {
 
     </div>
 
+    <!-- TERZA RIGA -->
     <div class="dashboard-kpi-row">
 
       <div class="dashboard-kpi-card">
-        <div class="dashboard-kpi-title">Totale imposte + INPS stimato</div>
+        <div class="dashboard-kpi-title">Totale imposte + INPS</div>
         <div class="dashboard-kpi-value" style="color:#b00020;">
-          ${formatEuro(totaleFiscaleStimato)}
+          ${formatEuro(totaleImposte)}
         </div>
       </div>
 
@@ -6870,9 +6874,9 @@ function renderContiKpi() {
         ? `
           <div class="card-ios">
             <div class="report-warning">
-              ⚠️ Incassi da definire fiscalmente: ${formatEuro(incassiDaDefinire)}<br>
-              Questi importi sono acconti collegati a nuovi pacchetti non ancora qualificati con Flag C.
-              Quando il nuovo pacchetto verrà salvato, dovremo riconciliare l'acconto con il nuovo ID Pacchetto e il Flag C definitivo.
+              ⚠️ Incassi da definire: ${formatEuro(incassiDaDefinire)}<br>
+              Questi importi sono acconti non ancora collegati a un pacchetto definitivo (Flag C).
+              Verranno inclusi nei KPI fiscali solo dopo la riconciliazione.
             </div>
           </div>
         `
@@ -6880,6 +6884,7 @@ function renderContiKpi() {
     }
   `;
 }
+
 
 
 // RENDER LISTA (mobile-first)
