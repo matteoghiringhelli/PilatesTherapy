@@ -6677,14 +6677,18 @@ let contiData = [];
 
 // LOAD
 async function loadConti() {
+  console.log("➡️ loadConti partita");
+
   const { data, error } = await supabaseClient
     .from("studio_act")
     .select("*")
     .order("data", { ascending: false });
 
+  console.log("📦 dati conti:", data);
+  console.log("❌ errore:", error);
+
   if (error) {
-    console.error("Errore loadConti:", error);
-    setStatus("Errore caricamento Conti Studio: " + error.message, "err");
+    alert("Errore conti: " + error.message);
     return;
   }
 
@@ -6693,6 +6697,7 @@ async function loadConti() {
 
   renderConti();
 }
+
 
 
 // INSERT
