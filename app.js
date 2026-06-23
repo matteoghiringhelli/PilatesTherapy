@@ -4253,6 +4253,9 @@ function generaNuovoIdPacchetto() {
 async function aggiungiPacchetto() {
   console.log("➡️ Avvio inserimento pacchetto");
 
+  // ============================
+  // 1) LETTURA CAMPI FORM
+  // ============================
   const idCliente = document.getElementById("pac_cliente")?.value || "";
   const tipoPacchetto = document.getElementById("pac_tipo")?.value || "";
   const lezioniBase = Number(document.getElementById("pac_lezioni_base")?.value || 0);
@@ -4269,46 +4272,40 @@ async function aggiungiPacchetto() {
   const stato = document.getElementById("pac_stato")?.value || "Attivo";
 
   // ============================
-  // VALIDAZIONI
+  // 2) VALIDAZIONI
   // ============================
   if (!idCliente) {
-    setStatus("Seleziona un cliente", "err");
     alert("Seleziona un cliente");
     return;
   }
 
   if (!tipoPacchetto) {
-    setStatus("Seleziona un tipo pacchetto", "err");
     alert("Seleziona un tipo pacchetto");
     return;
   }
 
   if (!lezioniTotali || lezioniTotali <= 0) {
-    setStatus("Lezioni totali non valide", "err");
     alert("Lezioni totali non valide");
     return;
   }
 
   if (!validoDa || !validoA) {
-    setStatus("Valido Da e Valido A sono obbligatori", "err");
     alert("Valido Da e Valido A sono obbligatori");
     return;
   }
 
   if (prezzo < 0) {
-    setStatus("Prezzo non valido", "err");
     alert("Prezzo non valido");
     return;
   }
 
   if (daPagare < 0) {
-    setStatus("Da Pagare non può essere negativo", "err");
     alert("Da Pagare non può essere negativo");
     return;
   }
 
   // ============================
-  // LOGICA BUSINESS
+  // 3) LOGICA BUSINESS
   // ============================
   if (flagPagato === "Si") {
     daPagare = 0;
@@ -4343,61 +4340,70 @@ async function aggiungiPacchetto() {
     Stato: stato
   };
 
-  console.log("📦 Payload pacchetto corretto:", payload);
+  console.log("📦 Payload pacchetto:", payload);
 
   try {
-    const response = await supabaseClient
+    // ============================
+    // 4) INSERT PACCHETTO
+    // ============================
+    const { data, error } = await supabaseClient
       .from("pacchetti")
       .insert([payload])
       .select();
 
-    console.log("Risposta insert pacchetto:", response);
-
-    // ✅ 1. Prima controllo errore Supabase
-    if (response.error) {
-      console.error("❌ Errore Supabase aggiungiPacchetto:", response.error);
-      setStatus("Errore salvataggio pacchetto: " + response.error.message, "err");
-      alert("Errore salvataggio pacchetto: " + response.error.message);
+    // ✅ controllo errore
+    if (error) {
+      console.error("❌ Errore inserimento pacchetto:", error);
+      alert("Errore salvataggio pacchetto: " + error.message);
       return;
     }
 
-    // ✅ 2. Poi controllo che Supabase abbia restituito il pacchetto
-    if (!response.data || !response.data.length) {
-      setStatus("Pacchetto non restituito da Supabase: controlla le policy RLS", "err");
-      alert("Pacchetto non restituito da Supabase: controlla le policy RLS");
+    // ✅ controllo ritorno dati
+    if (!data || !data.length) {
+      console.error("❌ Pacchetto non restituito da Supabase");
+      alert("Errore: pacchetto non restituito");
       return;
     }
 
-    // ✅ 3. Solo ora posso usare il nuovo pacchetto
-    const nuovoPacchetto = response.data[0];
+    const nuovoPacchetto = data[0];
 
-    // ✅ 4. Riconcilia eventuale acconto nuovo pacchetto UNA SOLA VOLTA
+    console.log("✅ Pacchetto creato:", nuovoPacchetto);
+
+    // ============================
+    // 5) RICONCILIAZIONE ACCONTO
+    // ============================
     const riconciliaResult = await riconciliaAccontoNuovoPacchetto(nuovoPacchetto);
 
-    if (riconciliaResult && riconciliaResult.ok === false) {
-      console.error("Errore riconciliazione acconto:", riconciliaResult.error);
+    if (!riconciliaResult.ok) {
+      console.error("❌ Errore riconciliazione:", riconciliaResult.error);
+
       alert(
         "Pacchetto salvato, ma errore nella riconciliazione acconto: " +
-        (riconciliaResult.error?.message || "errore sconosciuto")
+        (riconciliaResult.error?.message || "Errore sconosciuto")
       );
+    } else if (riconciliaResult.skipped) {
+      console.log("ℹ️ Riconciliazione saltata:", riconciliaResult.reason);
     }
 
-    // ✅ 5. Pulizia memoria acconto pending
+    // ============================
+    // 6) RESET ACCONTO MEMORY
+    // ============================
     window.pendingAccontoNuovoPacchetto = null;
 
     const accontoInfo = document.getElementById("accontoNuovoPacchettoInfo");
-    if (accontoInfo) {
-      accontoInfo.remove();
-    }
+    if (accontoInfo) accontoInfo.remove();
 
-    // ✅ 6. Pulizia form e refresh dati
+    // ============================
+    // 7) UI CLEANUP
+    // ============================
     pulisciFormPacchetto();
 
-    const nuovoPacchettoBox = document.getElementById("nuovoPacchettoBox");
-    if (nuovoPacchettoBox) {
-      nuovoPacchettoBox.classList.add("hidden");
-    }
+    const box = document.getElementById("nuovoPacchettoBox");
+    if (box) box.classList.add("hidden");
 
+    // ============================
+    // 8) REFRESH DATI
+    // ============================
     await loadPacchetti();
     await loadPrenotazioni();
 
@@ -4406,11 +4412,10 @@ async function aggiungiPacchetto() {
       renderReportPacchetti();
     }
 
-    setStatus("Pacchetto salvato correttamente ✅", "ok");
     alert("✅ Pacchetto salvato correttamente");
+
   } catch (err) {
-    console.error("❌ Errore generico aggiungiPacchetto:", err);
-    setStatus("Errore imprevisto salvataggio pacchetto", "err");
+    console.error("❌ Errore generico:", err);
     alert("Errore imprevisto salvataggio pacchetto");
   }
 }
