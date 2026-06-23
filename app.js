@@ -3119,12 +3119,6 @@ function apriNuovoPacchettoDaHome() {
 async function apriDettaglioPacchettoDaCliente(idPacchetto) {
   console.log("➡️ Apri dettaglio pacchetto da cliente:", idPacchetto);
 
-  // ✅ MEMORIZZA ORIGINE NAVIGAZIONE
-  window.lastPacchettoNavigation = {
-    origine: "clienti",
-  };
-
-
   if (!idPacchetto) {
     console.warn("❌ ID pacchetto mancante");
     setStatus("ID pacchetto mancante", "err");
@@ -3132,28 +3126,50 @@ async function apriDettaglioPacchettoDaCliente(idPacchetto) {
   }
 
   try {
-    // ✅ 1. Vai alla tab pacchetti
-    vaiTab("pacchetti");
-
-    // ✅ 2. Carica pacchetti (attendere DB)
+    // ✅ 1. Carico/aggiorno i pacchetti prima di salvare il contesto
     await loadPacchetti();
 
-    // ✅ 3. Forza apertura dettaglio DOPO render lista
+    const pacchettoOrigine = pacchettiData.find(p =>
+      String(p.ID_Pacchetto) === String(idPacchetto)
+    );
+
+    if (!pacchettoOrigine) {
+      console.warn("❌ Pacchetto non trovato prima della navigazione:", idPacchetto);
+      setStatus("Pacchetto non trovato", "err");
+      alert("Pacchetto non trovato");
+      return;
+    }
+
+    // ✅ 2. Memorizzo origine + cliente + pacchetto
+    // Così il tasto Indietro torna alla stessa vista del cliente
+    window.lastPacchettoNavigation = {
+      origine: "clienti",
+      idCliente: pacchettoOrigine.ID_Cliente,
+      idPacchetto: pacchettoOrigine.ID_Pacchetto
+    };
+
+    console.log("🧭 Contesto navigazione pacchetto:", window.lastPacchettoNavigation);
+
+    // ✅ 3. Vai alla tab pacchetti
+    vaiTab("pacchetti");
+
+    // ✅ 4. Ricarico i pacchetti dopo il cambio tab
+    await loadPacchetti();
+
+    // ✅ 5. Forza apertura dettaglio DOPO render lista
     setTimeout(() => {
       console.log("➡️ Apertura dettaglio forzata:", idPacchetto);
 
-      mostraDettaglioPacchetto(idPacchetto);
+      mostraDettaglioPacchetto(idPacchetto, "clienti");
 
-      // ✅ 4. Scroll diretto al dettaglio
-      const dettaglioBox = document.getElementById("dettaglioPacchetto");
-      if (dettaglioBox) {
-        dettaglioBox.scrollIntoView({
+      const container = document.getElementById("outputPacchetti");
+      if (container) {
+        container.scrollIntoView({
           behavior: "smooth",
           block: "start"
         });
       }
-
-    }, 200); // delay leggermente più alto → garantisce render DOM
+    }, 220);
 
   } catch (err) {
     console.error("❌ Errore apertura dettaglio:", err);
@@ -3987,9 +4003,9 @@ function renderPacchetti() {
             <td>${safe(p.Valido_A)}</td>
             <td>${safe(p.Stato)}</td>
             <td>
-              <button onclick="mostraDettaglioPacchetto('${escapeQuote(p.ID_Pacchetto)}')">
-                🔎 Dettaglio
-              </button>
+            <button onclick="mostraDettaglioPacchetto('${escapeQuote(p.ID_Pacchetto)}', 'pacchetti')">
+              🔎 Dettaglio
+            </button>
             </td>
           </tr>
         `;
@@ -4085,9 +4101,10 @@ function renderPacchettiMobileSafe() {
           }
 
           <div class="card-actions">
-            <button onclick="mostraDettaglioPacchetto('${escapeQuote(p.ID_Pacchetto)}')">
+            <button onclick="mostraDettaglioPacchetto('${escapeQuote(p.ID_Pacchetto)}', 'pacchetti')">
               🔎 Dettaglio
             </button>
+
           </div>
 
         </div>
@@ -4132,7 +4149,7 @@ async function eliminaPacchetto(idPacchetto) {
 }
 
 
-function mostraDettaglioPacchetto(idPacchetto) {
+function mostraDettaglioPacchetto(idPacchetto, origine = null) {
   const out = document.getElementById("outputPacchetti");
   if (!out) return;
 
@@ -4143,6 +4160,23 @@ function mostraDettaglioPacchetto(idPacchetto) {
   if (!p) {
     setStatus("Pacchetto non trovato", "err");
     return;
+  }
+
+  // ✅ gestione contesto navigazione
+  if (origine === "pacchetti") {
+    window.lastPacchettoNavigation = {
+      origine: "pacchetti",
+      idCliente: p.ID_Cliente,
+      idPacchetto: p.ID_Pacchetto
+    };
+  }
+
+  if (origine === "clienti") {
+    window.lastPacchettoNavigation = {
+      origine: "clienti",
+      idCliente: p.ID_Cliente,
+      idPacchetto: p.ID_Pacchetto
+    };
   }
 
   const cliente = clientiData.find(c =>
@@ -4156,17 +4190,16 @@ function mostraDettaglioPacchetto(idPacchetto) {
   const lezioniTotali = Number(p.Lezioni_Totali || 0);
   const lezioniUsate = contaPrenotazioniPacchetto(p.ID_Pacchetto);
   const lezioniRimanenti = lezioniTotali - lezioniUsate;
-
   const daPagare = Number(p.Da_Pagare || 0);
+
   const alertDaPagare = !isPacchettoChiuso(p) && daPagare > 0;
   const alertInScadenza = !isPacchettoChiuso(p) && lezioniRimanenti <= 2;
 
   animateView(out, `
     <div class="app-toolbar">
       <button class="app-back-btn" onclick="tornaDaDettaglioPacchetto()">
-      ← Indietro
+        ← Indietro
       </button>
-
     </div>
 
     <div class="card-ios">
@@ -4267,11 +4300,6 @@ function mostraDettaglioPacchetto(idPacchetto) {
         <button onclick="eliminaPacchetto('${escapeQuote(p.ID_Pacchetto)}')">
           🗑️ Elimina
         </button>
-
-        <button onclick="tornaDaDettaglioPacchetto()">
-          ← Indietro
-        </button>
-
       </div>
 
     </div>
@@ -6381,18 +6409,53 @@ async function login() {
 function tornaDaDettaglioPacchetto() {
   console.log("↩️ Torna da dettaglio pacchetto");
 
-  // ✅ controllo se arrivo da cliente
-  if (window.lastPacchettoNavigation?.origine === "clienti") {
-    console.log("✅ Ritorno a clienti");
+  const nav = window.lastPacchettoNavigation || {};
+  console.log("🧭 Contesto ritorno pacchetto:", nav);
+
+  // ✅ Caso 1: arrivo da Clienti → Pacchetti Cliente → Dettaglio
+  // Torno esattamente alla vista Pacchetti dello stesso cliente
+  if (nav.origine === "clienti" && nav.idCliente) {
+    const idCliente = nav.idCliente;
+
+    console.log("✅ Ritorno ai pacchetti del cliente:", idCliente);
 
     vaiTab("clienti");
+
+    setTimeout(() => {
+      mostraPacchettiCliente(idCliente);
+
+      const box = document.getElementById("outputClienti");
+      if (box) {
+        box.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      }
+    }, 220);
 
     return;
   }
 
-  // fallback standard
-  console.log("➡️ Ritorno a lista pacchetti");
+  // ✅ Caso 2: arrivo dalla lista globale Pacchetti
+  console.log("➡️ Ritorno alla lista globale pacchetti");
+
+  window.lastPacchettoNavigation = {
+    origine: "pacchetti"
+  };
+
   vaiTab("pacchetti");
+
+  setTimeout(() => {
+    loadPacchetti();
+
+    const box = document.getElementById("outputPacchetti");
+    if (box) {
+      box.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }
+  }, 180);
 }
 
 
