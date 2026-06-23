@@ -3404,23 +3404,26 @@ async function salvaModificaClienteInline(idCliente) {
     return;
   }
 
-  await safeUpdate("clienti", payload, { ID_Cliente: idCliente });
+  try {
+    await safeUpdate(
+      "clienti",
+      payload,
+      { ID_Cliente: idCliente }
+    );
 
+    await loadClienti();
+    await loadPrenotazioni();
 
-  if (error) {
+    setStatus("Cliente modificato correttamente ✅", "ok");
+
+    setTimeout(() => {
+      mostraSchedaCliente(idCliente);
+    }, 100);
+
+  } catch (error) {
     console.error("Errore salvaModificaClienteInline:", error);
-    setStatus(`Errore modifica cliente: ${error.message}`, "err");
-    return;
+    setStatus("Errore modifica cliente", "err");
   }
-
-  await loadClienti();
-  await loadPrenotazioni();
-
-  setStatus("Cliente modificato correttamente ✅", "ok");
-
-  setTimeout(() => {
-    mostraSchedaCliente(idCliente);
-  }, 100);
 }
 
 
