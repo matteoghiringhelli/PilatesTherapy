@@ -1892,6 +1892,7 @@ function renderLezioniMobileSafe() {
 
 function renderClientiMobileSafe() {
   try {
+    // ✅ Solo mobile
     if (window.innerWidth > 768) return;
 
     const out = document.getElementById("outputClienti");
@@ -1907,47 +1908,65 @@ function renderClientiMobileSafe() {
 
     for (let i = 1; i < rows.length; i++) {
       const cells = rows[i].querySelectorAll("td");
-      if (!cells || cells.length < 11) continue;
+      if (!cells || cells.length < 4) continue;
 
       const id = cells[0].innerText;
       const nome = cells[1].innerText;
       const cognome = cells[2].innerText;
       const telefono = cells[3].innerText;
-      const email = cells[4].innerText;
-      const azioni = cells[10].innerHTML;
 
+      // ✅ Recupero info pacchetti
       const residui = getLezioniResiduePerTipologia(id);
 
+      const righeResiduo = Object.entries(residui || {})
+        .map(([tipo, val]) => `• ${tipo}: ${val}`)
+        .join("<br>");
 
-const righeResiduo = Object.entries(residui)
-  .map(([tipo, val]) => `• ${tipo}: ${val}`)
-  .join("<br>");
+      cards.push(`
+        <div class="card-ios">
 
+          <div class="card-title">
+            ${safe(nome)} ${safe(cognome)}
+          </div>
 
-cards.push(`
-  <div class="card-ios">
+          <div class="card-sub">
+            📞 ${safe(telefono || "-")}
+          </div>
 
-    <div class="card-title">
-      ${nome} ${cognome}
-    </div>
+          ${
+            righeResiduo
+              ? `<div class="card-sub">
+                   🎯<br>${righeResiduo}
+                 </div>`
+              : ""
+          }
 
-    <div class="card-sub">📞 ${telefono}</div>
+          <div class="card-actions">
 
-    ${
-      righeResiduo
-        ? `<div class="card-sub">🎯<br>${righeResiduo}</div>`
-        : ""
-    }
+            <button onclick="mostraSchedaCliente('${escapeQuote(id)}')">
+              🔎 Scheda
+            </button>
 
-    <div class="card-actions">
-      <button onclick="mostraSchedaCliente('${escapeQuote(id)}')">🔎 Scheda</button>
-      <button onclick="mostraPacchettiCliente('${escapeQuote(id)}')">🎟️ Pacchetti</button>
-      <button onclick="mostraPrenotazioniCliente('${escapeQuote(id)}')">📅 Prenotazioni</button>
-      <button onclick="inviaWhatsAppCliente('${escapeQuote(id)}')">📲 WhatsApp</button>
-    </div>
+            <button onclick="apriIncassoCliente('${escapeQuote(id)}')">
+              💳 Incasso
+            </button>
 
-  </div>
-`);
+            <button onclick="mostraPacchettiCliente('${escapeQuote(id)}')">
+              🎟️ Pacchetti
+            </button>
+
+            <button onclick="mostraPrenotazioniCliente('${escapeQuote(id)}')">
+              📅 Prenotazioni
+            </button>
+
+            <button onclick="inviaWhatsAppCliente('${escapeQuote(id)}')">
+              📲 WhatsApp
+            </button>
+
+          </div>
+
+        </div>
+      `);
     }
 
     if (cards.length > 0) {
@@ -2402,7 +2421,6 @@ function mostraSchedaCliente(idCliente) {
     </div>
 
     <div class="view-content">
-
       <div style="padding: 12px 12px 90px 12px;">
 
         <div class="card-ios">
@@ -2418,6 +2436,10 @@ function mostraSchedaCliente(idCliente) {
           <div class="card-sub">🧾 ${safe(cliente.Codice_Fiscale || "-")}</div>
 
           <div class="card-actions">
+            <button onclick="apriIncassoCliente('${escapeQuote(cliente.ID_Cliente)}')">
+              💳 Incasso
+            </button>
+
             <button onclick="mostraModificaClienteInline('${escapeQuote(cliente.ID_Cliente)}')">
               ✏️ Modifica
             </button>
@@ -2441,11 +2463,417 @@ function mostraSchedaCliente(idCliente) {
         </div>
 
       </div>
-
     </div>
   `);
 }
 
+
+function getPacchettiDaPagareCliente(idCliente) {
+  return pacchettiData
+    .filter(p =>
+      String(p.ID_Cliente) === String(idCliente) &&
+      !isPacchettoChiuso(p) &&
+      Number(p.Da_Pagare || 0) > 0
+    )
+    .sort((a, b) => {
+      const dataA = String(a.Valido_Da || "");
+      const dataB = String(b.Valido_Da || "");
+      return dataA.localeCompare(dataB);
+    });
+}
+
+function apriIncassoCliente(idCliente) {
+  console.log("💳 Apri incasso cliente:", idCliente);
+
+  const box = document.getElementById("outputClienti");
+  if (!box) return;
+
+  const cliente = clientiData.find(c =>
+    String(c.ID_Cliente) === String(idCliente)
+  );
+
+  if (!cliente) {
+    setStatus("Cliente non trovato per incasso", "err");
+    return;
+  }
+
+  const clienteNome = `${cliente.Nome || ""} ${cliente.Cognome || ""}`.trim();
+  const pacchettiDaPagare = getPacchettiDaPagareCliente(idCliente);
+
+  const totaleDaPagare = pacchettiDaPagare.reduce((sum, p) => {
+    return sum + Number(p.Da_Pagare || 0);
+  }, 0);
+
+  const optionsPacchetti = pacchettiDaPagare.length
+    ? `
+      <option value="__AUTO__">
+        Auto - scala dai pacchetti aperti più vecchi
+      </option>
+      ${pacchettiDaPagare.map(p => `
+        <option value="${escapeAttr(p.ID_Pacchetto)}">
+          ${safe(p.ID_Pacchetto)} - ${safe(p.Tipo_Pacchetto)} - Da pagare: ${formatEuro(Number(p.Da_Pagare || 0))}
+        </option>
+      `).join("")}
+    `
+    : `
+      <option value="__NUOVO__">
+        Nessun importo aperto - usa incasso come acconto nuovo pacchetto
+      </option>
+    `;
+
+  animateView(box, `
+    <div class="app-toolbar">
+      <button class="app-back-btn" onclick="mostraSchedaCliente('${escapeQuote(idCliente)}')">
+        ← Cliente
+      </button>
+    </div>
+
+    <div class="view-content">
+      <div style="padding: 12px 12px 90px 12px;">
+
+        <div class="card-ios">
+          <div class="card-title">
+            💳 Registra Incasso
+          </div>
+
+          <div class="card-sub">
+            <strong>Cliente:</strong> ${safe(clienteNome)}
+          </div>
+
+          <div class="card-sub">
+            <strong>ID Cliente:</strong> ${safe(idCliente)}
+          </div>
+
+          <div class="card-sub">
+            <strong>Totale Da Pagare aperto:</strong> ${formatEuro(totaleDaPagare)}
+          </div>
+        </div>
+
+        <div class="card-ios">
+          <div class="card-title">
+            Dati pagamento
+          </div>
+
+          <div class="form-row">
+            <label class="field-block">
+              <span class="field-label">Importo incassato</span>
+              <input
+                id="incasso_importo"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Importo"
+                oninput="aggiornaAnteprimaIncassoCliente('${escapeQuote(idCliente)}')"
+              >
+            </label>
+
+            <label class="field-block">
+              <span class="field-label">Pacchetto / Allocazione</span>
+              <select
+                id="incasso_pacchetto"
+                onchange="aggiornaAnteprimaIncassoCliente('${escapeQuote(idCliente)}')"
+              >
+                ${optionsPacchetti}
+              </select>
+            </label>
+          </div>
+
+          <div class="form-row">
+            <label class="field-block">
+              <span class="field-label">Metodo pagamento</span>
+              <select id="incasso_metodo">
+                <option value="">Metodo</option>
+                <option value="Contanti">Contanti</option>
+                <option value="Carta">Carta</option>
+                <option value="Bonifico">Bonifico</option>
+              </select>
+            </label>
+
+            <label class="field-block">
+              <span class="field-label">Nota</span>
+              <input id="incasso_note" placeholder="Nota opzionale">
+            </label>
+          </div>
+
+          <div id="incassoAnteprimaBox" class="muted">
+            Inserisci un importo per vedere l’anteprima.
+          </div>
+
+          <div class="card-actions">
+            <button onclick="registraIncassoCliente('${escapeQuote(idCliente)}')">
+              ✅ Registra incasso
+            </button>
+
+            <button onclick="mostraSchedaCliente('${escapeQuote(idCliente)}')">
+              Annulla
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  `);
+
+  setTimeout(() => {
+    aggiornaAnteprimaIncassoCliente(idCliente);
+  }, 80);
+}
+
+function aggiornaAnteprimaIncassoCliente(idCliente) {
+  const out = document.getElementById("incassoAnteprimaBox");
+  if (!out) return;
+
+  const importo = Number(document.getElementById("incasso_importo")?.value || 0);
+  const scelta = document.getElementById("incasso_pacchetto")?.value || "";
+
+  const pacchettiDaPagare = getPacchettiDaPagareCliente(idCliente);
+  const totaleDaPagare = pacchettiDaPagare.reduce((sum, p) => {
+    return sum + Number(p.Da_Pagare || 0);
+  }, 0);
+
+  if (!importo || importo <= 0) {
+    out.innerHTML = "Inserisci un importo per vedere l’anteprima.";
+    return;
+  }
+
+  if (!pacchettiDaPagare.length || scelta === "__NUOVO__") {
+    out.innerHTML = `
+      <div class="report-warning">
+        Nessun Da Pagare aperto. L'importo ${formatEuro(importo)}
+        verrà proposto come acconto su un nuovo pacchetto.
+      </div>
+    `;
+    return;
+  }
+
+  if (importo <= totaleDaPagare) {
+    out.innerHTML = `
+      <div class="muted">
+        L'importo ${formatEuro(importo)} verrà scalato dai pacchetti aperti.
+        Totale Da Pagare attuale: ${formatEuro(totaleDaPagare)}.
+      </div>
+    `;
+    return;
+  }
+
+  const eccedenza = importo - totaleDaPagare;
+
+  out.innerHTML = `
+    <div class="report-warning">
+      L'importo supera il Da Pagare aperto.
+      Verranno chiusi i saldi aperti per ${formatEuro(totaleDaPagare)}
+      e l'eccedenza ${formatEuro(eccedenza)}
+      verrà proposta come acconto su un nuovo pacchetto.
+    </div>
+  `;
+}
+
+async function registraIncassoCliente(idCliente) {
+  console.log("💳 Registra incasso cliente:", idCliente);
+
+  const importo = Number(document.getElementById("incasso_importo")?.value || 0);
+  const sceltaPacchetto = document.getElementById("incasso_pacchetto")?.value || "";
+  const metodo = document.getElementById("incasso_metodo")?.value || "";
+  const note = document.getElementById("incasso_note")?.value.trim() || "";
+
+  if (!importo || importo <= 0) {
+    alert("Inserisci un importo valido");
+    return;
+  }
+
+  let pacchettiDaPagare = getPacchettiDaPagareCliente(idCliente);
+
+  // ✅ Caso senza pacchetti aperti: tutto acconto nuovo pacchetto
+  if (!pacchettiDaPagare.length || sceltaPacchetto === "__NUOVO__") {
+    const confermaNuovo = confirm(
+      "Non ci sono importi Da Pagare aperti per questo cliente.\n\nVuoi usare questo incasso come acconto per un nuovo pacchetto?"
+    );
+
+    if (!confermaNuovo) {
+      setStatus("Incasso annullato", "err");
+      return;
+    }
+
+    preparaNuovoPacchettoConAcconto(idCliente, importo);
+    return;
+  }
+
+  let residuoIncasso = importo;
+
+  // ✅ Se viene selezionato un pacchetto specifico, lo metto per primo.
+  if (sceltaPacchetto && sceltaPacchetto !== "__AUTO__") {
+    pacchettiDaPagare = pacchettiDaPagare.sort((a, b) => {
+      if (String(a.ID_Pacchetto) === String(sceltaPacchetto)) return -1;
+      if (String(b.ID_Pacchetto) === String(sceltaPacchetto)) return 1;
+      return String(a.Valido_Da || "").localeCompare(String(b.Valido_Da || ""));
+    });
+  }
+
+  const updates = [];
+
+  for (const p of pacchettiDaPagare) {
+    if (residuoIncasso <= 0) break;
+
+    const daPagareAttuale = Number(p.Da_Pagare || 0);
+    if (daPagareAttuale <= 0) continue;
+
+    const quotaAllocata = Math.min(residuoIncasso, daPagareAttuale);
+    const nuovoDaPagare = Math.max(0, daPagareAttuale - quotaAllocata);
+
+    const payloadUpdate = {
+      Da_Pagare: nuovoDaPagare,
+      Flag_Pagato: nuovoDaPagare <= 0 ? "Si" : "No"
+    };
+
+    updates.push({
+      idPacchetto: p.ID_Pacchetto,
+      quotaAllocata,
+      vecchioDaPagare: daPagareAttuale,
+      nuovoDaPagare
+    });
+
+    const { error } = await supabaseClient
+      .from("pacchetti")
+      .update(payloadUpdate)
+      .eq("ID_Pacchetto", p.ID_Pacchetto);
+
+    if (error) {
+      console.error("Errore aggiornamento Da_Pagare pacchetto:", error);
+      alert("Errore aggiornamento pacchetto: " + error.message);
+      return;
+    }
+
+    residuoIncasso -= quotaAllocata;
+  }
+
+  await loadPacchetti();
+  await loadPrenotazioni();
+
+  console.log("✅ Allocazioni incasso:", updates);
+  console.log("💰 Residuo incasso:", residuoIncasso);
+
+  // ✅ Incasso superiore ai Da_Pagare aperti
+  if (residuoIncasso > 0.009) {
+    const confermaEccedenza = confirm(
+      "Incasso registrato sui pacchetti aperti.\n\nRimane un'eccedenza di " +
+      formatEuro(residuoIncasso) +
+      ".\n\nVuoi aprire un nuovo pacchetto e usare l'eccedenza come acconto?"
+    );
+
+    if (confermaEccedenza) {
+      preparaNuovoPacchettoConAcconto(idCliente, residuoIncasso);
+      return;
+    }
+  }
+
+  setStatus("Incasso registrato correttamente ✅", "ok");
+  alert("✅ Incasso registrato correttamente");
+
+  mostraPacchettiCliente(idCliente);
+}
+
+function preparaNuovoPacchettoConAcconto(idCliente, acconto) {
+  console.log("➕ Nuovo pacchetto con acconto:", { idCliente, acconto });
+
+  window.pendingAccontoNuovoPacchetto = {
+    idCliente: idCliente,
+    acconto: Number(acconto || 0)
+  };
+
+  vaiTab("pacchetti");
+
+  setTimeout(() => {
+    const box = document.getElementById("nuovoPacchettoBox");
+
+    if (box && box.classList.contains("hidden")) {
+      toggleNuovoPacchetto();
+    } else {
+      renderSelectPacchettoClienti();
+      renderSelectTipiPacchetto();
+      preparaNuovoPacchetto();
+    }
+
+    const clienteSelect = document.getElementById("pac_cliente");
+    if (clienteSelect) {
+      clienteSelect.value = idCliente;
+    }
+
+    const flagPagato = document.getElementById("pac_flag_pagato");
+    if (flagPagato) {
+      flagPagato.value = "No";
+    }
+
+    daPagareManuale = true;
+
+    applicaAccontoNuovoPacchetto();
+
+    if (box) {
+      box.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }
+  }, 250);
+}
+
+function applicaAccontoNuovoPacchetto() {
+  const pending = window.pendingAccontoNuovoPacchetto;
+  if (!pending || !pending.idCliente || !pending.acconto) return;
+
+  const box = document.getElementById("nuovoPacchettoBox");
+  if (!box) return;
+
+  let info = document.getElementById("accontoNuovoPacchettoInfo");
+
+  if (!info) {
+    info = document.createElement("div");
+    info.id = "accontoNuovoPacchettoInfo";
+    info.className = "report-warning";
+    info.style.margin = "10px 0";
+    box.insertBefore(info, box.firstChild.nextSibling);
+  }
+
+  const prezzoInput = document.getElementById("pac_prezzo");
+  const daPagareInput = document.getElementById("pac_da_pagare");
+  const flagPagatoInput = document.getElementById("pac_flag_pagato");
+
+  const acconto = Number(pending.acconto || 0);
+  const prezzo = Number(prezzoInput?.value || 0);
+
+  if (flagPagatoInput) {
+    flagPagatoInput.value = "No";
+  }
+
+  if (daPagareInput) {
+    const nuovoDaPagare = prezzo > 0
+      ? Math.max(0, prezzo - acconto)
+      : 0;
+
+    daPagareInput.readOnly = false;
+    daPagareInput.required = true;
+    daPagareInput.value = String(nuovoDaPagare.toFixed(2));
+
+    if (flagPagatoInput && prezzo > 0 && nuovoDaPagare <= 0) {
+      flagPagatoInput.value = "Si";
+      daPagareInput.readOnly = true;
+    }
+  }
+
+  info.innerHTML = `
+    💳 Acconto da incasso precedente: <strong>${formatEuro(acconto)}</strong><br>
+    Se inserisci il Prezzo del nuovo pacchetto, il campo <strong>Da Pagare</strong>
+    viene calcolato come <strong>Prezzo - Acconto</strong>.
+  `;
+
+  if (prezzoInput && !prezzoInput.dataset.accontoListener) {
+    prezzoInput.dataset.accontoListener = "true";
+
+    prezzoInput.addEventListener("input", () => {
+      aggiornaAnteprimaPacchetto();
+      applicaAccontoNuovoPacchetto();
+    });
+  }
+}
 
 
 function mostraPrenotazioniCliente(idCliente) {
@@ -3737,7 +4165,7 @@ function aggiornaAnteprimaPacchetto() {
 
   const flagC = flagCInput?.value || "Si";
 
-  if (fatturaNrInput) {
+    if (fatturaNrInput) {
     if (flagC === "No") {
       fatturaNrInput.disabled = false;
       fatturaNrInput.placeholder = "Fattura Nr (opzionale)";
@@ -3748,6 +4176,17 @@ function aggiornaAnteprimaPacchetto() {
     }
   }
 
+  // ✅ Se sto creando un nuovo pacchetto da eccedenza incasso,
+  // ricalcolo Da_Pagare = Prezzo - Acconto.
+  if (
+    window.pendingAccontoNuovoPacchetto &&
+    window.pendingAccontoNuovoPacchetto.idCliente &&
+    String(window.pendingAccontoNuovoPacchetto.idCliente) === String(clienteValue)
+  ) {
+    setTimeout(() => {
+      applicaAccontoNuovoPacchetto();
+    }, 0);
+  }
 }
 
 
@@ -3878,6 +4317,13 @@ async function aggiungiPacchetto() {
       setStatus("Pacchetto non restituito da Supabase: controlla le policy RLS", "err");
       alert("Pacchetto non restituito da Supabase: controlla le policy RLS");
       return;
+    }
+
+    window.pendingAccontoNuovoPacchetto = null;
+
+    const accontoInfo = document.getElementById("accontoNuovoPacchettoInfo");
+    if (accontoInfo) {
+      accontoInfo.remove();
     }
 
     pulisciFormPacchetto();
