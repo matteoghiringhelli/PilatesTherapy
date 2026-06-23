@@ -7336,7 +7336,6 @@ function calcolaFiscalePerMese() {
 
 let chartFiscale = null;
 
-let chartFiscale = null;
 
 function renderGraficoFiscale() {
   const canvas = document.getElementById("chartFiscale");
