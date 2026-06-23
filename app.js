@@ -7272,7 +7272,7 @@ function renderContiKpi() {
       <div style="margin-top:10px; font-size:13px;">
 
         <div>💰 Incassi Totali: <b>€ ${formatEuro(incassiTotali)}</b></div>
-        <div style="opacity:0.7;">(Flag_C = Si + No)</div>
+        
 
         <div style="margin-top:6px;">
           💳 Incassi Cash: <b>€ ${formatEuro(incassiCash)}</b>
