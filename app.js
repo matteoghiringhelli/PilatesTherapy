@@ -806,8 +806,8 @@ if (!payload.Nome || !payload.Cognome) {
 }
 
 
-  const { error } = await supabaseClient.from("clienti").insert([payload]);
-
+ await safeInsert("clienti", payload);
+  
   if (error) {
     console.error("Errore aggiungiCliente:", error);
     setStatus(`Errore salvataggio cliente: ${error.message}`, "err");
@@ -853,10 +853,8 @@ async function modificaCliente(id) {
   const Codice_Fiscale = prompt("Codice Fiscale", cliente.Codice_Fiscale || "");
   if (Codice_Fiscale === null) return;
 
-  const { error } = await supabaseClient
-    .from("clienti")
-    .update({ Nome, Cognome, Telefono, Email, Indirizzo, Cittá, CAP, Codice_Fiscale })
-    .eq("ID_Cliente", id);
+  await safeUpdate("clienti", { Nome, Cognome, Telefono, Email, Indirizzo, Cittá, CAP, Codice_Fiscale }, { ID_Cliente: id });
+
 
   if (error) {
     console.error("Errore modificaCliente:", error);
@@ -873,10 +871,7 @@ async function modificaCliente(id) {
 async function eliminaCliente(id) {
   if (!confirm("Eliminare cliente?")) return;
 
-  const { error } = await supabaseClient
-    .from("clienti")
-    .delete()
-    .eq("ID_Cliente", id);
+  await safeDelete("clienti", { ID_Cliente: id });
 
   if (error) {
     console.error("Errore eliminaCliente:", error);
@@ -1350,7 +1345,8 @@ async function aggiungiLezione() {
     return;
   }
 
-  const { error } = await supabaseClient.from("lezioni").insert([payload]);
+  await safeInsert("lezioni", payload);
+
 
   if (error) {
     console.error("Errore aggiungiLezione:", error);
@@ -1367,10 +1363,7 @@ async function aggiungiLezione() {
 async function eliminaLezione(id) {
   if (!confirm("Eliminare la lezione e le prenotazioni collegate?")) return;
 
-  const { error: errorPren } = await supabaseClient
-    .from("prenotazioni")
-    .delete()
-    .eq("ID_Lezione", id);
+  await safeDelete("prenotazioni", { ID_Lezione: id });
 
   if (errorPren) {
     console.error("Errore eliminazione prenotazioni collegate:", errorPren);
@@ -1378,10 +1371,7 @@ async function eliminaLezione(id) {
     return;
   }
 
-  const { error } = await supabaseClient
-    .from("lezioni")
-    .delete()
-    .eq("ID_Lezione", id);
+  await safeDelete("lezioni", { ID_Lezione: id });
 
   if (error) {
     console.error("Errore eliminaLezione:", error);
@@ -1645,15 +1635,12 @@ async function prenota() {
     }
   }
 
-  const response = await supabaseClient
-    .from("prenotazioni")
-    .insert([{
+  wait safeInsert("prenotazioni", {
       ID_Prenotazione: generaNuovoIdProgressivo("PR", prenotazioniData, "ID_Prenotazione"),
       ID_Cliente: idCliente,
       ID_Lezione: idLezione,
       ID_Pacchetto: idPacchetto
-    }])
-    .select();
+    });
 
   console.log("Risposta insert prenotazioni:", response);
 
@@ -1694,10 +1681,7 @@ setStatus("Prenotazione salvata correttamente ✅", "ok");
 async function eliminaPrenotazione(id) {
   if (!confirm("Eliminare prenotazione?")) return;
 
-  const { error } = await supabaseClient
-    .from("prenotazioni")
-    .delete()
-    .eq("ID_Prenotazione", id);
+  await safeDelete("prenotazioni", { ID_Prenotazione: id });
 
   if (error) {
     console.error("Errore eliminaPrenotazione:", error);
@@ -2451,10 +2435,7 @@ const payload = nuovePrenotazioni.map((p, index) => ({
   ID_Pacchetto: p.ID_Pacchetto
 }));
 
-  const response = await supabaseClient
-    .from("prenotazioni")
-    .insert(payload)
-    .select();
+await safeInsert("prenotazioni", payload);
 
   if (response.error) {
     console.error("Errore salvaPrenotazioniDaLezione:", response.error);
@@ -2483,10 +2464,8 @@ const payload = nuovePrenotazioni.map((p, index) => ({
 async function eliminaPrenotazioneDaLezione(idPrenotazione, idLezione) {
   if (!confirm("Eliminare questa prenotazione?")) return;
 
-  const { error } = await supabaseClient
-    .from("prenotazioni")
-    .delete()
-    .eq("ID_Prenotazione", idPrenotazione);
+  await safeDelete("prenotazioni", { ID_Prenotazione: idPrenotazione });
+
 
   if (error) {
     console.error("Errore eliminaPrenotazioneDaLezione:", error);
@@ -2858,10 +2837,8 @@ async function registraIncassoCliente(idCliente) {
       Flag_Pagato: nuovoDaPagare <= 0 ? "Si" : "No"
     };
 
-    const { error } = await supabaseClient
-      .from("pacchetti")
-      .update(payloadUpdate)
-      .eq("ID_Pacchetto", p.ID_Pacchetto);
+    await safeUpdate("pacchetti", payloadUpdate, { ID_Pacchetto: idPacchetto });
+
 
     if (error) {
       console.error("Errore aggiornamento Da_Pagare pacchetto:", error);
@@ -3404,10 +3381,8 @@ async function salvaModificaClienteInline(idCliente) {
     return;
   }
 
-  const { error } = await supabaseClient
-    .from("clienti")
-    .update(payload)
-    .eq("ID_Cliente", idCliente);
+  await safeUpdate("clienti", payload, { ID_Cliente: idCliente });
+
 
   if (error) {
     console.error("Errore salvaModificaClienteInline:", error);
@@ -4454,10 +4429,7 @@ async function aggiungiPacchetto() {
     // ============================
     // 4) INSERT PACCHETTO
     // ============================
-    const { data, error } = await supabaseClient
-      .from("pacchetti")
-      .insert([payload])
-      .select();
+await safeInsert("pacchetti", payload);
 
     // ✅ controllo errore
     if (error) {
@@ -4670,11 +4642,11 @@ async function riconciliaAccontoNuovoPacchetto(nuovoPacchetto) {
     // ============================
     // 8) UPDATE SU DB
     // ============================
-    const { data: updatedData, error: updateError } = await supabaseClient
-      .from("studio_act")
-      .update(updatePayload)
-      .eq("id_movimento", movimento.id_movimento)
-      .select("*");
+
+await safeUpdate("studio_act", updatePayload, {
+  id_movimento: movimento.id_movimento
+});
+
 
     if (updateError) {
       console.error("❌ Errore update:", updateError);
@@ -4961,10 +4933,7 @@ async function eliminaPacchetto(idPacchetto) {
     if (azioneUtente === "cancella_movimenti") {
       console.log("🗑️ Cancello movimenti collegati");
 
-      const { error } = await supabaseClient
-        .from("studio_act")
-        .delete()
-        .eq("id_pacchetto", idPacchetto);
+      await safeDelete("studio_act", { id_pacchetto: idPacchetto });
 
       if (error) {
         console.error("❌ Errore cancellazione movimenti:", error);
@@ -4986,16 +4955,19 @@ async function eliminaPacchetto(idPacchetto) {
       }));
 
       for (const u of updates) {
-        const { error } = await supabaseClient
-          .from("studio_act")
-          .update({
-            categoria: u.categoria,
-            riferimento: u.riferimento,
-            id_pacchetto: u.id_pacchetto,
-            flag_c: u.flag_c,
-            descrizione: u.descrizione
-          })
-          .eq("id_movimento", u.id_movimento);
+        
+await safeUpdate(
+  "studio_act",
+  {
+    categoria: u.categoria,
+    riferimento: u.riferimento,
+    id_pacchetto: u.id_pacchetto,
+    flag_c: u.flag_c,
+    descrizione: u.descrizione
+  },
+  { id_movimento: u.id_movimento }
+);
+
 
         if (error) {
           console.error("❌ Errore update movimento:", error);
@@ -5008,10 +4980,8 @@ async function eliminaPacchetto(idPacchetto) {
     // ============================
     // 4) CANCELLA PACCHETTO
     // ============================
-    const { error: errorDelete } = await supabaseClient
-      .from("pacchetti")
-      .delete()
-      .eq("ID_Pacchetto", idPacchetto);
+    await safeDelete("pacchetti", { id_pacchetto: idPacchetto });
+
 
     if (errorDelete) {
       console.error("❌ Errore eliminazione pacchetto:", errorDelete);
@@ -5452,10 +5422,8 @@ async function salvaModificaPacchettoInline(idPacchetto) {
   }
 
   // ✅ UPDATE SU SUPABASE
-  const { error } = await supabaseClient
-    .from("pacchetti")
-    .update(payload)
-    .eq("ID_Pacchetto", idPacchetto);
+  await safeUpdate("pacchetti", payload, { ID_Pacchetto: p.ID_Pacchetto });
+
 
   if (error) {
     console.error("Errore salvaModificaPacchettoInline:", error);
@@ -5890,9 +5858,7 @@ async function salvaLezioneDaAgenda() {
     }
   }
 
-  const { error } = await supabaseClient
-    .from("lezioni")
-    .insert([payload]);
+  await safeInsert("lezioni", payload);
 
   if (error) {
     console.error("Errore salvaLezioneDaAgenda:", error);
@@ -6096,10 +6062,8 @@ function giornoSuccessivo() {
 async function eliminaLezioneDaAgenda(idLezione) {
   if (!confirm("Eliminare questa lezione e le prenotazioni collegate?")) return;
 
-  const { error: errorPren } = await supabaseClient
-    .from("prenotazioni")
-    .delete()
-    .eq("ID_Lezione", idLezione);
+  await safeDelete("prenotazioni", { ID_Lezione: idLezione });
+
 
   if (errorPren) {
     console.error("Errore eliminazione prenotazioni da Agenda:", errorPren);
@@ -6107,10 +6071,8 @@ async function eliminaLezioneDaAgenda(idLezione) {
     return;
   }
 
-  const { error } = await supabaseClient
-    .from("lezioni")
-    .delete()
-    .eq("ID_Lezione", idLezione);
+  await safeDelete("lezioni", { ID_Lezione: idLezione });
+
 
   if (error) {
     console.error("Errore eliminazione lezione da Agenda:", error);
@@ -7134,10 +7096,7 @@ async function registraMovimentiContiDaIncasso(idCliente, metodo, note, allocazi
     // ============================
     // 6) INSERT SU SUPABASE
     // ============================
-    const { data, error } = await supabaseClient
-      .from("studio_act")
-      .insert(movimenti)
-      .select("*");
+    await safeInsert("studio_act", movimenti);
 
     if (error) {
       console.error("❌ Errore registrazione movimenti Conti Studio:", error);
@@ -7269,9 +7228,7 @@ async function aggiungiMovimentoConti() {
     return;
   }
 
-  const { error } = await supabaseClient
-    .from("studio_act")
-    .insert([movimento]);
+  await safeInsert("studio_act", movimento);
 
   if (error) {
     console.error("Errore aggiungiMovimentoConti:", error);
@@ -7611,9 +7568,7 @@ async function registraEntrataPacchetto(pacchetto) {
       return;
     }
 
-    const { error } = await supabaseClient
-      .from("studio_act")
-      .insert([movimento]);
+    await safeInsert("studio_act", movimento);
 
     if (error) {
       console.error("Errore contabilità:", error);
