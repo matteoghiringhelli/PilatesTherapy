@@ -3116,34 +3116,45 @@ function apriNuovoPacchettoDaHome() {
   }, 160);
 }
 
-function apriDettaglioPacchettoDaCliente(idPacchetto) {
-  if (!idPacchetto) return;
+async function apriDettaglioPacchettoDaCliente(idPacchetto) {
+  console.log("➡️ Apri dettaglio pacchetto da cliente:", idPacchetto);
 
-  // Vai alla tab Pacchetti
-  vaiTab("pacchetti");
+  // ✅ 1. Vai alla tab pacchetti
+  showTab("pacchetti");
 
-  // Aspetta il render (importante)
-  setTimeout(() => {
-    // Se la funzione esiste, ricarica i pacchetti (sicurezza)
-    if (typeof loadPacchetti === "function") {
-      loadPacchetti();
-    }
+  try {
+    // ✅ 2. IMPORTANTE: aspetta che i pacchetti siano caricati
+    await loadPacchetti();
 
-    // Apri il dettaglio pacchetto
-    if (typeof mostraDettaglioPacchetto === "function") {
-      mostraDettaglioPacchetto(idPacchetto);
-    }
+    console.log("✅ Pacchetti caricati, cerco dettaglio...");
 
-    // Scroll verso il dettaglio
-    const container = document.getElementById("outputPacchetti");
-    if (container) {
-      container.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-    }
+    // ✅ 3. Piccolo delay per assicurare render DOM
+    setTimeout(() => {
+      const pacchetto = window.pacchetti?.find(p => p.ID_Pacchetto === idPacchetto);
 
-  }, 200);
+      if (!pacchetto) {
+        console.warn("❌ Pacchetto NON trovato:", idPacchetto);
+        alert("Pacchetto non trovato");
+        return;
+      }
+
+      console.log("✅ Pacchetto trovato, apro dettaglio:", pacchetto);
+
+      // ✅ 4. Apri dettaglio
+      mostraDettaglioPacchetto(pacchetto);
+
+      // ✅ 5. Scroll automatico (UX iPhone)
+      const dettaglioBox = document.getElementById("dettaglioPacchetto");
+      if (dettaglioBox) {
+        dettaglioBox.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+    }, 100);
+
+  } catch (err) {
+    console.error("❌ Errore apertura dettaglio pacchetto:", err);
+    alert("Errore apertura dettaglio pacchetto");
+  }
 }
 
 
