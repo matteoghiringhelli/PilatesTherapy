@@ -7182,24 +7182,35 @@ function renderContiKpi() {
   const kpiSaldo = document.getElementById("contiSaldo");
   const kpiExtra = document.getElementById("contiExtra");
 
+  // ✅ PARAMETRI FISCALI (MODIFICABILI)
+  const COEFF_REDDITIVITA = 0.78;
+  const ALIQUOTA_IMPOSTA = 0.05;
+  const ALIQUOTA_INPS = 0.2607;
+
   if (!contiData || !contiData.length) {
     if (kpiEntrate) kpiEntrate.innerText = "€ 0";
     if (kpiUscite) kpiUscite.innerText = "€ 0";
     if (kpiSaldo) kpiSaldo.innerText = "€ 0";
-    if (kpiExtra) kpiExtra.innerText = "";
+    if (kpiExtra) kpiExtra.innerHTML = "";
     return;
   }
 
   let entrate = 0;
   let uscite = 0;
+  let incassiValidi = 0;
   let incassiDaDefinire = 0;
-  let acconti = 0;
 
   contiData.forEach(m => {
     const importo = Number(m.importo || 0);
 
     if (String(m.tipo).toLowerCase() === "entrata") {
       entrate += importo;
+
+      // ✅ consideriamo solo incassi reali (no acconti)
+      if (String(m.riferimento) !== "acconto_nuovo_pacchetto") {
+        incassiValidi += importo;
+      }
+
     } else {
       uscite += importo;
     }
@@ -7207,26 +7218,61 @@ function renderContiKpi() {
     if (String(m.flag_c) === "Da definire") {
       incassiDaDefinire += importo;
     }
-
-    if (String(m.riferimento) === "acconto_nuovo_pacchetto") {
-      acconti += importo;
-    }
   });
+
+  const saldo = entrate - uscite;
+
+  // ============================
+  // ✅ CALCOLO FISCALE
+  // ============================
+
+  const imponibile = incassiValidi * COEFF_REDDITIVITA;
+  const imposta = imponibile * ALIQUOTA_IMPOSTA;
+  const inps = imponibile * ALIQUOTA_INPS;
+  const utileNetto = incassiValidi - imposta - inps;
+
+  // ============================
+  // ✅ UI BASE
+  // ============================
 
   if (kpiEntrate) kpiEntrate.innerText = `€ ${entrate.toFixed(2)}`;
   if (kpiUscite) kpiUscite.innerText = `€ ${uscite.toFixed(2)}`;
-  if (kpiSaldo) kpiSaldo.innerText = `€ ${(entrate - uscite).toFixed(2)}`;
+  if (kpiSaldo) kpiSaldo.innerText = `€ ${saldo.toFixed(2)}`;
+
+  // ============================
+  // ✅ UI FISCALE (NUOVA)
+  // ============================
 
   if (kpiExtra) {
     kpiExtra.innerHTML = `
-      <div style="margin-top:8px; font-size:13px;">
+      <div style="margin-top:10px; font-size:13px;">
 
         <div style="margin-bottom:4px;">
-          💳 Incassi da definire: <b>€ ${incassiDaDefinire.toFixed(2)}</b>
+          💳 Incassi reali (no acconti): <b>€ ${incassiValidi.toFixed(2)}</b>
         </div>
 
-        <div>
-          🔵 Acconti disponibili: <b>€ ${acconti.toFixed(2)}</b>
+        <div style="margin-bottom:8px;">
+          ⚠️ Incassi da definire: <b>€ ${incassiDaDefinire.toFixed(2)}</b>
+        </div>
+
+        <hr style="margin:8px 0;"/>
+
+        <div style="margin-bottom:4px;">
+          📊 Imponibile (78%): <b>€ ${imponibile.toFixed(2)}</b>
+        </div>
+
+        <div style="margin-bottom:4px;">
+          🧾 Imposta (5%): <b>€ ${imposta.toFixed(2)}</b>
+        </div>
+
+        <div style="margin-bottom:4px;">
+          🏦 INPS (26.07%): <b>€ ${inps.toFixed(2)}</b>
+        </div>
+
+        <hr style="margin:8px 0;"/>
+
+        <div style="font-size:15px; font-weight:600;">
+          💰 Utile netto: <span style="color:#34c759;">€ ${utileNetto.toFixed(2)}</span>
         </div>
 
       </div>
