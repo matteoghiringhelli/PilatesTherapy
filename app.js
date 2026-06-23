@@ -7133,15 +7133,14 @@ async function loadConti() {
       return;
     }
 
+    // ✅ salvataggio dati
     contiData = data || [];
-    contiDataOriginal = [...contiData]; // ✅ FIX filtro mese
+    contiDataOriginal = [...contiData]; // 🔥 fondamentale
 
-    console.log("✅ Conti caricati:", contiData);
+    console.log("✅ Conti caricati:", contiData.length);
 
-    // ✅ RENDER COMPLETO (QUESTO ERA IL PROBLEMA)
-    renderConti();        // lista
-    renderContiKpi();     // KPI fiscali
-    renderGraficoFiscale(); // grafico
+    // ✅ APPLICO SUBITO FILTRO
+    applicaFiltroConti();
 
   } catch (err) {
     console.error("❌ Errore generale loadConti:", err);
@@ -7196,15 +7195,11 @@ async function aggiungiMovimentoConti() {
 
 // KPI
 function renderContiKpi() {
+
   const kpiEntrate = document.getElementById("contiEntrate");
   const kpiUscite = document.getElementById("contiUscite");
   const kpiSaldo = document.getElementById("contiSaldo");
   const kpiExtra = document.getElementById("contiExtra");
-
-  // ✅ PARAMETRI FISCALI (MODIFICABILI)
-  const COEFF_REDDITIVITA = 0.78;
-  const ALIQUOTA_IMPOSTA = 0.05;
-  const ALIQUOTA_INPS = 0.2607;
 
   if (!contiData || !contiData.length) {
     if (kpiEntrate) kpiEntrate.innerText = "€ 0";
@@ -7214,82 +7209,102 @@ function renderContiKpi() {
     return;
   }
 
+  // ============================
+  // ✅ BASE
+  // ============================
   let entrate = 0;
   let uscite = 0;
-  let incassiValidi = 0;
-  let incassiDaDefinire = 0;
 
   contiData.forEach(m => {
     const importo = Number(m.importo || 0);
 
     if (String(m.tipo).toLowerCase() === "entrata") {
       entrate += importo;
-
-      // ✅ consideriamo solo incassi reali (no acconti)
-      if (String(m.riferimento) !== "acconto_nuovo_pacchetto") {
-        incassiValidi += importo;
-      }
-
     } else {
       uscite += importo;
-    }
-
-    if (String(m.flag_c) === "Da definire") {
-      incassiDaDefinire += importo;
     }
   });
 
   const saldo = entrate - uscite;
 
-  // ============================
-  // ✅ CALCOLO FISCALE
-  // ============================
-
-  const imponibile = incassiValidi * COEFF_REDDITIVITA;
-  const imposta = imponibile * ALIQUOTA_IMPOSTA;
-  const inps = imponibile * ALIQUOTA_INPS;
-  const utileNetto = incassiValidi - imposta - inps;
-
-  // ============================
-  // ✅ UI BASE
-  // ============================
-
   if (kpiEntrate) kpiEntrate.innerText = `€ ${formatEuro(entrate)}`;
   if (kpiUscite) kpiUscite.innerText = `€ ${formatEuro(uscite)}`;
-  if (kpiSaldo) kpiSaldo.innerText = `€ ${formatEuro(entrate - uscite)}`;
+  if (kpiSaldo) kpiSaldo.innerText = `€ ${formatEuro(saldo)}`;
 
   // ============================
-  // ✅ UI FISCALE (NUOVA)
+  // ✅ LOGICA CORRETTA FLAG_C
+  // ============================
+
+  const entrateFiltrate = contiData.filter(m =>
+    String(m.tipo).toLowerCase() === "entrata" &&
+    String(m.riferimento) !== "acconto_nuovo_pacchetto"
+  );
+
+  const incassiTotali = entrateFiltrate.reduce(
+    (sum, m) => sum + Number(m.importo || 0),
+    0
+  );
+
+  const incassiCash = entrateFiltrate
+    .filter(m => String(m.flag_c) === "Si")
+    .reduce((sum, m) => sum + Number(m.importo || 0), 0);
+
+  const imponibile = entrateFiltrate
+    .filter(m => String(m.flag_c) === "No")
+    .reduce((sum, m) => sum + Number(m.importo || 0), 0);
+
+  // ============================
+  // ✅ PARAMETRI FISCALI
+  // ============================
+
+  const COEFF = 0.78;
+  const ALIQUOTA_IMPOSTA = 0.05;
+  const ALIQUOTA_INPS = 0.2607;
+
+  const baseFiscale = imponibile * COEFF;
+  const imposta = baseFiscale * ALIQUOTA_IMPOSTA;
+  const inps = baseFiscale * ALIQUOTA_INPS;
+  const utileNetto = incassiTotali - imposta - inps;
+
+  // ============================
+  // ✅ UI COMPLETA
   // ============================
 
   if (kpiExtra) {
-  kpiExtra.innerHTML = `
-  <div style="margin-top:10px; font-size:13px;">
+    kpiExtra.innerHTML = `
+      <div style="margin-top:10px; font-size:13px;">
 
-    <div style="margin-bottom:4px;">
-      💳 Incassi reali: <b>€ ${formatEuro(incassiValidi)}</b>
-    </div>
+        <div>💰 Incassi Totali: <b>€ ${formatEuro(incassiTotali)}</b></div>
+        <div style="opacity:0.7;">(Flag_C = Si + No)</div>
 
-    <div style="margin-bottom:8px;">
-      ⚠️ Da definire: <b>€ ${formatEuro(incassiDaDefinire)}</b>
-    </div>
+        <div style="margin-top:6px;">
+          💳 Incassi Cash: <b>€ ${formatEuro(incassiCash)}</b>
+        </div>
 
-    <hr style="margin:8px 0;"/>
+        <div style="margin-top:6px; color:#007aff;">
+          📊 Imponibile: <b>€ ${formatEuro(imponibile)}</b>
+        </div>
 
-    <div>📊 Imponibile: € ${formatEuro(imponibile)}</div>
-    <div>🧾 Imposta: € ${formatEuro(imposta)}</div>
-    <div>🏦 INPS: € ${formatEuro(inps)}</div>
+        <hr style="margin:10px 0;"/>
 
-    <hr style="margin:8px 0;"/>
+        <div>📉 Base 78%: € ${formatEuro(baseFiscale)}</div>
+        <div>🧾 Imposta (5%): € ${formatEuro(imposta)}</div>
+        <div>🏦 INPS (26.07%): € ${formatEuro(inps)}</div>
 
-    <div style="font-size:16px; font-weight:600;">
-      💰 Utile Netto: 
-      <span style="color:#34c759;">€ ${formatEuro(utileNetto)}</span>
-    </div>
+        <hr style="margin:10px 0;"/>
 
-  </div>
-`;
+        <div style="font-size:15px; font-weight:600;">
+          💰 Utile Netto: 
+          <span style="color:#34c759;">
+            € ${formatEuro(utileNetto)}
+          </span>
+        </div>
+
+      </div>
+    `;
   }
+
+  // ✅ IMPORTANTISSIMO
   renderGraficoFiscale();
 }
 
