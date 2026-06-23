@@ -3772,6 +3772,7 @@ function vaiTab(tab) {
   if (contiWrapper) contiWrapper.classList.add("active-section");
   if (contiSection) contiSection.classList.remove("hidden");
   scrollToSection("contiSection");
+  loadConti();
   return;
 }
 
