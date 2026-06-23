@@ -4163,9 +4163,10 @@ function mostraDettaglioPacchetto(idPacchetto) {
 
   animateView(out, `
     <div class="app-toolbar">
-      <button class="app-back-btn" onclick="loadPacchetti()">
-        ← Pacchetti
+      <button class="app-back-btn" onclick="tornaDaDettaglioPacchetto()">
+      ← Indietro
       </button>
+
     </div>
 
     <div class="card-ios">
@@ -4267,9 +4268,10 @@ function mostraDettaglioPacchetto(idPacchetto) {
           🗑️ Elimina
         </button>
 
-        <button onclick="loadPacchetti()">
+        <button onclick="tornaDaDettaglioPacchetto()">
           ← Indietro
         </button>
+
       </div>
 
     </div>
