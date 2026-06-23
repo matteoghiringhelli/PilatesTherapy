@@ -5399,8 +5399,13 @@ function setReportPacchettiFiltro(filtro) {
 }
 
 function getReportPacchettiCorrente() {
+
   if (reportPacchettiFiltro === "in_scadenza") {
     return getPacchettiReportInScadenza();
+  }
+
+  if (reportPacchettiFiltro === "fatture") {
+    return getPacchettiReportFattureMancanti();
   }
 
   return getPacchettiReportDaPagare();
@@ -5542,10 +5547,16 @@ function renderReportPacchetti() {
 
   const corrente = getReportPacchettiCorrente();
 
-  const titoloCorrente =
-    reportPacchettiFiltro === "in_scadenza"
-      ? "In Scadenza"
-      : "Da Pagare";
+let titoloCorrente = "Da Pagare";
+
+if (reportPacchettiFiltro === "in_scadenza") {
+  titoloCorrente = "In Scadenza";
+}
+
+if (reportPacchettiFiltro === "fatture") {
+  titoloCorrente = "Fatture da emettere";
+}
+
 
   out.innerHTML = `
     <div class="report-summary">
