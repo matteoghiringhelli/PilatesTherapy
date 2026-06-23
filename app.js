@@ -3126,46 +3126,36 @@ async function apriDettaglioPacchettoDaCliente(idPacchetto) {
   }
 
   try {
-    // ✅ 1. Vai alla tab Pacchetti usando la funzione reale della tua app
+    // ✅ 1. Vai alla tab pacchetti
     vaiTab("pacchetti");
 
-    // ✅ 2. Aspetta che i pacchetti siano davvero ricaricati
+    // ✅ 2. Carica pacchetti (attendere DB)
     await loadPacchetti();
 
-    // ✅ 3. Cerca il pacchetto nell'array reale del progetto
-    const pacchetto = pacchettiData.find(p =>
-      String(p.ID_Pacchetto) === String(idPacchetto)
-    );
-
-    if (!pacchetto) {
-      console.warn("❌ Pacchetto non trovato in pacchettiData:", idPacchetto);
-      setStatus("Pacchetto non trovato", "err");
-      alert("Pacchetto non trovato");
-      return;
-    }
-
-    console.log("✅ Pacchetto trovato, apro dettaglio:", pacchetto);
-
-    // ✅ 4. Apri il dettaglio passando l'ID, come richiede la tua funzione mostraDettaglioPacchetto()
-    mostraDettaglioPacchetto(idPacchetto);
-
-    // ✅ 5. Scroll verso il contenitore reale dei pacchetti
+    // ✅ 3. Forza apertura dettaglio DOPO render lista
     setTimeout(() => {
-      const container = document.getElementById("outputPacchetti");
-      if (container) {
-        container.scrollIntoView({
+      console.log("➡️ Apertura dettaglio forzata:", idPacchetto);
+
+      mostraDettaglioPacchetto(idPacchetto);
+
+      // ✅ 4. Scroll diretto al dettaglio
+      const dettaglioBox = document.getElementById("dettaglioPacchetto");
+      if (dettaglioBox) {
+        dettaglioBox.scrollIntoView({
           behavior: "smooth",
           block: "start"
         });
       }
-    }, 150);
+
+    }, 200); // delay leggermente più alto → garantisce render DOM
 
   } catch (err) {
-    console.error("❌ Errore apertura dettaglio pacchetto da cliente:", err);
+    console.error("❌ Errore apertura dettaglio:", err);
     setStatus("Errore apertura dettaglio pacchetto", "err");
-    alert("Errore apertura dettaglio pacchetto. Controlla la console.");
+    alert("Errore apertura dettaglio");
   }
 }
+
 
 
 function apriDettaglioLezioneDaHome(idLezione) {
