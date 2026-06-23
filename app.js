@@ -7113,21 +7113,33 @@ let contiData = [];
 
 // LOAD
 async function loadConti() {
-  const { data, error } = await supabaseClient
-    .from("studio_act")
-    .select("*")
-    .order("data", { ascending: false });
+  try {
+    console.log("💼 Carico Conti Studio...");
 
-  if (error) {
-    console.error("Errore caricamento Conti Studio:", error);
-    setStatus("Errore caricamento Conti Studio: " + error.message, "err");
-    return;
+    const { data, error } = await supabaseClient
+      .from("studio_act")
+      .select("*")
+      .order("data", { ascending: false });
+
+    if (error) {
+      console.error("❌ Errore loadConti:", error);
+      alert("Errore caricamento Conti Studio");
+      return;
+    }
+
+    contiData = data || [];
+
+    console.log("✅ Conti caricati:", contiData);
+
+    // ✅ RENDER COMPLETO (QUESTO ERA IL PROBLEMA)
+    renderConti();        // lista
+    renderContiKpi();     // KPI fiscali
+    renderGraficoFiscale(); // grafico
+
+  } catch (err) {
+    console.error("❌ Errore generale loadConti:", err);
+    alert("Errore imprevisto Conti Studio");
   }
-
-  contiDataOriginal = data || [];
-  contiData = [...contiDataOriginal];
-
-  renderConti();
 }
 
 
@@ -7324,9 +7336,20 @@ function calcolaFiscalePerMese() {
 
 let chartFiscale = null;
 
+let chartFiscale = null;
+
 function renderGraficoFiscale() {
   const canvas = document.getElementById("chartFiscale");
-  if (!canvas) return;
+
+  if (!canvas) {
+    console.warn("⚠️ Canvas chartFiscale non trovato");
+    return;
+  }
+
+  if (!contiData || !contiData.length) {
+    console.warn("⚠️ Nessun dato per grafico fiscale");
+    return;
+  }
 
   const dati = calcolaFiscalePerMese();
 
