@@ -1279,7 +1279,24 @@ body {
 
     <div id="reportPacchettiBox" class="hidden">
       <h3>Alert Pacchetti</h3>
-      <div id="outputReportPacchetti"></div>
+<div style="margin-bottom:15px; display:flex; gap:10px; flex-wrap:wrap;">
+
+  <button onclick="setReportPacchettiFiltro('da_pagare')" class="btn">
+    💰 Da Pagare
+  </button>
+
+  <button onclick="setReportPacchettiFiltro('in_scadenza')" class="btn">
+    ⚠️ In Scadenza
+  </button>
+
+  <button onclick="setReportPacchettiFiltro('fatture')" class="btn">
+    🧾 Fatture da emettere
+  </button>
+
+</div>
+
+<div id="outputReportPacchetti"></div>
+
     </div>
 
     <!-- ✅ FORM INTELLIGENTE PACCHETTI -->
