@@ -468,7 +468,13 @@ function formatDataEstesaIt(dateString) {
   return `${giorni[d.getDay()]} ${d.getDate()} ${mesi[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+function formatEuro(number) {
+  const value = Number(number || 0);
 
+  return value.toLocaleString("it-IT", {
+    maximumFractionDigits: 0
+  });
+}
 
 function isDateInCurrentWeek(dateString) {
   if (!dateString) return false;
@@ -7247,9 +7253,9 @@ function renderContiKpi() {
   // ✅ UI BASE
   // ============================
 
-  if (kpiEntrate) kpiEntrate.innerText = `€ ${entrate.toFixed(2)}`;
-  if (kpiUscite) kpiUscite.innerText = `€ ${uscite.toFixed(2)}`;
-  if (kpiSaldo) kpiSaldo.innerText = `€ ${saldo.toFixed(2)}`;
+  if (kpiEntrate) kpiEntrate.innerText = `€ ${formatEuro(entrate)}`;
+  if (kpiUscite) kpiUscite.innerText = `€ ${formatEuro(uscite)}`;
+  if (kpiSaldo) kpiSaldo.innerText = `€ ${formatEuro(entrate - uscite)}`;
 
   // ============================
   // ✅ UI FISCALE (NUOVA)
@@ -7260,24 +7266,24 @@ function renderContiKpi() {
   <div style="margin-top:10px; font-size:13px;">
 
     <div style="margin-bottom:4px;">
-      💳 Incassi reali: <b>€ ${incassiValidi.toFixed(2)}</b>
+      💳 Incassi reali: <b>€ ${formatEuro(incassiValidi)}</b>
     </div>
 
     <div style="margin-bottom:8px;">
-      ⚠️ Da definire: <b>€ ${incassiDaDefinire.toFixed(2)}</b>
+      ⚠️ Da definire: <b>€ ${formatEuro(incassiDaDefinire)}</b>
     </div>
 
     <hr style="margin:8px 0;"/>
 
-    <div>📊 Imponibile: € ${imponibile.toFixed(2)}</div>
-    <div>🧾 Imposta: € ${imposta.toFixed(2)}</div>
-    <div>🏦 INPS: € ${inps.toFixed(2)}</div>
+    <div>📊 Imponibile: € ${formatEuro(imponibile)}</div>
+    <div>🧾 Imposta: € ${formatEuro(imposta)}</div>
+    <div>🏦 INPS: € ${formatEuro(inps)}</div>
 
     <hr style="margin:8px 0;"/>
 
     <div style="font-size:16px; font-weight:600;">
       💰 Utile Netto: 
-      <span style="color:#34c759;">€ ${utileNetto.toFixed(2)}</span>
+      <span style="color:#34c759;">€ ${formatEuro(utileNetto)}</span>
     </div>
 
   </div>
@@ -7432,7 +7438,7 @@ function renderConti() {
           </div>
 
           <div style="font-weight:600; font-size:16px; color:${isEntrata ? "#34c759" : "#ff3b30"};">
-            € ${Number(row.importo || 0).toFixed(2)}
+            € ${formatEuro(row.importo)}
           </div>
 
         </div>
