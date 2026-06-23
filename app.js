@@ -7517,25 +7517,45 @@ async function registraEntrataPacchetto(pacchetto) {
 let contiDataOriginal = [];
 
 function applicaFiltroConti() {
-  const mese = document.getElementById("conti_mese")?.value || "";
+  // ============================
+  // 1) LEGGO FILTRO MESE
+  // ============================
+  const filtroMese = document.getElementById("contiFiltroMese")?.value || "";
 
-  if (!mese) {
-    alert("Seleziona un mese");
-    return;
+  // ============================
+  // 2) PARTO SEMPRE DAI DATI ORIGINALI ✅
+  // ============================
+  let data = [...(contiDataOriginal || [])];
+
+  // ============================
+  // 3) FILTRO PER MESE
+  // ============================
+  if (filtroMese) {
+    data = data.filter(m => {
+      if (!m.data) return false;
+
+      // formato atteso: YYYY-MM-DD
+      const meseMovimento = m.data.substring(0, 7);
+      return meseMovimento === filtroMese;
+    });
   }
 
-  const [annoFiltro, meseFiltro] = mese.split("-");
+  // ============================
+  // 4) AGGIORNO DATA CORRENTE
+  // ============================
+  contiData = data;
 
-  const filtrati = contiDataOriginal.filter(r => {
-    const dataMovimento = getContiData(r);
-    if (!dataMovimento) return false;
-
-    const [anno, meseMov] = String(dataMovimento).split("-");
-    return anno === annoFiltro && meseMov === meseFiltro;
-  });
-
-  contiData = filtrati;
+  // ============================
+  // 5) RENDER COMPLETO ✅
+  // ============================
   renderConti();
+  renderContiKpi();
+  renderGraficoFiscale();
+
+  console.log("✅ Filtro conti applicato:", {
+    filtroMese,
+    numeroMovimenti: contiData.length
+  });
 }
 
 
