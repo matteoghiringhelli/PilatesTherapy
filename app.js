@@ -256,25 +256,13 @@ function toggleLezioni() {
 }
 
 function togglePrenotazioni() {
-  const el = document.getElementById("prenotazioniSection");
-  if (!el) return;
-  el.classList.toggle("hidden");
+  // ❌ BLOCCATO: sezione non più utilizzata
+  console.warn("Prenotazioni standalone disattivate. Usa Agenda → Lezioni.");
 }
 
 function toggleNuovaPrenotazione() {
-  const box = document.getElementById("nuovaPrenotazioneBox");
-  if (!box) return;
-
-  box.classList.toggle("hidden");
-
-  if (!box.classList.contains("hidden")) {
-    applicaSmartDefaultsPrenotazione();
-
-    box.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
-  }
+  // ❌ BLOCCATO
+  console.warn("Nuova prenotazione manuale disattivata. Usa dettaglio lezione.");
 }
 
 function toggleNuovoCliente() {
@@ -1581,118 +1569,8 @@ function paginaPrenotazioniSuccessiva() {
 }
 
 async function prenota() {
-  const idCliente = document.getElementById("select_cliente")?.value || "";
-  const idLezione = document.getElementById("select_lezione")?.value || "";
-  const idPacchetto = document.getElementById("select_pacchetto")?.value || "";
-
-  if (!idCliente || !idLezione) {
-    setStatus("Seleziona cliente e lezione", "err");
-    return;
-  }
-
-  if (!idPacchetto) {
-    setStatus("Seleziona un pacchetto per questa prenotazione", "err");
-    return;
-  }
-
-  const duplicato = prenotazioniData.find(p =>
-    String(p.ID_Cliente) === String(idCliente) &&
-    String(p.ID_Lezione) === String(idLezione)
-  );
-
-  if (duplicato) {
-    setStatus("Prenotazione già esistente", "err");
-    return;
-  }
-
-  const lezione = lezioniData.find(l =>
-    String(l.ID_Lezione) === String(idLezione)
-  );
-
-  if (!lezione) {
-    setStatus("Lezione non trovata", "err");
-    return;
-  }
-
-  const count = prenotazioniData.filter(p =>
-    String(p.ID_Lezione) === String(idLezione)
-  ).length;
-
-  if (count >= Number(lezione.Max_Partecipanti || 0)) {
-    setStatus("Lezione piena", "err");
-    return;
-  }
-
-  const pacchetto = pacchettiData.find(p =>
-    String(p.ID_Pacchetto) === String(idPacchetto)
-  );
-
-  if (!pacchetto) {
-    setStatus("Pacchetto non trovato", "err");
-    return;
-  }
-
-  if (!pacchettoCompatibilePerLezione(pacchetto, lezione)) {
-    setStatus("Il pacchetto selezionato non è compatibile con la tipologia della lezione", "err");
-    return;
-  }
-
-  const avvisi = getAvvisiPacchettoPrenotazione(pacchetto, lezione);
-
-  if (avvisi.length) {
-    const conferma = confirm(
-      `Attenzione: ${avvisi.join(" / ")}.\n\nVuoi registrare comunque la prenotazione?`
-    );
-
-    if (!conferma) {
-      setStatus("Prenotazione annullata", "err");
-      return;
-    }
-  }
-
-  try {
-    const data = await safeInsert("prenotazioni", {
-      ID_Prenotazione: generaNuovoIdProgressivo("PR", prenotazioniData, "ID_Prenotazione"),
-      ID_Cliente: idCliente,
-      ID_Lezione: idLezione,
-      ID_Pacchetto: idPacchetto
-    });
-
-    console.log("Risposta insert prenotazioni:", data);
-
-    if (!data || !data.length) {
-      setStatus("Prenotazione non restituita da Supabase: controlla le policy RLS", "err");
-      return;
-    }
-
-    ricordaSmartPrenotazione(idCliente, idLezione);
-
-    document.getElementById("select_cliente").value = "";
-    document.getElementById("select_lezione").value = "";
-
-    const selectPacchetto = document.getElementById("select_pacchetto");
-
-    if (selectPacchetto) {
-      selectPacchetto.innerHTML = `
-        <option value="">Seleziona prima cliente e lezione</option>
-      `;
-    }
-
-    await loadPrenotazioni();
-    await loadPacchetti();
-
-    const reportBox = document.getElementById("reportPacchettiBox");
-
-    if (reportBox && !reportBox.classList.contains("hidden")) {
-      renderReportPacchetti();
-    }
-
-    setStatus("Prenotazione salvata correttamente ✅", "ok");
-
-  } catch (error) {
-    console.error("Errore prenota:", error);
-    setStatus("Errore salvataggio prenotazione", "err");
-  }
+  // ❌ BLOCCATO
+  alert("Usa il dettaglio della lezione per aggiungere prenotazioni.");
 }
 
 async function eliminaPrenotazione(id) {
@@ -1859,20 +1737,8 @@ function resetSearchPrenotazioni() {
 }
 
 function apriPrenotazione(idLezione) {
-  const select = document.getElementById("select_lezione");
-  const section = document.getElementById("prenotazioniSection");
-
-  if (select) select.value = idLezione;
-
-  if (section && section.classList.contains("hidden")) {
-    section.classList.remove("hidden");
-  }
-
-  aggiornaPacchettiPrenotazione();
-
-  if (section) {
-  section.scrollIntoView({ behavior: "smooth" });
-}
+  // ✅ redirect corretto al nuovo flow
+  mostraDettaglioLezione(idLezione);
 }
 
 function mostraPrenotazioniLezione(idLezione) {
