@@ -1,0 +1,93 @@
+// ============================
+// ✅ MODULO CONTI STUDIO — BASE
+// ============================
+
+// ✅ Stato condiviso
+var contiData = window.contiData || [];
+var contiDataOriginal = window.contiDataOriginal || [];
+var filtroConti = window.filtroConti || "tutti";
+var filtroContiMese = window.filtroContiMese || "";
+
+// ============================
+// ✅ LOAD CONTI
+// ============================
+
+async function loadConti() {
+
+  const { data, error } = await fetchAllRows(
+    "studio_act",
+    "*",
+    "id_movimento",
+    false
+  );
+
+  if (error) {
+    console.error("Errore loadConti:", error);
+    setStatus(`Errore caricamento conti: ${error.message}`, "err");
+    return;
+  }
+
+  contiData = data || [];
+  contiDataOriginal = [...contiData];
+
+  window.contiData = contiData;
+  window.contiDataOriginal = contiDataOriginal;
+
+  applicaFiltroConti();
+
+}
+
+// ============================
+// ✅ FILTRI CONTI
+// ============================
+
+function applicaFiltroConti() {
+
+  let filtered = [...contiDataOriginal];
+
+  // ✅ filtro tipo (entrate / uscite)
+  if (filtroConti === "entrate") {
+    filtered = filtered.filter(r => Number(r.importo || 0) > 0);
+  }
+
+  if (filtroConti === "uscite") {
+    filtered = filtered.filter(r => Number(r.importo || 0) < 0);
+  }
+
+  // ✅ filtro mese
+  if (filtroContiMese) {
+    filtered = filtered.filter(r => {
+      if (!r.Data) return false;
+      return String(r.Data).startsWith(filtroContiMese);
+    });
+  }
+
+  contiData = filtered;
+  renderConti();
+
+}
+
+function setFiltroConti(tipo) {
+  filtroConti = tipo;
+  applicaFiltroConti();
+}
+
+function setFiltroContiMese() {
+  const input = document.getElementById("filtro_conti_mese");
+  filtroContiMese = input ? input.value : "";
+  applicaFiltroConti();
+}
+
+function resetFiltroConti() {
+
+  filtroConti = "tutti";
+  filtroContiMese = "";
+
+  const input = document.getElementById("filtro_conti_mese");
+  if (input) input.value = "";
+
+  contiData = [...contiDataOriginal];
+
+  renderConti();
+
+}
