@@ -4970,27 +4970,60 @@ function tornaDaDettaglioPacchetto() {
 
 function renderKpiFiscali() {
 
-  const dati = calcolaFiscalePerMese();
-  const mesi = Object.keys(dati).sort();
+  const COEFF = 0.78;
+  const ALIQUOTA_IMPOSTA = 0.05;
+  const ALIQUOTA_INPS = 0.2607;
 
-  if (!mesi.length) return;
+  let entrateTotali = 0;
+  let entrateCash = 0;
+  let entrateCompetenza = 0;
 
-  const ultimo = mesi[mesi.length - 1];
-  const m = dati[ultimo];
+  (contiData || []).forEach(m => {
 
-  let entrateTot = 0;
-  contiData.forEach(x => {
-    if (String(x.tipo).toLowerCase() === "entrata" &&
-        String(x.riferimento) !== "acconto_nuovo_pacchetto") {
-      entrateTot += Number(x.importo || 0);
+    const tipo = String(m.tipo || "").toLowerCase();
+    const importo = Number(m.importo || 0);
+    const flagC = String(m.flag_c || m.Flag_C || "").toLowerCase();
+
+    if (tipo !== "entrata") return;
+
+    // ✅ totale
+    entrateTotali += importo;
+
+    // ✅ cash
+    if (flagC === "si") {
+      entrateCash += importo;
     }
+
+    // ✅ competenza
+    if (flagC === "no") {
+      entrateCompetenza += importo;
+    }
+
   });
 
-  document.getElementById("kpiEntrateTotali").innerText = "€ " + formatEuro(entrateTot);
-  document.getElementById("kpiImponibile").innerText = "€ " + formatEuro(m.imponibile);
-  document.getElementById("kpiImposte").innerText = "€ " + formatEuro(m.imposta);
-  document.getElementById("kpiInps").innerText = "€ " + formatEuro(m.inps);
-  document.getElementById("kpiUtile").innerText = "€ " + formatEuro(m.utile);
+  // ✅ imponibile SOLO su competenza
+  const imponibile = entrateCompetenza * COEFF;
+  const imposta = imponibile * ALIQUOTA_IMPOSTA;
+  const inps = imponibile * ALIQUOTA_INPS;
+  const utile = entrateCompetenza - imposta - inps;
+
+  // ✅ output
+  document.getElementById("kpiEntrateTotali").innerText = "€ " + formatEuro(entrateTotali);
+  document.getElementById("kpiEntrateCash").innerText = "€ " + formatEuro(entrateCash);
+  document.getElementById("kpiImponibile").innerText = "€ " + formatEuro(imponibile);
+  document.getElementById("kpiImposte").innerText = "€ " + formatEuro(imposta);
+  document.getElementById("kpiInps").innerText = "€ " + formatEuro(inps);
+  document.getElementById("kpiUtile").innerText = "€ " + formatEuro(utile);
+
+  console.log("📊 KPI Fiscali CORRETTI:", {
+    entrateTotali,
+    entrateCash,
+    entrateCompetenza,
+    imponibile,
+    imposta,
+    inps,
+    utile
+  });
 
 }
 
