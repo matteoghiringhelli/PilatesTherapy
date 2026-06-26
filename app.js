@@ -5010,6 +5010,7 @@ function renderKpiFiscali() {
   // ✅ output
   document.getElementById("kpiEntrateTotali").innerText = "€ " + formatEuro(entrateTotali);
   document.getElementById("kpiEntrateCash").innerText = "€ " + formatEuro(entrateCash);
+  document.getElementById("kpiEntrateCompetenza").innerText = "€ " + formatEuro(entrateCompetenza);
   document.getElementById("kpiImponibile").innerText = "€ " + formatEuro(imponibile);
   document.getElementById("kpiImposte").innerText = "€ " + formatEuro(imposta);
   document.getElementById("kpiInps").innerText = "€ " + formatEuro(inps);
