@@ -1,10 +1,21 @@
-const CACHE_NAME = "studio-pilates-cache-v1";
+const CACHE_NAME = "studio-pilates-cache-v2";
 
 const FILES_TO_CACHE = [
   "/",
   "/index.html",
   "/dashboard.html",
+
   "/app.js",
+
+  "/js/utils/date.js",
+  "/js/utils/format.js",
+  "/js/utils/id.js",
+  "/js/utils/dom.js",
+
+  "/js/core/supabase.js",
+  "/js/core/db.js",
+  "/js/state/state.js",
+
   "/manifest.json",
   "/apple-touch-icon.png",
   "/icon-192.png",
@@ -17,6 +28,7 @@ self.addEventListener("install", function (event) {
       return cache.addAll(FILES_TO_CACHE);
     })
   );
+
   self.skipWaiting();
 });
 
@@ -32,6 +44,7 @@ self.addEventListener("activate", function (event) {
       );
     })
   );
+
   self.clients.claim();
 });
 
