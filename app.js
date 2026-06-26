@@ -4725,59 +4725,7 @@ let chartFiscale = null;
 
 
 function renderGraficoFiscale() {
-  const canvas = document.getElementById("chartFiscale");
-
-  if (!canvas) {
-    console.warn("⚠️ Canvas chartFiscale non trovato");
-    return;
-  }
-
-  if (!contiData || !contiData.length) {
-    console.warn("⚠️ Nessun dato per grafico fiscale");
-    return;
-  }
-
-  const dati = calcolaFiscalePerMese();
-
-  const labels = Object.keys(dati).sort();
-  const utili = labels.map(m => dati[m].utile);
-  const imposte = labels.map(m => dati[m].imposta);
-  const inps = labels.map(m => dati[m].inps);
-
-  if (chartFiscale) {
-    chartFiscale.destroy();
-  }
-
-  chartFiscale = new Chart(canvas, {
-    type: "bar",
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: "Utile Netto",
-          data: utili,
-          backgroundColor: "#34c759"
-        },
-        {
-          label: "Imposte",
-          data: imposte,
-          backgroundColor: "#ff9500"
-        },
-        {
-          label: "INPS",
-          data: inps,
-          backgroundColor: "#007aff"
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: "top" },
-        title: { display: true, text: "Dashboard Fiscale Mensile" }
-      }
-    }
-  });
+  // ✅ grafico rimosso
 }
 
 
