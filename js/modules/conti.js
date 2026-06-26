@@ -25,8 +25,11 @@ async function loadConti() {
     return;
   }
 
-  contiData = data || [];
-  contiDataOriginal = [...contiData];
+  window.contiData = data || [];
+  window.contiDataOriginal = [...window.contiData];
+
+  contiData = window.contiData;
+  contiDataOriginal = window.contiDataOriginal;
 
   window.contiData = contiData;
   window.contiDataOriginal = contiDataOriginal;
