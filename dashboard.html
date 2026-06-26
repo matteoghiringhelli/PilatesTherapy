@@ -1533,30 +1533,48 @@ body {
   <canvas id="chartFiscale"></canvas>
 </div>
 
-<div id="contiExtra" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+<div class="card-ios" style="margin-top:15px;">
 
-  <div class="card-ios" style="flex:1;">
-    <div style="font-size:12px; opacity:0.6;">Entrate Totali</div>
+  <div style="font-weight:700; margin-bottom:10px;">
+    📊 Conto Economico
+  </div>
+
+  <div style="display:flex; justify-content:space-between;">
+    <div>Entrate Totali</div>
     <div id="kpiEntrateTotali">€ 0</div>
   </div>
 
-  <div class="card-ios" style="flex:1;">
-    <div style="font-size:12px; opacity:0.6;">Imponibile</div>
+  <div style="display:flex; justify-content:space-between;">
+    <div>Entrate Cash</div>
+    <div id="kpiEntrateCash">€ 0</div>
+  </div>
+
+  <div style="display:flex; justify-content:space-between; margin-top:8px;">
+    <div>Entrate Competenza (Flag C = No)</div>
+    <div id="kpiEntrateCompetenza">€ 0</div>
+  </div>
+
+  <hr>
+
+  <div style="display:flex; justify-content:space-between;">
+    <div>Imponibile (78%)</div>
     <div id="kpiImponibile">€ 0</div>
   </div>
 
-  <div class="card-ios" style="flex:1;">
-    <div style="font-size:12px; opacity:0.6;">Imposte</div>
+  <div style="display:flex; justify-content:space-between;">
+    <div>Imposte (5%)</div>
     <div id="kpiImposte">€ 0</div>
   </div>
 
-  <div class="card-ios" style="flex:1;">
-    <div style="font-size:12px; opacity:0.6;">INPS</div>
+  <div style="display:flex; justify-content:space-between;">
+    <div>INPS (26.07%)</div>
     <div id="kpiInps">€ 0</div>
   </div>
 
-  <div class="card-ios" style="flex:1;">
-    <div style="font-size:12px; opacity:0.6;">Utile Netto</div>
+  <hr>
+
+  <div style="display:flex; justify-content:space-between; font-weight:700;">
+    <div>Utile Netto</div>
     <div id="kpiUtile">€ 0</div>
   </div>
 
