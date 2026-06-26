@@ -175,21 +175,33 @@ window.addEventListener("DOMContentLoaded", async () => {
   try {
     console.log("APP VERSION:", APP_VERSION);
 
-   // ============================
-// ✅ CONTROLLO AUTENTICAZIONE
 // ============================
-const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+// ✅ CONTROLLO AUTENTICAZIONE (FIX DEFINITIVO)
+// ============================
 
-if (authError || !user) {
+let session = null;
+
+try {
+  const { data } = await supabaseClient.auth.getSession();
+
+  if (data && data.session) {
+    session = data.session;
+  }
+} catch (err) {
+  console.error("Errore getSession:", err);
+}
+
+if (!session || !session.user) {
   console.warn("Utente non autenticato, redirect al login");
 
   window.location.href = "/index.html";
   return;
 }
 
-// ✅ salva utente globale (preparazione per RLS futuro)
-window.currentUser = user;
-window.currentUserId = user.id;
+// ✅ salva utente globale
+window.currentUser = session.user;
+window.currentUserId = session.user.id;
+
 console.log("✅ User authenticated:", window.currentUserId);
     
     // ============================
