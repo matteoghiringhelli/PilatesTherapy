@@ -5005,7 +5005,7 @@ function renderKpiFiscali() {
   const imponibile = entrateCompetenza * COEFF;
   const imposta = imponibile * ALIQUOTA_IMPOSTA;
   const inps = imponibile * ALIQUOTA_INPS;
-  const utile = entrateCompetenza - imposta - inps;
+  const utile = entrateTotali - imposta - inps;
 
   // ✅ output
   document.getElementById("kpiEntrateTotali").innerText = "€ " + formatEuro(entrateTotali);
