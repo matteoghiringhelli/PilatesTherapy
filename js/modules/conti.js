@@ -45,28 +45,24 @@ async function loadConti() {
 
 function applicaFiltroConti() {
 
-  let filtered = [...contiDataOriginal];
+  let filtered = [...window.contiDataOriginal];
 
-  // ✅ filtro tipo
-  if (filtroConti === "entrate") {
+  if (window.filtroConti === "entrate") {
     filtered = filtered.filter(r => Number(r.importo || 0) > 0);
   }
 
-  if (filtroConti === "uscite") {
+  if (window.filtroConti === "uscite") {
     filtered = filtered.filter(r => Number(r.importo || 0) < 0);
   }
 
-  // ✅ filtro mese
-  if (filtroContiMese) {
+  if (window.filtroContiMese) {
     filtered = filtered.filter(r => {
       if (!r.Data) return false;
-      return String(r.Data).startsWith(filtroContiMese);
+      return String(r.Data).startsWith(window.filtroContiMese);
     });
   }
 
-  // ✅ CRITICO: aggiorniamo lo stato globale CORRETTO
   window.contiData = filtered;
-  contiData = window.contiData;
 
   renderConti();
 
