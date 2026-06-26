@@ -4968,6 +4968,31 @@ function tornaDaDettaglioPacchetto() {
   }, 180);
 }
 
+function renderKpiFiscali() {
+
+  const dati = calcolaFiscalePerMese();
+  const mesi = Object.keys(dati).sort();
+
+  if (!mesi.length) return;
+
+  const ultimo = mesi[mesi.length - 1];
+  const m = dati[ultimo];
+
+  let entrateTot = 0;
+  contiData.forEach(x => {
+    if (String(x.tipo).toLowerCase() === "entrata" &&
+        String(x.riferimento) !== "acconto_nuovo_pacchetto") {
+      entrateTot += Number(x.importo || 0);
+    }
+  });
+
+  document.getElementById("kpiEntrateTotali").innerText = "€ " + formatEuro(entrateTot);
+  document.getElementById("kpiImponibile").innerText = "€ " + formatEuro(m.imponibile);
+  document.getElementById("kpiImposte").innerText = "€ " + formatEuro(m.imposta);
+  document.getElementById("kpiInps").innerText = "€ " + formatEuro(m.inps);
+  document.getElementById("kpiUtile").innerText = "€ " + formatEuro(m.utile);
+
+}
 
 
 console.log("APP JS CARICATO OK");
