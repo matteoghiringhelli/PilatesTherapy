@@ -35,7 +35,6 @@ async function loadConti() {
   renderContiKpi();
 
   // ✅ NUOVO: attiva dashboard fiscale
-  renderGraficoFiscale();
   renderKpiFiscali();
 
 }
