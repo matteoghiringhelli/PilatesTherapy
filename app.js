@@ -99,6 +99,16 @@ let clientiData = [];
 let lezioniData = [];
 let prenotazioniData = [];
 
+// ============================
+// ✅ CONTI STUDIO STATE
+// ============================
+
+let contiData = [];
+let contiDataOriginal = [];
+let filtroConti = "tutti";
+let filtroContiMese = "";
+
+
 let paginaLezioni = 1;
 let paginaPrenotazioni = 1;
 
