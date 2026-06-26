@@ -25,14 +25,15 @@ async function loadConti() {
     return;
   }
 
+  // ✅ unica fonte di verità: window
   window.contiData = data || [];
   window.contiDataOriginal = [...window.contiData];
 
+  // ✅ sync locale (lettura, NON scrittura duplicata)
   contiData = window.contiData;
   contiDataOriginal = window.contiDataOriginal;
 
-  window.contiData = contiData;
-  window.contiDataOriginal = contiDataOriginal;
+  console.log("✅ Conti caricati:", contiData.length);
 
   applicaFiltroConti();
 
