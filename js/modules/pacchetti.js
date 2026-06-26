@@ -2,9 +2,8 @@
 // ✅ MODULO PACCHETTI BASE
 // ============================
 
-let pacchettiData = [];
-let daPagareManuale = false;
-let lezioniAddManuale = false;
+// ✅ usa variabile globale esistente
+// (non ridefinire pacchettiData)
 
 function segnaLezioniAddManuale() {
   lezioniAddManuale = true;
