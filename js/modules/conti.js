@@ -69,25 +69,25 @@ function applicaFiltroConti() {
 }
 
 function setFiltroConti(tipo) {
-  filtroConti = tipo;
+  window.filtroConti = tipo;
   applicaFiltroConti();
 }
 
 function setFiltroContiMese() {
   const input = document.getElementById("filtro_conti_mese");
-  filtroContiMese = input ? input.value : "";
+  window.filtroContiMese = input ? input.value : "";
   applicaFiltroConti();
 }
 
 function resetFiltroConti() {
 
-  filtroConti = "tutti";
-  filtroContiMese = "";
+  window.filtroConti = "tutti";
+  window.filtroContiMese = "";
 
   const input = document.getElementById("filtro_conti_mese");
   if (input) input.value = "";
 
-  contiData = [...contiDataOriginal];
+  window.contiData = [...window.contiDataOriginal];
 
   renderConti();
 
