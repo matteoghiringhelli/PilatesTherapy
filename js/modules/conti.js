@@ -43,18 +43,27 @@ function applicaFiltroConti() {
 
   const meseFiltro = document.getElementById("contiFiltroMese")?.value || "";
 
-  let filtered;
-
-  if (!meseFiltro) {
-    filtered = [...contiDataOriginal];
-  } else {
-    filtered = contiDataOriginal.filter(m => {
-      if (!m.data) return false;
-      return m.data.startsWith(meseFiltro);
-    });
+  if (!contiDataOriginal || !contiDataOriginal.length) {
+    console.warn("⚠️ contiDataOriginal vuoto");
+    contiData = [];
+    renderConti();
+    renderContiKpi();
+    return;
   }
 
-  contiData = filtered;
+  // ✅ FIX: controlla correttamente la data
+  if (!meseFiltro) {
+    contiData = [...contiDataOriginal];
+  } else {
+    contiData = contiDataOriginal.filter(m => {
+
+      const data = m.data || m.Data || "";
+
+      if (!data) return false;
+
+      return data.startsWith(meseFiltro);
+    });
+  }
 
   console.log("✅ Conti dopo filtro:", contiData.length);
 
