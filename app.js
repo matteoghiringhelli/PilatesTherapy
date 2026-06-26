@@ -4860,78 +4860,50 @@ function renderGraficoFiscale() {
 // RENDER LISTA (mobile-first)
 function renderConti() {
 
-  // ✅ sincronizza stato globale
-  contiData = window.contiData || [];
   const container = document.getElementById("contiList");
-  if (!container) return;
 
-  if (!contiData || !contiData.length) {
+  if (!container) {
+    console.error("❌ contiList non trovato");
+    return;
+  }
+
+  const data = window.contiData || [];
+
+  console.log("RENDER CONTI:", data.length);
+
+  if (!data.length) {
     container.innerHTML = `<div style="padding:15px;">Nessun movimento</div>`;
     return;
   }
 
-  const html = contiData
-    .map(row => {
+  const html = data.map(row => {
 
-      const isAcconto = row.riferimento === "acconto_nuovo_pacchetto";
-      const isDaDefinire = String(row.flag_c) === "Da definire";
-      const isEntrata = String(row.tipo).toLowerCase() === "entrata";
+    const isEntrata = String(row.tipo).toLowerCase() === "entrata";
+    const color = isEntrata ? "#34c759" : "#ff3b30";
 
-      const borderColor =
-        isDaDefinire ? "#ff9500" :
-        isAcconto ? "#007aff" :
-        isEntrata ? "#34c759" : "#ff3b30";
-
-      return `
-      <div class="card-ios" style="border-left:4px solid ${borderColor}; margin-bottom:10px;">
-
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-
+    return `
+      <div class="card-ios" style="margin-bottom:10px; border-left:4px solid ${color};">
+        <div style="display:flex; justify-content:space-between;">
           <div>
             <div style="font-weight:600;">
               ${row.descrizione || ""}
             </div>
-
             <div style="font-size:12px; opacity:0.6;">
               ${row.data || ""} • ${row.categoria || ""}
             </div>
           </div>
-
-          <div style="font-weight:600; font-size:16px; color:${isEntrata ? "#34c759" : "#ff3b30"};">
+          <div style="font-weight:600; color:${color};">
             € ${formatEuro(row.importo)}
           </div>
-
         </div>
-
-        <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
-
-          ${
-            isDaDefinire
-              ? `<div class="tag-warning">Da definire</div>`
-              : ""
-          }
-
-          ${
-            isAcconto
-              ? `<div class="tag-acconto">Acconto</div>`
-              : ""
-          }
-
-          ${
-            row.id_pacchetto
-              ? `<div class="tag-success">Collegato</div>`
-              : ""
-          }
-
-        </div>
-
       </div>
-      `;
-    })
-    .join("");
+    `;
+  }).join("");
 
+  // ✅ CRITICO: write SOLO qui (no side effects)
   container.innerHTML = html;
 }
+
 
 
 // ============================
