@@ -4636,8 +4636,6 @@ async function aggiungiMovimentoConti() {
 // KPI
 function renderContiKpi() {
 
-  // ✅ sincronizza stato globale
-  contiData = window.contiData || [];
 
   const kpiEntrate = document.getElementById("contiEntrate");
   const kpiUscite = document.getElementById("contiUscite");
@@ -4861,6 +4859,9 @@ function renderGraficoFiscale() {
 
 // RENDER LISTA (mobile-first)
 function renderConti() {
+
+  // ✅ sincronizza stato globale
+  contiData = window.contiData || [];
   const container = document.getElementById("contiList");
   if (!container) return;
 
