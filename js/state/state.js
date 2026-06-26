@@ -19,7 +19,7 @@ window.state = {
   },
 
   calendario: {
-    dataCorrente: getTodayString()
+    dataCorrente: null
   }
 
 };
