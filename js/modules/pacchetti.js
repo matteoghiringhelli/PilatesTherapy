@@ -1196,3 +1196,89 @@ function renderReportPacchetti() {
     ${renderReportFattureMancanti(fattureMancantiItems)}
   `;
 }
+
+// ============================
+// ✅ CREAZIONE PACCHETTO
+// ============================
+
+async function aggiungiPacchetto() {
+
+  const payload = {
+    ID_Pacchetto: generaNuovoIdPacchetto(),
+    ID_Cliente: document.getElementById("pac_cliente")?.value || "",
+    Tipo_Pacchetto: document.getElementById("pac_tipo")?.value || "",
+    Lezioni_Base: Number(document.getElementById("pac_lezioni_base")?.value || 0),
+    Lezioni_Add: Number(document.getElementById("pac_lezioni_add")?.value || 0),
+    Lezioni_Totali: Number(document.getElementById("pac_lezioni_totali")?.value || 0),
+    Prezzo: Number(document.getElementById("pac_prezzo")?.value || 0),
+    Flag_Pagato: document.getElementById("pac_flag_pagato")?.value || "Si",
+    Da_Pagare: Number(document.getElementById("pac_da_pagare")?.value || 0),
+    Flag_C: document.getElementById("pac_flag_c")?.value || "Si",
+    Fattura_Nr: document.getElementById("pac_fattura_nr")?.value.trim() || "",
+    Data_Fattura: document.getElementById("pac_data_fattura")?.value || null,
+    Valido_Da: document.getElementById("pac_valido_da")?.value || "",
+    Valido_A: document.getElementById("pac_valido_a")?.value || "",
+    Stato: document.getElementById("pac_stato")?.value || "Attivo"
+  };
+
+  // ✅ VALIDAZIONI MINIME
+  if (!payload.ID_Cliente) {
+    setStatus("Cliente obbligatorio", "err");
+    return;
+  }
+
+  if (!payload.Tipo_Pacchetto) {
+    setStatus("Tipo Pacchetto obbligatorio", "err");
+    return;
+  }
+
+  if (!payload.Valido_Da || !payload.Valido_A) {
+    setStatus("Valido Da e Valido A sono obbligatori", "err");
+    return;
+  }
+
+  // ✅ NORMALIZZAZIONE
+  if (payload.Flag_Pagato === "Si") {
+    payload.Da_Pagare = 0;
+  }
+
+  if (payload.Flag_C === "Si") {
+    payload.Fattura_Nr = "";
+  }
+
+  try {
+
+    await safeInsert("pacchetti", payload);
+
+  } catch (error) {
+    console.error("Errore aggiungiPacchetto:", error);
+    setStatus("Errore salvataggio pacchetto", "err");
+    return;
+  }
+
+  // ✅ POST-INSERIMENTO
+  await loadPacchetti();
+
+  if (typeof loadPrenotazioni === "function") {
+    await loadPrenotazioni();
+  }
+
+  const reportBox = document.getElementById("reportPacchettiBox");
+
+  if (
+    reportBox &&
+    !reportBox.classList.contains("hidden") &&
+    typeof renderReportPacchetti === "function"
+  ) {
+    renderReportPacchetti();
+  }
+
+  // ✅ PULIZIA FORM
+  pulisciFormPacchetto();
+
+  const box = document.getElementById("nuovoPacchettoBox");
+  if (box) box.classList.add("hidden");
+
+  setStatus("Pacchetto creato ✅", "ok");
+
+}
