@@ -43,7 +43,7 @@ function applicaFiltroConti() {
 
   let filtered = [...contiDataOriginal];
 
-  // ✅ filtro tipo (entrate / uscite)
+  // ✅ filtro tipo
   if (filtroConti === "entrate") {
     filtered = filtered.filter(r => Number(r.importo || 0) > 0);
   }
@@ -60,7 +60,10 @@ function applicaFiltroConti() {
     });
   }
 
-  contiData = filtered;
+  // ✅ CRITICO: aggiorniamo lo stato globale CORRETTO
+  window.contiData = filtered;
+  contiData = window.contiData;
+
   renderConti();
 
 }
