@@ -175,22 +175,22 @@ window.addEventListener("DOMContentLoaded", async () => {
   try {
     console.log("APP VERSION:", APP_VERSION);
 
-    // ============================
-    // ✅ CONTROLLO AUTENTICAZIONE
-    // ============================
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+   // ============================
+// ✅ CONTROLLO AUTENTICAZIONE
+// ============================
+const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
 
-    if (authError || !user) {
-      console.warn("Utente non autenticato, redirect al login");
+if (authError || !user) {
+  console.warn("Utente non autenticato, redirect al login");
 
-      window.location.href = "/index.html";
-      return;
-    }
+  window.location.href = "/index.html";
+  return;
+}
 
-    // ✅ salva utente globale (preparazione per RLS futuro)
-    window.currentUser = user;
-    window.currentUserId = user.id;
-    console.log("✅ User authenticated:", window.currentUserId);
+// ✅ salva utente globale (preparazione per RLS futuro)
+window.currentUser = user;
+window.currentUserId = user.id;
+console.log("✅ User authenticated:", window.currentUserId);
     
     // ============================
     // APP INIT
@@ -7644,11 +7644,15 @@ async function login() {
       password: password
     });
 
-    if (error) {
+    // ✅ PRIMA controlli errore
+    if (error || !data || !data.user) {
       console.error("Errore login:", error);
-      if (status) status.textContent = "❌ " + error.message;
+      if (status) status.textContent = "❌ " + (error?.message || "Login fallito");
       return;
     }
+
+    // ✅ SOLO DOPO imposti user
+    window.currentUserId = data.user.id;
 
     if (status) status.textContent = "✅ Login ok";
 
