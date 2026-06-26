@@ -4785,13 +4785,13 @@ function renderGraficoFiscale() {
 function renderConti() {
 
   const container = document.getElementById("contiList");
-
   if (!container) {
     console.error("❌ contiList non trovato");
     return;
   }
 
-  const data = window.contiData || [];
+  // ✅ FIX: usare SOLO contiData (no window)
+  const data = contiData || [];
 
   console.log("RENDER CONTI:", data.length);
 
@@ -4824,7 +4824,6 @@ function renderConti() {
     `;
   }).join("");
 
-  // ✅ CRITICO: write SOLO qui (no side effects)
   container.innerHTML = html;
   container.style.display = "flex";
   container.style.flexDirection = "column";
