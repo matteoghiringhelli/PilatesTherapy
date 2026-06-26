@@ -33,6 +33,8 @@ async function loadConti() {
 
   renderConti();
   renderContiKpi();
+  
+  console.log("PRIMI DATI:", contiData.slice(0,3));
 }
 
 // ============================
