@@ -3,10 +3,8 @@
 // ============================
 
 // ✅ Stato condiviso
-var contiData = window.contiData || [];
-var contiDataOriginal = window.contiDataOriginal || [];
-var filtroConti = window.filtroConti || "tutti";
-var filtroContiMese = window.filtroContiMese || "";
+// ✅ usa variabili globali già definite in app.js
+// NON ridefinire qui (evita duplicazione)
 
 // ============================
 // ✅ LOAD CONTI
