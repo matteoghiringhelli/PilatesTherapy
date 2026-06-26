@@ -63,6 +63,7 @@ function applicaFiltroConti() {
   }
 
   window.contiData = filtered;
+  contiData = window.contiData;
 
   renderConti();
 
