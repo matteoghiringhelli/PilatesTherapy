@@ -4959,53 +4959,10 @@ async function registraEntrataPacchetto(pacchetto) {
 
 let contiDataOriginal = [];
 
-function applicaFiltroConti() {
-  // ============================
-  // 1) LEGGO FILTRO MESE
-  // ============================
-  const filtroMese = document.getElementById("contiFiltroMese")?.value || "";
-
-  // ============================
-  // 2) PARTO SEMPRE DAI DATI ORIGINALI ✅
-  // ============================
-  let data = [...(contiDataOriginal || [])];
-
-  // ============================
-  // 3) FILTRO PER MESE
-  // ============================
-  if (filtroMese) {
-    data = data.filter(m => {
-      if (!m.data) return false;
-
-      // formato atteso: YYYY-MM-DD
-      const meseMovimento = m.data.substring(0, 7);
-      return meseMovimento === filtroMese;
-    });
-  }
-
-  // ============================
-  // 4) AGGIORNO DATA CORRENTE
-  // ============================
-  contiData = data;
-
-  // ============================
-  // 5) RENDER COMPLETO ✅
-  // ============================
-  renderConti();
-  renderContiKpi();
-  renderGraficoFiscale();
-
-  console.log("✅ Filtro conti applicato:", {
-    filtroMese,
-    numeroMovimenti: contiData.length
-  });
-}
+/* applicaFiltroConti estratta in /js/modules/conti.js */
 
 
-function resetFiltroConti() {
-  contiData = [...contiDataOriginal];
-  renderConti();
-}
+/* filtri conti estratti in /js/modules/conti.js */
 
 
 // ============================
