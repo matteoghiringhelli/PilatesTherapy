@@ -43,26 +43,21 @@ function applicaFiltroConti() {
 
   const meseFiltro = document.getElementById("contiFiltroMese")?.value || "";
 
-  const original = window.contiDataOriginal || [];
-
-  // ✅ NON distruggere mai la source
   let filtered;
 
   if (!meseFiltro) {
-    filtered = [...original];
+    filtered = [...contiDataOriginal];
   } else {
-    filtered = original.filter(m => {
+    filtered = contiDataOriginal.filter(m => {
       if (!m.data) return false;
       return m.data.startsWith(meseFiltro);
     });
   }
 
-  // ✅ CRITICO: aggiorna SEMPRE window
-  window.contiData = filtered;
+  contiData = filtered;
 
-  console.log("✅ Conti dopo filtro:", window.contiData.length);
+  console.log("✅ Conti dopo filtro:", contiData.length);
 
-  // ✅ refresh UI
   renderConti();
   renderContiKpi();
 }
