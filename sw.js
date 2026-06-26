@@ -1,4 +1,4 @@
-const CACHE_NAME = "studio-pilates-cache-v3";
+const CACHE_NAME = "studio-pilates-cache-v4";
 
 const FILES_TO_CACHE = [
   "/",
@@ -15,6 +15,8 @@ const FILES_TO_CACHE = [
   "/js/core/supabase.js",
   "/js/core/db.js",
   "/js/state/state.js",
+
+  "/js/modules/clienti.js",
 
   "/manifest.json",
   "/apple-touch-icon.png",
