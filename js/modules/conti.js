@@ -25,15 +25,15 @@ async function loadConti() {
     return;
   }
 
-  // ✅ SINGLE SOURCE OF TRUTH
+  // ✅ SET CORRETTO
   window.contiData = data || [];
-
-  // ⚠️ FIX CRITICO: copia SAFE
   window.contiDataOriginal = data ? [...data] : [];
 
   console.log("✅ Conti caricati:", window.contiData.length);
 
-  applicaFiltroConti();
+  // ✅ IMPORTANTISSIMO: NON usare contiData locale
+  renderConti();
+  renderContiKpi();
 }
 
 // ============================
@@ -42,30 +42,30 @@ async function loadConti() {
 
 function applicaFiltroConti() {
 
-  // ✅ fallback sicurezza
+  const meseFiltro = document.getElementById("contiFiltroMese")?.value || "";
+
   const original = window.contiDataOriginal || [];
 
-  let filtered = [...original];
+  // ✅ NON distruggere mai la source
+  let filtered;
 
-  if (window.filtroConti === "entrate") {
-    filtered = filtered.filter(r => Number(r.importo || 0) > 0);
-  }
-
-  if (window.filtroConti === "uscite") {
-    filtered = filtered.filter(r => Number(r.importo || 0) < 0);
-  }
-
-  if (window.filtroContiMese) {
-    filtered = filtered.filter(r => {
-      if (!r.Data) return false;
-      return String(r.Data).startsWith(window.filtroContiMese);
+  if (!meseFiltro) {
+    filtered = [...original];
+  } else {
+    filtered = original.filter(m => {
+      if (!m.data) return false;
+      return m.data.startsWith(meseFiltro);
     });
   }
 
-  // ✅ aggiorniamo SOLO window (no doppio stato)
+  // ✅ CRITICO: aggiorna SEMPRE window
   window.contiData = filtered;
 
+  console.log("✅ Conti dopo filtro:", window.contiData.length);
+
+  // ✅ refresh UI
   renderConti();
+  renderContiKpi();
 }
 
 function setFiltroConti(tipo) {
