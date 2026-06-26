@@ -25,18 +25,15 @@ async function loadConti() {
     return;
   }
 
-  // ✅ unica fonte di verità: window
+  // ✅ SINGLE SOURCE OF TRUTH
   window.contiData = data || [];
-  window.contiDataOriginal = [...window.contiData];
 
-  // ✅ sync locale (lettura, NON scrittura duplicata)
-  contiData = window.contiData;
-  contiDataOriginal = window.contiDataOriginal;
+  // ⚠️ FIX CRITICO: copia SAFE
+  window.contiDataOriginal = data ? [...data] : [];
 
-  console.log("✅ Conti caricati:", contiData.length);
+  console.log("✅ Conti caricati:", window.contiData.length);
 
   applicaFiltroConti();
-
 }
 
 // ============================
@@ -45,7 +42,10 @@ async function loadConti() {
 
 function applicaFiltroConti() {
 
-  let filtered = [...window.contiDataOriginal];
+  // ✅ fallback sicurezza
+  const original = window.contiDataOriginal || [];
+
+  let filtered = [...original];
 
   if (window.filtroConti === "entrate") {
     filtered = filtered.filter(r => Number(r.importo || 0) > 0);
@@ -62,11 +62,10 @@ function applicaFiltroConti() {
     });
   }
 
+  // ✅ aggiorniamo SOLO window (no doppio stato)
   window.contiData = filtered;
-  contiData = window.contiData;
 
   renderConti();
-
 }
 
 function setFiltroConti(tipo) {
