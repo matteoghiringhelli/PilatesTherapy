@@ -25,13 +25,12 @@ async function loadConti() {
     return;
   }
 
-  // ✅ SET CORRETTO
-  window.contiData = data || [];
-  window.contiDataOriginal = data ? [...data] : [];
+  // ✅ USA VARIABILI GLOBALI DIRETTE (NO window)
+  contiData = data || [];
+  contiDataOriginal = [...contiData];
 
-  console.log("✅ Conti caricati:", window.contiData.length);
+  console.log("✅ Conti caricati:", contiData.length);
 
-  // ✅ IMPORTANTISSIMO: NON usare contiData locale
   renderConti();
   renderContiKpi();
 }
