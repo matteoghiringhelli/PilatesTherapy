@@ -4579,32 +4579,8 @@ async function registraMovimentiContiDaIncasso(idCliente, metodo, note, allocazi
 
 let contiData = [];
 
-// LOAD
-async function loadConti() {
-  try {
-    const { data, error } = await supabaseClient
-      .from("studio_act")
-      .select("*")
-      .order("data", { ascending: false });
 
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    // ✅ STEP 1 — salva dati
-    contiData = data || [];
-
-    // ✅ STEP 2 — copia originale (fondamentale)
-    contiDataOriginal = [...contiData];
-
-    // ✅ STEP 3 — APPLICA FILTRO (QUESTO È IL PUNTO CHIAVE)
-    applicaFiltroConti();
-
-  } catch (err) {
-    console.error(err);
-  }
-}
+/* loadConti estratta in /js/modules/conti.js */
 
 
 
