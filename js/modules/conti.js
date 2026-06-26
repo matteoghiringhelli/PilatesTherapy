@@ -25,16 +25,18 @@ async function loadConti() {
     return;
   }
 
-  // ✅ USA VARIABILI GLOBALI DIRETTE (NO window)
   contiData = data || [];
   contiDataOriginal = [...contiData];
 
   console.log("✅ Conti caricati:", contiData.length);
 
+  // ✅ render base
   renderConti();
   renderContiKpi();
-  
-  console.log("PRIMI DATI:", contiData.slice(0,3));
+
+  // ✅ NUOVO: attiva dashboard fiscale
+  renderGraficoFiscale();
+
 }
 
 // ============================
