@@ -175,39 +175,56 @@ window.addEventListener("DOMContentLoaded", async () => {
   try {
     console.log("APP VERSION:", APP_VERSION);
 
-// ============================
-// ✅ CONTROLLO AUTENTICAZIONE (FIX DEFINITIVO)
-// ============================
-
-let session = null;
-
-try {
-  const { data } = await supabaseClient.auth.getSession();
-
-  if (data && data.session) {
-    session = data.session;
-  }
-} catch (err) {
-  console.error("Errore getSession:", err);
-}
-
-if (!session || !session.user) {
-  console.warn("Utente non autenticato, redirect al login");
-
-  window.location.href = "/index.html";
-  return;
-}
-
-// ✅ salva utente globale
-window.currentUser = session.user;
-window.currentUserId = session.user.id;
-
-console.log("✅ User authenticated:", window.currentUserId);
-    
     // ============================
-    // APP INIT
+    // ✅ GUARDIA PAGINA LOGIN
+    // ============================
+    // app.js viene caricato anche da index.html.
+    // Su index.html NON dobbiamo fare controllo auth dashboard,
+    // altrimenti la pagina login ricarica se stessa in loop.
+    const currentPath = window.location.pathname || "";
+    const isLoginPage =
+      currentPath.endsWith("/index.html") ||
+      currentPath === "/" ||
+      currentPath === "";
+
+    if (isLoginPage) {
+      console.log("Pagina login rilevata: init dashboard saltato");
+      return;
+    }
+
+    // ============================
+    // ✅ CONTROLLO AUTENTICAZIONE DASHBOARD
+    // ============================
+
+    let session = null;
+
+    try {
+      const response = await supabaseClient.auth.getSession();
+
+      if (response && response.data && response.data.session) {
+        session = response.data.session;
+      }
+    } catch (err) {
+      console.error("Errore getSession:", err);
+    }
+
+    if (!session || !session.user) {
+      console.warn("Utente non autenticato, redirect al login");
+      window.location.href = "/index.html";
+      return;
+    }
+
+    // ✅ salva utente globale
+    window.currentUser = session.user;
+    window.currentUserId = session.user.id;
+
+    console.log("✅ User authenticated:", window.currentUserId);
+
+    // ============================
+    // APP INIT DASHBOARD
     // ============================
     generaOrari();
+
     await reloadAll();
 
     setTimeout(() => {
@@ -218,7 +235,6 @@ console.log("✅ User authenticated:", window.currentUserId);
 
   } catch (error) {
     console.error("Errore inizializzazione:", error);
-
     setStatus("Errore caricamento app. Contattare supporto.", "err");
   }
 });
