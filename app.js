@@ -4586,10 +4586,6 @@ async function registraMovimentiContiDaIncasso(idCliente, metodo, note, allocazi
 // ============================
 // CONTI STUDIO
 // ============================
-
-let contiData = [];
-
-
 /* loadConti estratta in /js/modules/conti.js */
 
 
@@ -4966,8 +4962,6 @@ async function registraEntrataPacchetto(pacchetto) {
 // ============================
 // FILTRO CONTI PER MESE
 // ============================
-
-let contiDataOriginal = [];
 
 /* applicaFiltroConti estratta in /js/modules/conti.js */
 
