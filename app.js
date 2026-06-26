@@ -958,16 +958,7 @@ function renderSelectLezioni() {
 
 /* ===================== PACCHETTI PER PRENOTAZIONI ===================== */
 
-function normalizzaTesto(value) {
-  return String(value || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replaceAll("–", "-")
-    .replaceAll("—", "-")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+/* normalizzaTesto(value) estratta in /js/utils/format.js */
 
 function getTipologiaPacchetto(tipoPacchetto) {
   const info = TIPI_PACCHETTO[tipoPacchetto];
@@ -1652,29 +1643,12 @@ async function logout() {
 
 /* ===================== UTILS ===================== */
 
-function safe(value) {
-  if (value === null || value === undefined) return "";
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+/* safe(value) estratta in /js/utils/format.js */
 
-function escapeQuote(value) {
-  if (value === null || value === undefined) return "";
-  return String(value).replaceAll("'", "\\'");
-}
+/* escapeQuote(value) estratta in /js/utils/format.js */
 
-function escapeAttr(value) {
-  if (value === null || value === undefined) return "";
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
-}
+/* escapeAttr(value) estratta in /js/utils/format.js */
+
 
 function applySearchPrenotazioni() {
   const input = document.getElementById("search_prenotazioni");
@@ -6083,17 +6057,7 @@ function settimanaSuccessiva() {
 }
 
 /* ===================== DASHBOARD RICAVI ===================== */
-
-function formatEuro(value) {
-  const numero = Number(value || 0);
-
-  return numero.toLocaleString("it-IT", {
-    style: "currency",
-    currency: "EUR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  });
-}
+/* formatEuro(value) estratta in /js/utils/format.js */
 
 function getRicavoPrenotazione(p) {
   const lezione = lezioniData.find(l =>
