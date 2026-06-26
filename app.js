@@ -4636,6 +4636,9 @@ async function aggiungiMovimentoConti() {
 // KPI
 function renderContiKpi() {
 
+  // ✅ sincronizza stato globale
+  contiData = window.contiData || [];
+
   const kpiEntrate = document.getElementById("contiEntrate");
   const kpiUscite = document.getElementById("contiUscite");
   const kpiSaldo = document.getElementById("contiSaldo");
