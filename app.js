@@ -4902,6 +4902,8 @@ function renderConti() {
 
   // ✅ CRITICO: write SOLO qui (no side effects)
   container.innerHTML = html;
+  container.style.display = "flex";
+  container.style.flexDirection = "column";
 }
 
 
