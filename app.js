@@ -4636,7 +4636,7 @@ async function aggiungiMovimentoConti() {
 // KPI
 function renderContiKpi() {
 
-  const data = window.contiData || [];
+  const data = contiData || [];
 
   const kpiEntrate = document.getElementById("contiEntrate");
   const kpiUscite = document.getElementById("contiUscite");
