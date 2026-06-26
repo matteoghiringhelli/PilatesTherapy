@@ -1282,3 +1282,45 @@ async function aggiungiPacchetto() {
   setStatus("Pacchetto creato ✅", "ok");
 
 }
+
+// ============================
+// ✅ ELIMINAZIONE PACCHETTO (SAFE)
+// ============================
+
+async function eliminaPacchetto(idPacchetto) {
+
+  if (!confirm("Eliminare il pacchetto?")) return;
+
+  try {
+
+    await safeDelete("pacchetti", {
+      ID_Pacchetto: idPacchetto
+    });
+
+  } catch (error) {
+    console.error("Errore eliminaPacchetto:", error);
+    setStatus("Errore eliminazione pacchetto", "err");
+    return;
+  }
+
+  // ✅ reload dati
+  await loadPacchetti();
+
+  if (typeof loadPrenotazioni === "function") {
+    await loadPrenotazioni();
+  }
+
+  // ✅ aggiorna report
+  const reportBox = document.getElementById("reportPacchettiBox");
+
+  if (
+    reportBox &&
+    !reportBox.classList.contains("hidden") &&
+    typeof renderReportPacchetti === "function"
+  ) {
+    renderReportPacchetti();
+  }
+
+  setStatus("Pacchetto eliminato ✅", "ok");
+
+}
