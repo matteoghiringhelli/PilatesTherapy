@@ -3240,66 +3240,32 @@ function apriNuovoPacchettoDaHome() {
   }, 160);
 }
 
-async function apriDettaglioPacchettoDaCliente(idPacchetto) {
-  console.log("➡️ Apri dettaglio pacchetto da cliente:", idPacchetto);
+function apriDettaglioPacchettoDaCliente(idPacchetto) {
 
-  if (!idPacchetto) {
-    console.warn("❌ ID pacchetto mancante");
-    setStatus("ID pacchetto mancante", "err");
-    return;
-  }
+  vaiTab("pacchetti", { allowInternalNav: true });
 
-  try {
-    // ✅ 1. Carico/aggiorno i pacchetti prima di salvare il contesto
-    await loadPacchetti();
+  setTimeout(() => {
 
-    const pacchettoOrigine = pacchettiData.find(p =>
-      String(p.ID_Pacchetto) === String(idPacchetto)
-    );
-
-    if (!pacchettoOrigine) {
-      console.warn("❌ Pacchetto non trovato prima della navigazione:", idPacchetto);
-      setStatus("Pacchetto non trovato", "err");
-      alert("Pacchetto non trovato");
-      return;
+    // ✅ RIATTIVA VISTA (FIX CRITICO)
+    const container = document.getElementById("outputPacchetti");
+    if (container) {
+      container.style.removeProperty("display");
     }
 
-    // ✅ 2. Memorizzo origine + cliente + pacchetto
-    // Così il tasto Indietro torna alla stessa vista del cliente
-    window.lastPacchettoNavigation = {
-      origine: "clienti",
-      idCliente: pacchettoOrigine.ID_Cliente,
-      idPacchetto: pacchettoOrigine.ID_Pacchetto
-    };
+    if (typeof renderPacchetti === "function") {
+      renderPacchetti();
+    }
 
-    console.log("🧭 Contesto navigazione pacchetto:", window.lastPacchettoNavigation);
+    const pacchettoDiv = document.querySelector(`[data-id="${idPacchetto}"]`);
 
-    // ✅ 3. Vai alla tab pacchetti
-    vaiTab("pacchetti", { allowInternalNav: true });
+    if (pacchettoDiv) {
+      pacchettoDiv.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }
 
-    // ✅ 4. Ricarico i pacchetti dopo il cambio tab
-    await loadPacchetti();
-
-    // ✅ 5. Forza apertura dettaglio DOPO render lista
-    setTimeout(() => {
-      console.log("➡️ Apertura dettaglio forzata:", idPacchetto);
-
-      mostraDettaglioPacchetto(idPacchetto, "clienti");
-
-      const container = document.getElementById("outputPacchetti");
-      if (container) {
-        container.scrollIntoView({
-          behavior: "smooth",
-          block: "start"
-        });
-      }
-    }, 220);
-
-  } catch (err) {
-    console.error("❌ Errore apertura dettaglio:", err);
-    setStatus("Errore apertura dettaglio pacchetto", "err");
-    alert("Errore apertura dettaglio");
-  }
+  }, 120);
 }
 
 
@@ -3331,25 +3297,26 @@ function apriDettaglioLezioneDaHome(idLezione) {
 }
 
 function chiudiModalPacchetto() {
-
   const overlay = document.getElementById("modalPacchettoOverlay");
   const content = document.getElementById("modalPacchettoContent");
-  const originale = document.getElementById("nuovoPacchettoBox");
+  const form = document.getElementById("nuovoPacchettoBox");
 
   if (overlay) overlay.classList.add("hidden");
   document.body.style.overflow = "";
 
-  // ✅ RIPORTA IL FORM fuori dal modale
-  if (originale && content) {
-
+  // ✅ RIPRISTINO SICURO del form nella sezione originale
+  if (form) {
     const containerOriginale = document.getElementById("pacchettiSection");
-
     if (containerOriginale) {
-      containerOriginale.appendChild(originale);
-
-      originale.classList.add("hidden");
-      originale.style.display = "";
+      containerOriginale.appendChild(form);
+      form.classList.add("hidden");
+      form.style.removeProperty("display");
     }
+  }
+
+  // ✅ Reset contenuto modale
+  if (content) {
+    content.innerHTML = "";
   }
 }
 
