@@ -1526,8 +1526,8 @@ function mostraSchedaCliente(idCliente) {
               💳 Incasso
             </button>
 
-            <button onclick="mostraModificaClienteInline('${escapeQuote(cliente.ID_Cliente)}')">
-              ✏️ Modifica
+            <button onclick="apriNuovoPacchettoDaCliente('${escapeQuote(cliente.ID_Cliente)}')">
+              ➕ Nuovo Pacchetto
             </button>
 
             <button onclick="mostraPacchettiCliente('${escapeQuote(cliente.ID_Cliente)}')">
@@ -1536,6 +1536,10 @@ function mostraSchedaCliente(idCliente) {
 
             <button onclick="mostraPrenotazioniCliente('${escapeQuote(cliente.ID_Cliente)}')">
               📅 Prenotazioni
+            </button>
+
+            <button onclick="mostraModificaClienteInline('${escapeQuote(cliente.ID_Cliente)}')">
+              ✏️ Modifica
             </button>
 
             <button onclick="inviaWhatsAppCliente('${escapeQuote(cliente.ID_Cliente)}')">
@@ -2627,25 +2631,18 @@ function chiudiHomeSeAperta() {
 }
 
 function apriNuovaPrenotazioneDaHome() {
-  vaiTab("prenotazioni");
+  // ✅ Nuovo flusso corretto: sempre da Agenda
+  vaiTab("calendario");
 
   setTimeout(() => {
-    const box = document.getElementById("nuovaPrenotazioneBox");
+    const prossima = getProssimaLezioneDisponibileSmart();
 
-    if (box && box.classList.contains("hidden")) {
-      box.classList.remove("hidden");
+    if (prossima) {
+      mostraDettaglioLezione(prossima.ID_Lezione, "dettaglioCalendarioLezioneBox");
+    } else {
+      setStatus("Nessuna lezione disponibile per prenotazione", "err");
     }
-
-    applicaSmartDefaultsPrenotazione();
-
-    const target = document.getElementById("nuovaPrenotazioneBox");
-    if (target) {
-      target.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-    }
-  }, 180);
+  }, 200);
 }
 
 function apriNuovaLezioneDaHome() {
@@ -2926,35 +2923,19 @@ function vaiTab(tab) {
     return;
   }
 
-  if (tab === "prenotazioni") {
-    if (prenotazioniWrapper) prenotazioniWrapper.classList.add("active-section");
-    if (prenotazioniSection) prenotazioniSection.classList.remove("hidden");
-    if (tabPrenotazioni) tabPrenotazioni.classList.add("active");
+if (tab === "prenotazioni") {
+  // ❌ BLOCCATO: flusso non più valido
+  setStatus("Usa Agenda → Lezione per gestire le prenotazioni", "err");
+  vaiTab("calendario");
+  return;
+}
 
-    loadPrenotazioni();
-    const nuovoBox = document.getElementById("nuovaPrenotazioneBox");
-    if (nuovoBox) nuovoBox.classList.add("hidden");
-
-
-    scrollToSection("prenotazioniSection");
-    return;
-  }
-
-  if (tab === "pacchetti") {
-    if (pacchettiWrapper) pacchettiWrapper.classList.add("active-section");
-    if (pacchettiSection) pacchettiSection.classList.remove("hidden");
-    if (tabPacchetti) tabPacchetti.classList.add("active");
-
-    const reportBox = document.getElementById("reportPacchettiBox");
-    if (reportBox) reportBox.classList.add("hidden");
-
-    loadPacchetti();
-    const nuovoBox = document.getElementById("nuovoPacchettoBox");
-    if (nuovoBox) nuovoBox.classList.add("hidden");
-
-    scrollToSection("pacchettiSection");
-    return;
-  }
+if (tab === "pacchetti") {
+  // ❌ BLOCCATO: accesso diretto non consentito
+  setStatus("Apri i pacchetti dalla scheda cliente", "err");
+  vaiTab("clienti");
+  return;
+}
 
   if (tab === "reportPacchetti") {
     if (pacchettiWrapper) pacchettiWrapper.classList.add("active-section");
