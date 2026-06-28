@@ -1153,17 +1153,9 @@ function gestisciEnterSlot(event, idLezione, index) {
 }
 
 function onClienteSelezionatoSlot(idLezione, index) {
+  // ✅ Aggiorna solo il pacchetto dello slot corrente.
+  // ❌ Non sposta più automaticamente il focus mentre stai digitando.
   aggiornaPacchettoSlotLezione(idLezione, index);
-
-  // ✅ auto-focus sul prossimo slot
-  setTimeout(() => {
-    const nextIndex = index + 1;
-    const nextInput = document.getElementById(`slot_cliente_${nextIndex}`);
-
-    if (nextInput && nextInput.value === "") {
-      nextInput.focus();
-    }
-  }, 120);
 }
 
 
@@ -1358,7 +1350,11 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
 
         return `
           <div class="lesson-client-row">
-            <strong>${cliente ? safe(cliente.Nome + " " + cliente.Cognome) : "Cliente non trovato"}</strong><br>
+            <strong>
+              ${cliente ? safe(cliente.Nome + " " + cliente.Cognome) : "Cliente non trovato"}
+            </strong>
+            <br>
+
             <span style="font-size:12px; color:#666;">
               Pacchetto: ${safe(p.ID_Pacchetto || "-")}
               ${pacchetto ? ` — ${safe(pacchetto.Tipo_Pacchetto || "")}` : ""}
@@ -1402,7 +1398,6 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
                 onkeydown="gestisciEnterSlot(event, '${escapeQuote(idLezione)}', ${index})"
               >
 
-
               <datalist id="slot_clienti_datalist_${index}">
                 ${clientiOptions}
               </datalist>
@@ -1433,11 +1428,6 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
       </button>
     </div>
 
-    setTimeout(() => {
-      const first = document.getElementById("slot_cliente_0");
-      if (first) first.focus();
-    }, 120);
-
     <div class="view-content">
       <div class="lesson-detail">
         <div class="lesson-detail-title">
@@ -1456,6 +1446,7 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
           <div class="lesson-detail-section-title">
             Clienti già prenotati
           </div>
+
           ${clientiGiaPrenotatiHtml}
         </div>
 
@@ -1463,6 +1454,7 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
           <div class="lesson-detail-section-title">
             Aggiungi prenotazioni
           </div>
+
           ${slotHtml}
         </div>
 
@@ -1480,6 +1472,12 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
       </div>
     </div>
   `);
+
+  // ✅ Questo è il posto corretto: fuori dalla stringa HTML.
+  setTimeout(() => {
+    const first = document.getElementById("slot_cliente_0");
+    if (first) first.focus();
+  }, 120);
 }
 
 
