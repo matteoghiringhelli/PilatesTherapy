@@ -3560,6 +3560,7 @@ if (tab === "pacchetti") {
     if (reportBox) reportBox.classList.remove("hidden");
 
     renderReportPacchetti();
+    document.getElementById("outputPacchetti")?.style.setProperty("display", "none");
 
     scrollToSection("pacchettiSection");
     return;
