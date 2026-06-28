@@ -1134,6 +1134,155 @@ function renderPrenotazioniMobileSafe() {
   }
 }
 
+function getClienteLabelPrenotazione(cliente) {
+  if (!cliente) return "";
+  return `${cliente.Nome || ""} ${cliente.Cognome || ""} — ${cliente.ID_Cliente || ""}`.trim();
+}
+
+function getClienteIdDaInputPrenotazione(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  const matchDiretto = clientiData.find(c =>
+    String(c.ID_Cliente) === String(raw)
+  );
+
+  if (matchDiretto) {
+    return matchDiretto.ID_Cliente;
+  }
+
+  if (raw.includes("—")) {
+    const parti = raw.split("—");
+    const possibileId = String(parti[parti.length - 1] || "").trim();
+
+    const matchId = clientiData.find(c =>
+      String(c.ID_Cliente) === String(possibileId)
+    );
+
+    if (matchId) {
+      return matchId.ID_Cliente;
+    }
+  }
+
+  const rawNorm = normalizzaTesto(raw);
+
+  const matchNome = clientiData.find(c => {
+    const label = normalizzaTesto(`${c.Nome || ""} ${c.Cognome || ""}`);
+    return label === rawNorm;
+  });
+
+  return matchNome ? matchNome.ID_Cliente : "";
+}
+
+function getPacchettiCompatibiliConResiduoPerPrenotazione(idCliente, idLezione) {
+  return getPacchettiCompatibiliPerPrenotazione(idCliente, idLezione)
+    .filter(p => getLezioniResiduePacchetto(p) > 0);
+}
+
+function getPacchettiCompatibiliSenzaResiduoPerPrenotazione(idCliente, idLezione) {
+  return getPacchettiCompatibiliPerPrenotazione(idCliente, idLezione)
+    .filter(p => getLezioniResiduePacchetto(p) <= 0);
+}
+
+function getPacchettoPrecedenteDaChiudere(idCliente, idLezione) {
+  const pacchettiSenzaResiduo = getPacchettiCompatibiliSenzaResiduoPerPrenotazione(
+    idCliente,
+    idLezione
+  );
+
+  const attivi = pacchettiSenzaResiduo.filter(p =>
+    normalizzaTesto(p.Stato || "") === "attivo"
+  );
+
+  if (attivi.length) {
+    return attivi[0];
+  }
+
+  return pacchettiSenzaResiduo.length ? pacchettiSenzaResiduo[0] : null;
+}
+
+function apriNuovoPacchettoDaPrenotazione(idLezione, index) {
+  const clienteInput = document.getElementById(`slot_cliente_${index}`);
+  const idCliente = getClienteIdDaInputPrenotazione(clienteInput ? clienteInput.value : "");
+
+  if (!idCliente) {
+    setStatus("Seleziona prima un cliente valido", "err");
+    return;
+  }
+
+  const cliente = clientiData.find(c =>
+    String(c.ID_Cliente) === String(idCliente)
+  );
+
+  if (!cliente) {
+    setStatus("Cliente non trovato", "err");
+    return;
+  }
+
+  const pacchettoDaChiudere = getPacchettoPrecedenteDaChiudere(
+    idCliente,
+    idLezione
+  );
+
+  window.pendingNuovoPacchettoDaPrenotazione = {
+    idLezione: idLezione,
+    slotIndex: index,
+    idCliente: idCliente,
+    idPacchettoDaChiudere: pacchettoDaChiudere ? pacchettoDaChiudere.ID_Pacchetto : "",
+    origine: "prenotazione_lezione"
+  };
+
+  apriNuovoPacchettoDaCliente(idCliente);
+
+  setTimeout(() => {
+    setStatus(
+      `Crea un nuovo pacchetto per ${cliente.Nome || ""} ${cliente.Cognome || ""}. Dopo il salvataggio tornerai alla lezione.`,
+      "ok"
+    );
+  }, 150);
+}
+
+function ripristinaPrenotazioneDopoNuovoPacchetto(idLezione, slotIndex, idCliente, idPacchetto) {
+  vaiTab("calendario");
+
+  setTimeout(() => {
+    mostraDettaglioLezione(idLezione, "dettaglioCalendarioLezioneBox");
+
+    setTimeout(() => {
+      const clienteInput = document.getElementById(`slot_cliente_${slotIndex}`);
+      const pacchettoSelect = document.getElementById(`slot_pacchetto_${slotIndex}`);
+
+      const cliente = clientiData.find(c =>
+        String(c.ID_Cliente) === String(idCliente)
+      );
+
+      if (clienteInput && cliente) {
+        clienteInput.value = getClienteLabelPrenotazione(cliente);
+      }
+
+      aggiornaPacchettoSlotLezione(idLezione, slotIndex);
+
+      setTimeout(() => {
+        const pacchettoSelectAggiornato = document.getElementById(`slot_pacchetto_${slotIndex}`);
+
+        if (pacchettoSelectAggiornato && idPacchetto) {
+          pacchettoSelectAggiornato.value = idPacchetto;
+        }
+
+        const box = document.getElementById("dettaglioCalendarioLezioneBox");
+        if (box) {
+          box.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+          });
+        }
+
+        setStatus("Nuovo pacchetto creato e selezionato nella prenotazione ✅", "ok");
+      }, 180);
+    }, 220);
+  }, 220);
+}
+
 function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
   dettaglioLezioneBoxAttivo = boxId;
 
@@ -1167,7 +1316,6 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
         return `
           <div class="lesson-client-row">
             <strong>${cliente ? safe(cliente.Nome + " " + cliente.Cognome) : "Cliente non trovato"}</strong><br>
-
             <span style="font-size:12px; color:#666;">
               Pacchetto: ${safe(p.ID_Pacchetto || "-")}
               ${pacchetto ? ` — ${safe(pacchetto.Tipo_Pacchetto || "")}` : ""}
@@ -1187,6 +1335,10 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
       </div>
     `;
 
+  const clientiOptions = clientiData.map(c => `
+    <option value="${escapeAttr(getClienteLabelPrenotazione(c))}"></option>
+  `).join("");
+
   const slotHtml = postiLiberi > 0
     ? Array.from({ length: postiLiberi }).map((_, index) => `
         <div class="lesson-client-row">
@@ -1195,26 +1347,31 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
           <div class="form-row">
             <label class="field-block">
               <span class="field-label">Cliente</span>
-              <select
+
+              <input
                 id="slot_cliente_${index}"
+                list="slot_clienti_datalist_${index}"
+                placeholder="Cerca nome o cognome..."
+                autocomplete="off"
                 onchange="aggiornaPacchettoSlotLezione('${escapeQuote(idLezione)}', ${index})"
+                oninput="aggiornaPacchettoSlotLezione('${escapeQuote(idLezione)}', ${index})"
               >
-                <option value="">Seleziona cliente</option>
-                ${clientiData.map(c => `
-                  <option value="${escapeAttr(c.ID_Cliente)}">
-                    ${safe(c.Nome)} ${safe(c.Cognome)}
-                  </option>
-                `).join("")}
-              </select>
+
+              <datalist id="slot_clienti_datalist_${index}">
+                ${clientiOptions}
+              </datalist>
             </label>
 
             <label class="field-block">
               <span class="field-label">Pacchetto</span>
+
               <select id="slot_pacchetto_${index}">
                 <option value="">Seleziona prima il cliente</option>
               </select>
             </label>
           </div>
+
+          <div id="slot_nuovo_pacchetto_${index}" class="card-actions hidden"></div>
         </div>
       `).join("")
     : `
@@ -1231,9 +1388,7 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
     </div>
 
     <div class="view-content">
-
       <div class="lesson-detail">
-
         <div class="lesson-detail-title">
           ${safe(lezione.Data)} - ${safe(formatOraHHMM(lezione.Ora))}
         </div>
@@ -1250,7 +1405,6 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
           <div class="lesson-detail-section-title">
             Clienti già prenotati
           </div>
-
           ${clientiGiaPrenotatiHtml}
         </div>
 
@@ -1258,7 +1412,6 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
           <div class="lesson-detail-section-title">
             Aggiungi prenotazioni
           </div>
-
           ${slotHtml}
         </div>
 
@@ -1273,9 +1426,7 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
             `
             : ""
         }
-
       </div>
-
     </div>
   `);
 }
@@ -1288,50 +1439,111 @@ function chiudiDettaglioLezione(boxId = "dettaglioLezioneBox") {
 }
 
 function aggiornaPacchettoSlotLezione(idLezione, index) {
-  const clienteSelect = document.getElementById(`slot_cliente_${index}`);
+  const clienteInput = document.getElementById(`slot_cliente_${index}`);
   const pacchettoSelect = document.getElementById(`slot_pacchetto_${index}`);
+  const nuovoPacchettoBox = document.getElementById(`slot_nuovo_pacchetto_${index}`);
 
-  if (!clienteSelect || !pacchettoSelect) return;
+  if (!clienteInput || !pacchettoSelect) return;
 
-  const idCliente = clienteSelect.value;
+  if (nuovoPacchettoBox) {
+    nuovoPacchettoBox.innerHTML = "";
+    nuovoPacchettoBox.classList.add("hidden");
+  }
+
+  const idCliente = getClienteIdDaInputPrenotazione(clienteInput.value);
 
   if (!idCliente) {
     pacchettoSelect.innerHTML = `
-      <option value="">Seleziona prima il cliente</option>
+      <option value="">Cerca e seleziona un cliente valido</option>
     `;
     return;
   }
 
-  const pacchettiCompatibili = getPacchettiCompatibiliPerPrenotazione(
+  const cliente = clientiData.find(c =>
+    String(c.ID_Cliente) === String(idCliente)
+  );
+
+  const lezione = lezioniData.find(l =>
+    String(l.ID_Lezione) === String(idLezione)
+  );
+
+  if (!lezione) {
+    pacchettoSelect.innerHTML = `
+      <option value="">Lezione non trovata</option>
+    `;
+    return;
+  }
+
+  const pacchettiCompatibiliConResiduo = getPacchettiCompatibiliConResiduoPerPrenotazione(
     idCliente,
     idLezione
   );
 
-  if (!pacchettiCompatibili.length) {
+  const pacchettiCompatibiliSenzaResiduo = getPacchettiCompatibiliSenzaResiduoPerPrenotazione(
+    idCliente,
+    idLezione
+  );
+
+  if (!pacchettiCompatibiliConResiduo.length) {
+    const tipologiaLezione = getTipologiaLezione(lezione);
+    const pacchettoDaChiudere = getPacchettoPrecedenteDaChiudere(idCliente, idLezione);
+
+    let motivo = `Nessun pacchetto ${tipologiaLezione} compatibile`;
+
+    if (pacchettiCompatibiliSenzaResiduo.length) {
+      const residui = pacchettiCompatibiliSenzaResiduo.map(p => {
+        return `${p.ID_Pacchetto}: ${getLezioniResiduePacchetto(p)}`;
+      }).join(" / ");
+
+      motivo = `Pacchetto senza lezioni residue (${residui})`;
+    }
+
     pacchettoSelect.innerHTML = `
-      <option value="">Nessun pacchetto compatibile</option>
+      <option value="">${safe(motivo)}</option>
     `;
+
+    if (nuovoPacchettoBox) {
+      nuovoPacchettoBox.classList.remove("hidden");
+      nuovoPacchettoBox.innerHTML = `
+        <button onclick="apriNuovoPacchettoDaPrenotazione('${escapeQuote(idLezione)}', ${index})">
+          ➕ Nuovo pacchetto
+        </button>
+
+        ${
+          pacchettoDaChiudere
+            ? `
+              <div class="muted" style="width:100%;">
+                Il pacchetto ${safe(pacchettoDaChiudere.ID_Pacchetto)}
+                verrà chiuso automaticamente dopo la creazione del nuovo pacchetto.
+              </div>
+            `
+            : `
+              <div class="muted" style="width:100%;">
+                Verrà creato un nuovo pacchetto per ${cliente ? safe(cliente.Nome + " " + cliente.Cognome) : "questo cliente"}.
+              </div>
+            `
+        }
+      `;
+    }
+
     return;
   }
 
   pacchettoSelect.innerHTML =
     `<option value="">Seleziona pacchetto</option>` +
-    pacchettiCompatibili.map(p => {
+    pacchettiCompatibiliConResiduo.map(p => {
       const residue = getLezioniResiduePacchetto(p);
-      const lezione = lezioniData.find(l =>
-        String(l.ID_Lezione) === String(idLezione)
-      );
       const avvisi = getAvvisiPacchettoPrenotazione(p, lezione);
       const warning = avvisi.length ? ` ⚠️ ${avvisi.join(" / ")}` : "";
 
       return `
         <option value="${escapeAttr(p.ID_Pacchetto)}">
-          ${safe(p.ID_Pacchetto)} - ${safe(p.Tipo_Pacchetto)} - residue: ${residue}${warning}
+          ${safe(p.ID_Pacchetto)} - ${safe(p.Tipo_Pacchetto)} - residue: ${safe(residue)}${warning}
         </option>
       `;
     }).join("");
 
-  pacchettoSelect.value = pacchettiCompatibili[0].ID_Pacchetto;
+  pacchettoSelect.value = pacchettiCompatibiliConResiduo[0].ID_Pacchetto;
 }
 
 async function salvaPrenotazioniDaLezione(idLezione) {
@@ -1360,13 +1572,18 @@ async function salvaPrenotazioniDaLezione(idLezione) {
   const nuovePrenotazioni = [];
 
   for (let index = 0; index < postiLiberi; index++) {
-    const clienteSelect = document.getElementById(`slot_cliente_${index}`);
+    const clienteInput = document.getElementById(`slot_cliente_${index}`);
     const pacchettoSelect = document.getElementById(`slot_pacchetto_${index}`);
 
-    const idCliente = clienteSelect ? clienteSelect.value : "";
+    const idCliente = getClienteIdDaInputPrenotazione(clienteInput ? clienteInput.value : "");
     const idPacchetto = pacchettoSelect ? pacchettoSelect.value : "";
 
-    if (!idCliente) continue;
+    if (!clienteInput || !String(clienteInput.value || "").trim()) continue;
+
+    if (!idCliente) {
+      setStatus(`Cliente non valido nello slot ${index + 1}`, "err");
+      return;
+    }
 
     if (!idPacchetto) {
       const cliente = clientiData.find(c =>
@@ -1374,7 +1591,7 @@ async function salvaPrenotazioniDaLezione(idLezione) {
       );
 
       setStatus(
-        `Seleziona un pacchetto per ${
+        `Crea o seleziona un pacchetto valido per ${
           cliente ? cliente.Nome + " " + cliente.Cognome : "cliente"
         }`,
         "err"
@@ -1393,7 +1610,6 @@ async function salvaPrenotazioniDaLezione(idLezione) {
     return;
   }
 
-  // ✅ NUOVA LOGICA: niente blocco duplicati cliente
   for (const nuova of nuovePrenotazioni) {
     const pacchetto = pacchettiData.find(p =>
       String(p.ID_Pacchetto) === String(nuova.ID_Pacchetto)
@@ -1413,14 +1629,13 @@ async function salvaPrenotazioniDaLezione(idLezione) {
 
     if (residuo <= 0) {
       setStatus(
-        `Il pacchetto ${pacchetto.ID_Pacchetto} non ha lezioni residue`,
+        `Il pacchetto ${pacchetto.ID_Pacchetto} non ha lezioni residue. Crea un nuovo pacchetto.`,
         "err"
       );
       return;
     }
   }
 
-  // ✅ GENERAZIONE ID
   const nuoviId = generaNuoviIdProgressivi(
     "PR",
     prenotazioniData,
@@ -1446,13 +1661,18 @@ async function salvaPrenotazioniDaLezione(idLezione) {
     await loadPrenotazioni();
     await loadPacchetti();
 
+    const reportBox = document.getElementById("reportPacchettiBox");
+    if (reportBox && !reportBox.classList.contains("hidden")) {
+      renderReportPacchetti();
+    }
+
     renderCalendario();
     mostraDettaglioLezione(idLezione, dettaglioLezioneBoxAttivo);
 
     setStatus("Prenotazioni salvate ✅", "ok");
 
   } catch (error) {
-    console.error("Errore salvaPrenotazioni:", error);
+    console.error("Errore salvaPrenotazioniDaLezione:", error);
     setStatus("Errore salvataggio prenotazioni", "err");
   }
 }
