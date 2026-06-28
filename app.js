@@ -1261,6 +1261,8 @@ function abilitaSwipeDelete() {
     container.dataset.swipeReady = "true";
 
     const content = container.querySelector(".swipe-content");
+    const deleteBtn = container.querySelector(".swipe-delete-action button");
+
     if (!content) return;
 
     let startX = 0;
@@ -1295,17 +1297,29 @@ function abilitaSwipeDelete() {
 
       if (deltaX < -45) {
         container.classList.add("swipe-open");
-        content.style.transform = "";
       } else {
         container.classList.remove("swipe-open");
-        content.style.transform = "";
       }
+
+      content.style.transform = "";
     });
 
-    // ✅ FIX: gestione click corretta (NO doppio click)
-    container.querySelector(".swipe-delete-action button")?.addEventListener("click", e => {
-      e.stopPropagation();
-    });
+    // ✅ FIX CRITICO: click diretto immediato
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", e => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // ✅ chiudi swipe subito (UX pulita)
+        container.classList.remove("swipe-open");
+
+        // ✅ forza esecuzione onclick immediata
+        const onclick = deleteBtn.getAttribute("onclick");
+        if (onclick) {
+          eval(onclick);
+        }
+      });
+    }
 
     content.addEventListener("click", () => {
       document.querySelectorAll(".swipe-container.swipe-open").forEach(c => {
