@@ -1202,152 +1202,68 @@ function renderReportPacchetti() {
 // ============================
 
 async function aggiungiPacchetto() {
-  const payload = {
-    ID_Pacchetto: generaNuovoIdPacchetto(),
-    ID_Cliente: document.getElementById("pac_cliente")?.value || "",
-    Tipo_Pacchetto: document.getElementById("pac_tipo")?.value || "",
-    Lezioni_Base: Number(document.getElementById("pac_lezioni_base")?.value || 0),
-    Lezioni_Add: Number(document.getElementById("pac_lezioni_add")?.value || 0),
-    Lezioni_Totali: Number(document.getElementById("pac_lezioni_totali")?.value || 0),
-    Prezzo: Number(document.getElementById("pac_prezzo")?.value || 0),
-    Flag_Pagato: document.getElementById("pac_flag_pagato")?.value || "Si",
-    Da_Pagare: Number(document.getElementById("pac_da_pagare")?.value || 0),
-    Flag_C: document.getElementById("pac_flag_c")?.value || "Si",
-    Fattura_Nr: document.getElementById("pac_fattura_nr")?.value.trim() || "",
-    Data_Fattura: document.getElementById("pac_data_fattura")?.value || null,
-    Valido_Da: document.getElementById("pac_valido_da")?.value || "",
-    Valido_A: document.getElementById("pac_valido_a")?.value || "",
-    Stato: document.getElementById("pac_stato")?.value || "Attivo"
-  };
-
-  if (!payload.ID_Cliente) {
-    setStatus("Cliente obbligatorio", "err");
-    return;
-  }
-
-  if (!payload.Tipo_Pacchetto) {
-    setStatus("Tipo Pacchetto obbligatorio", "err");
-    return;
-  }
-
-  if (!payload.Valido_Da || !payload.Valido_A) {
-    setStatus("Valido Da e Valido A sono obbligatori", "err");
-    return;
-  }
-
-  if (payload.Flag_Pagato === "Si") {
-    payload.Da_Pagare = 0;
-  }
-
-  if (payload.Flag_C === "Si") {
-    payload.Fattura_Nr = "";
-  }
-
-  const pendingPrenotazione = window.pendingNuovoPacchettoDaPrenotazione || null;
-
-  let nuovoPacchettoCreato = null;
 
   try {
-    const inserted = await safeInsert("pacchetti", payload);
 
-    if (!inserted || !inserted.length) {
-      setStatus("Pacchetto non restituito da Supabase", "err");
+    // ✅ raccogli dati (usa la tua logica esistente)
+    const cliente = document.getElementById("pac_cliente")?.value;
+    const tipo = document.getElementById("pac_tipo")?.value;
+    const lezioniTotali = document.getElementById("pac_lezioni_totali")?.value;
+    const prezzo = document.getElementById("pac_prezzo")?.value;
+    const pagato = document.getElementById("pac_flag_pagato")?.value;
+    const daPagare = document.getElementById("pac_da_pagare")?.value;
+
+    if (!cliente || !tipo) {
+      setStatus("Compila cliente e tipo pacchetto", "err");
       return;
     }
 
-    nuovoPacchettoCreato = inserted[0];
+    // ✅ payload (mantieni i tuoi campi reali se diversi)
+    const payload = {
+      ID_Cliente: cliente,
+      Tipo_Pacchetto: tipo,
+      Lezioni_Totali: Number(lezioniTotali || 0),
+      Prezzo: Number(prezzo || 0),
+      Flag_Pagato: pagato,
+      Da_Pagare: Number(daPagare || 0)
+    };
 
-    // ✅ Se arrivo da prenotazione e c'era un pacchetto attivo senza residuo,
-    // lo chiudo automaticamente dopo la creazione del nuovo pacchetto.
-    if (
-      pendingPrenotazione &&
-      pendingPrenotazione.origine === "prenotazione_lezione" &&
-      String(pendingPrenotazione.idCliente) === String(payload.ID_Cliente)
-    ) {
-      let pacchettiDaChiudere = [];
+    // ✅ salvataggio
+    const { error } = await supabaseClient
+      .from("pacchetti")
+      .insert(payload);
 
-      if (pendingPrenotazione.idPacchettoDaChiudere) {
-        pacchettiDaChiudere = pacchettiData.filter(p =>
-          String(p.ID_Pacchetto) === String(pendingPrenotazione.idPacchettoDaChiudere)
-        );
-      } else {
-        const tipologiaNuovoPacchetto = getTipologiaPacchetto(payload.Tipo_Pacchetto);
-
-        pacchettiDaChiudere = pacchettiData.filter(p => {
-          const stessoCliente = String(p.ID_Cliente) === String(payload.ID_Cliente);
-          const stessoTipo =
-            normalizzaTesto(getTipologiaPacchetto(p.Tipo_Pacchetto)) ===
-            normalizzaTesto(tipologiaNuovoPacchetto);
-          const attivo = normalizzaTesto(p.Stato || "") === "attivo";
-          const residuo = getLezioniResiduePacchetto(p);
-
-          return stessoCliente && stessoTipo && attivo && residuo <= 0;
-        });
-      }
-
-      for (const pacchettoPrecedente of pacchettiDaChiudere) {
-        await safeUpdate(
-          "pacchetti",
-          { Stato: "Chiuso" },
-          { ID_Pacchetto: pacchettoPrecedente.ID_Pacchetto }
-        );
-      }
+    if (error) {
+      console.error(error);
+      setStatus("Errore salvataggio pacchetto", "err");
+      return;
     }
 
-  } catch (error) {
-    console.error("Errore aggiungiPacchetto:", error);
-    setStatus("Errore salvataggio pacchetto", "err");
-    return;
+    // ✅ FEEDBACK
+    setStatus("Pacchetto creato ✅", "ok");
+
+    // ✅ 1. chiudi modale
+    chiudiModalPacchetto();
+
+    // ✅ 2. refresh dati
+    await loadPacchetti();
+    await loadClienti();
+
+    // ✅ 3. refresh UI principale
+    renderCalendario();
+
+    // ✅ 4. RITORNO ALLA LEZIONE (SUPER IMPORTANTE)
+    if (window.idLezioneCorrente) {
+      mostraDettaglioLezione(
+        window.idLezioneCorrente,
+        dettaglioLezioneBoxAttivo
+      );
+    }
+
+  } catch (err) {
+    console.error(err);
+    setStatus("Errore imprevisto salvataggio", "err");
   }
-
-  await loadPacchetti();
-
-  if (typeof loadPrenotazioni === "function") {
-    await loadPrenotazioni();
-  }
-
-  const reportBox = document.getElementById("reportPacchettiBox");
-
-  if (
-    reportBox &&
-    !reportBox.classList.contains("hidden") &&
-    typeof renderReportPacchetti === "function"
-  ) {
-    renderReportPacchetti();
-  }
-
-  pulisciFormPacchetto();
-
-  const box = document.getElementById("nuovoPacchettoBox");
-  if (box) box.classList.add("hidden");
-
-  setStatus("Pacchetto creato ✅", "ok");
-
-  // ✅ Ritorno automatico alla prenotazione da cui ero partito
-  if (
-    pendingPrenotazione &&
-    pendingPrenotazione.origine === "prenotazione_lezione" &&
-    nuovoPacchettoCreato &&
-    typeof ripristinaPrenotazioneDopoNuovoPacchetto === "function"
-  ) {
-    const idLezione = pendingPrenotazione.idLezione;
-    const slotIndex = pendingPrenotazione.slotIndex;
-    const idCliente = pendingPrenotazione.idCliente;
-    const idPacchetto = nuovoPacchettoCreato.ID_Pacchetto;
-
-    window.pendingNuovoPacchettoDaPrenotazione = null;
-
-    ripristinaPrenotazioneDopoNuovoPacchetto(
-      idLezione,
-      slotIndex,
-      idCliente,
-      idPacchetto
-    );
-
-    return;
-  }
-
-  window.pendingNuovoPacchettoDaPrenotazione = null;
 }
 
 // ============================
