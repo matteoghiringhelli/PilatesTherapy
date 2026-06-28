@@ -1422,6 +1422,7 @@ function ripristinaPrenotazioneDopoNuovoPacchetto(idLezione, slotIndex, idClient
 }
 
 function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
+
   window.idLezioneCorrente = idLezione;
   dettaglioLezioneBoxAttivo = boxId;
 
@@ -1441,76 +1442,58 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
   const prenotati = prenotazioniLezione.length;
   const postiLiberi = Math.max(max - prenotati, 0);
 
-  const clientiGiaPrenotatiHtml = prenotazioniLezione.length
-    ? prenotazioniLezione.map(p => {
-        const cliente = clientiData.find(c =>
-          String(c.ID_Cliente) === String(p.ID_Cliente)
-        );
-        const pacchetto = pacchettiData.find(pc =>
-          String(pc.ID_Pacchetto) === String(p.ID_Pacchetto)
-        );
+  // ✅ LISTA CLIENTI PRENOTATI
+  const clientiHtml = prenotazioniLezione.map(p => {
+    const cliente = clientiData.find(c =>
+      String(c.ID_Cliente) === String(p.ID_Cliente)
+    );
 
-        const nomeCliente = cliente
-          ? `${cliente.Nome || ""} ${cliente.Cognome || ""}`.trim()
-          : "Cliente non trovato";
+    return `
+      <div class="swipe-container">
+        <div class="swipe-delete-action">
+          <button 
+            ontouchstart="event.stopPropagation();"
+            onclick="event.stopPropagation(); eliminaPrenotazioneDaLezione('${escapeQuote(p.ID_Prenotazione)}','${escapeQuote(idLezione)}')">
+            🗑️
+          </button>
+        </div>
 
-        const testoPacchetto = pacchetto
-          ? `${p.ID_Pacchetto} — ${pacchetto.Tipo_Pacchetto}`
-          : p.ID_Pacchetto;
-
-        return `
-          <div class="swipe-container">
-            <div class="swipe-delete-action">
-              <button onclick="event.stopPropagation(); eliminaPrenotazioneDaLezione('${escapeQuote(p.ID_Prenotazione)}', '${escapeQuote(idLezione)}')">
-                🗑️
-              </button>
-            </div>
-
-            <div class="lesson-client-row swipe-content">
-              <strong>${safe(nomeCliente)}</strong>
-              <br>
-              <span style="font-size:12px; color:#666;">
-                Pacchetto: ${safe(testoPacchetto)}
-              </span>
-              <div class="muted" style="margin-top:6px;">
-                Scorri a sinistra per eliminare
-              </div>
-            </div>
-          </div>
-        `;
-      }).join("")
-    : `
-      <div class="lesson-client-row">
-        Nessun cliente ancora prenotato.
+        <div class="lesson-client-row swipe-content">
+          <strong>${safe(cliente?.Nome || "")} ${safe(cliente?.Cognome || "")}</strong>
+        </div>
       </div>
     `;
+  }).join("");
+
+  // ✅ SLOT PRENOTAZIONI
+  const slotHtml = Array.from({ length: postiLiberi }).map((_, index) => `
+    <div class="lesson-client-row">
+      <input id="slot_cliente_${index}" placeholder="Cliente" />
+      <select id="slot_pacchetto_${index}"></select>
+    </div>
+  `).join("");
 
   animateView(box, `
-    <div class="app-toolbar">
-      <button class="app-back-btn" onclick="chiudiDettaglioLezione('${escapeQuote(boxId)}')">
-        ← Indietro
-      </button>
-    </div>
-
     <div class="view-content">
-      <div class="lesson-detail">
 
-        <div class="lesson-detail-title">
-          ${safe(lezione.Data)} - ${safe(formatOraHHMM(lezione.Ora))}
-        </div>
-
-        <div class="lesson-detail-sub">
-          ${safe(lezione.Tipologia)} (${prenotati}/${max})
-        </div>
-
-        <div class="lesson-detail-section">
-          <div class="lesson-detail-section-title">
-            Clienti già prenotati
-          </div>
-          ${clientiGiaPrenotatiHtml}
-        </div>
-
+      <div class="lesson-detail-section">
+        <strong>Prenotati (${prenotati}/${max})</strong>
+        ${clientiHtml}
       </div>
+
+      <div class="lesson-detail-section">
+        <strong>Aggiungi prenotazioni</strong>
+        ${slotHtml}
+      </div>
+
+      ${
+        postiLiberi > 0
+          ? `<button onclick="salvaPrenotazioniDaLezione('${idLezione}')">
+               💾 Salva prenotazioni
+             </button>`
+          : ""
+      }
+
     </div>
   `);
 
@@ -3148,34 +3131,47 @@ function apriNuovoPacchettoDaHome() {
 
 function apriDettaglioPacchettoDaCliente(idPacchetto) {
 
-  // ✅ entra nella sezione pacchetti correttamente
+  // ✅ attiva sezione pacchetti SENZA animazioni intermedie
   vaiTab("pacchetti", { allowInternalNav: true });
+
+  // ✅ disabilita transizione per evitare flicker
+  document.body.style.transition = "none";
 
   setTimeout(async () => {
 
-    // ✅ FORZA CARICAMENTO DATI
-    if (typeof loadPacchetti === "function") {
-      await loadPacchetti();
-    }
+    try {
 
-    if (typeof renderPacchetti === "function") {
-      renderPacchetti();
-    }
+      // ✅ carica dati (IMPORTANTISSIMO al primo click)
+      if (typeof loadPacchetti === "function") {
+        await loadPacchetti();
+      }
 
-    // ✅ RIATTIVA LISTA (crasha senza questo)
-    const container = document.getElementById("outputPacchetti");
-    if (container) {
-      container.style.removeProperty("display");
-    }
+      // ✅ render lista
+      if (typeof renderPacchetti === "function") {
+        renderPacchetti();
+      }
 
-    // ✅ APRI SUBITO DETTAGLIO
-    setTimeout(() => {
+      // ✅ riattiva visibilità lista (se era hidden)
+      const container = document.getElementById("outputPacchetti");
+      if (container) {
+        container.style.removeProperty("display");
+      }
+
+      // ✅ APRI SUBITO DETTAGLIO (senza secondo click)
       if (typeof mostraDettaglioPacchetto === "function") {
         mostraDettaglioPacchetto(idPacchetto, "clienti");
       }
-    }, 120);
 
-  }, 120);
+    } catch (err) {
+      console.error("Errore apriDettaglioPacchetto:", err);
+    }
+
+    // ✅ riabilita animazioni dopo
+    setTimeout(() => {
+      document.body.style.transition = "";
+    }, 100);
+
+  }, 60);
 }
 
 
