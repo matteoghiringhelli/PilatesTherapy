@@ -1333,9 +1333,12 @@ async function aggiungiPacchetto() {
     // ✅ MESSAGGIO DETTAGLIATO
     if (migrati.length) {
 
-      const lista = migrati.map(p =>
-        `${p.Data_Lezione || ""} ${p.Ora_Lezione || ""}`
-      ).join("\n");
+      const lista = migrati.map(p => {
+        const data = p.Data_Lezione || "";
+        const ora = (p.Ora_Lezione || "").substring(0,5);
+        return `Lezione ${data} ${ora} → pacchetto aggiornato`;
+      }).join("\n");
+
 
       alert(
         "Pacchetto aggiornato\n\n" +
@@ -1344,13 +1347,27 @@ async function aggiungiPacchetto() {
       );
     }
 
-    // ✅ ritorno normale
-    if (window.idLezioneCorrente) {
-      mostraDettaglioLezione(
-        window.idLezioneCorrente,
-        dettaglioLezioneBoxAttivo
-      );
-    }
+// ✅ ritorno intelligente post creazione pacchetto
+if (window.ctxNuovoPacchetto) {
+  const ctx = window.ctxNuovoPacchetto;
+
+  // pulizia context
+  window.ctxNuovoPacchetto = null;
+
+  ripristinaPrenotazioneDopoNuovoPacchetto(
+    ctx.idLezione,
+    ctx.slotIndex,
+    ctx.idCliente,
+    nuovoPacchetto.ID_Pacchetto
+  );
+
+} else if (window.idLezioneCorrente) {
+  mostraDettaglioLezione(
+    window.idLezioneCorrente,
+    dettaglioLezioneBoxAttivo
+  );
+}
+
 
   } catch (err) {
     console.error("Errore aggiungiPacchetto:", err);
@@ -1412,6 +1429,30 @@ async function eliminaPacchetto(idPacchetto) {
   }
 
   setStatus("Pacchetto eliminato ✅", "ok");
+
+// ✅ FIX ritorno corretto post eliminazione
+const nav = window.lastPacchettoNavigation || {};
+
+if (nav.origine === "clienti" && nav.idCliente) {
+  const idCliente = nav.idCliente;
+
+  vaiTab("clienti");
+
+  setTimeout(() => {
+    mostraPacchettiCliente(idCliente);
+
+    const box = document.getElementById("outputClienti");
+    if (box) {
+      box.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }
+  }, 220);
+
+} else {
+  // fallback
+  vaiTab("pacchetti", { allowInternalNav: true });
 }
 
 
