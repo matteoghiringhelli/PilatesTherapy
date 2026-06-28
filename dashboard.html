@@ -1361,36 +1361,15 @@ body {
 
   <div id="pacchettiSection">
 
-    <div class="form-row">
-      <button onclick="loadPacchetti()">Ricarica Pacchetti</button>
-      <button onclick="toggleNuovoPacchetto()">➕ Nuovo Pacchetto</button>
-      <button onclick="toggleReportPacchetti()">📊 Report Pacchetti</button>
-    </div>
-
     <div id="reportPacchettiBox" class="hidden">
       <h3>Alert Pacchetti</h3>
-<div style="margin-bottom:15px; display:flex; gap:10px; flex-wrap:wrap;">
-
-  <button onclick="setReportPacchettiFiltro('da_pagare')" class="btn">
-    💰 Da Pagare
-  </button>
-
-  <button onclick="setReportPacchettiFiltro('in_scadenza')" class="btn">
-    ⚠️ In Scadenza
-  </button>
-
-  <button onclick="setReportPacchettiFiltro('fatture')" class="btn">
-    🧾 Fatture da emettere
-  </button>
-
-</div>
 
 <div id="outputReportPacchetti"></div>
 
     </div>
 
     <!-- ✅ FORM INTELLIGENTE PACCHETTI -->
-    <div id="nuovoPacchettoBox" class="hidden">
+    <div id="nuovoPacchettoBox" class="hidden" style="display:none;">
 
   <h3>Aggiungi Pacchetto</h3>
 
@@ -1513,7 +1492,7 @@ body {
 </div>
 
     <div class="table-container">
-      <div id="outputPacchetti"></div>
+      <div id="outputPacchetti" style="display:none;"></div>
     </div>
 
   </div>
