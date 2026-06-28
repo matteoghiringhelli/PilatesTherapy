@@ -300,28 +300,86 @@
   border-radius: 10px;
   background: #f2f2f7;
   margin-bottom: 6px;
-}
-
-.lesson-detail-actions {
-  margin-top: 14px;
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.lesson-detail-actions button {
-  flex: 1;
-  background: #f2f2f7;
-  font-weight: 500;
-}
-
-.lesson-client-row {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .lesson-client-row:active {
-  transform: scale(0.97);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  transform: scale(0.98);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+/* ===== SWIPE DELETE PREMIUM ===== */
+.swipe-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  margin-bottom: 8px;
+  background: transparent;
+}
+
+.swipe-content {
+  position: relative;
+  z-index: 2;
+  background: #f2f2f7;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.swipe-container.swipe-open .swipe-content {
+  transform: translateX(-88px);
+}
+
+.swipe-delete-action {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 6px;
+  width: 82px;
+  background: #ff3b30;
+  color: #ffffff;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  opacity: 0;
+  transform: translateX(12px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.swipe-container.swipe-open .swipe-delete-action {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.swipe-delete-action button {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 24px;
+  padding: 12px;
+  min-width: 0;
+}
+
+.swipe-delete-action button:active {
+  transform: scale(0.92);
+}
+
+/* ===== FEEDBACK TAP VISIVO ===== */
+.tap-feedback {
+  animation: tapPulse 180ms ease-out;
+}
+
+@keyframes tapPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
     /* ===== UX STEP 1: TRANSIZIONI APP ===== */
