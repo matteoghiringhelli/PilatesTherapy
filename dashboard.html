@@ -1775,6 +1775,54 @@ body {
   }
 </script>
 
+<!-- ===== MODALE PACCHETTO ===== -->
+<div id="modalPacchettoOverlay" class="hidden" style="
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  background:rgba(0,0,0,0.4);
+  z-index:2000;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+">
+
+  <div id="modalPacchettoBox" style="
+    width:100%;
+    max-width:520px;
+    background:#ffffff;
+    border-radius:20px 20px 0 0;
+    padding:16px;
+    animation:slideUp 0.25s ease;
+  ">
+
+    <div style="
+      width:40px;
+      height:4px;
+      background:#ccc;
+      border-radius:4px;
+      margin:0 auto 10px auto;
+    "></div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <strong>➕ Nuovo Pacchetto</strong>
+      <button onclick="chiudiModalPacchetto()">✖️</button>
+    </div>
+
+    <div id="modalPacchettoContent"></div>
+
+  </div>
+</div>
+
+<style>
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+</style>
+  
 </body>
 </html>
 
