@@ -3551,20 +3551,23 @@ if (tab === "pacchetti") {
   return;
 }
 
-  if (tab === "reportPacchetti") {
-    if (pacchettiWrapper) pacchettiWrapper.classList.add("active-section");
-    if (pacchettiSection) pacchettiSection.classList.remove("hidden");
-    if (tabReportPacchetti) tabReportPacchetti.classList.add("active");
+if (tab === "reportPacchetti") {
+  if (pacchettiWrapper) pacchettiWrapper.classList.add("active-section");
+  if (pacchettiSection) pacchettiSection.classList.remove("hidden");
+  if (tabReportPacchetti) tabReportPacchetti.classList.add("active");
 
-    const reportBox = document.getElementById("reportPacchettiBox");
-    if (reportBox) reportBox.classList.remove("hidden");
+  const reportBox = document.getElementById("reportPacchettiBox");
+  if (reportBox) reportBox.classList.remove("hidden");
 
-    renderReportPacchetti();
-    document.getElementById("outputPacchetti")?.style.setProperty("display", "none");
+  renderReportPacchetti();
 
-    scrollToSection("pacchettiSection");
-    return;
-  }
+  document.getElementById("outputPacchetti")?.style.setProperty("display", "none");
+
+  // ✅ BLOCCA QUALSIASI SCROLL AUTOMATICO
+  window.scrollTo({ top: 0, behavior: "instant" });
+
+  return;
+}
 }
 
 function scrollToSection(sectionId) {
@@ -3578,6 +3581,7 @@ function scrollToSection(sectionId) {
     });
   }, 80);
 }
+
 
 /* ===================== PACCHETTI BASE =====================
    Estratti in /js/modules/pacchetti.js
