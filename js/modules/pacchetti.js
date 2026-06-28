@@ -1203,7 +1203,6 @@ function renderReportPacchetti() {
 
 async function aggiungiPacchetto() {
   try {
-
     const idCliente = document.getElementById("pac_cliente")?.value;
     const tipo = document.getElementById("pac_tipo")?.value;
 
@@ -1216,28 +1215,20 @@ async function aggiungiPacchetto() {
       ID_Pacchetto: generaNuovoIdPacchetto(),
       ID_Cliente: idCliente,
       Tipo_Pacchetto: tipo,
-
       Lezioni_Base: Number(document.getElementById("pac_lezioni_base")?.value || 0),
       Lezioni_Add: Number(document.getElementById("pac_lezioni_add")?.value || 0),
       Lezioni_Totali: Number(document.getElementById("pac_lezioni_totali")?.value || 0),
-
       Prezzo: Number(document.getElementById("pac_prezzo")?.value || 0),
-
       Flag_Pagato: document.getElementById("pac_flag_pagato")?.value || "No",
       Da_Pagare: Number(document.getElementById("pac_da_pagare")?.value || 0),
-
       Flag_C: document.getElementById("pac_flag_c")?.value || "Si",
-
       Fattura_Nr: document.getElementById("pac_fattura_nr")?.value || "",
       Data_Fattura: document.getElementById("pac_data_fattura")?.value || null,
-
       Valido_Da: document.getElementById("pac_valido_da")?.value || "",
       Valido_A: document.getElementById("pac_valido_a")?.value || "",
-
       Stato: "Attivo"
     };
 
-    // ✅ INSERT CORRETTO (RLS SAFE)
     const data = await safeInsert("pacchetti", payload);
 
     if (!data || !data.length) {
@@ -1246,78 +1237,45 @@ async function aggiungiPacchetto() {
     }
 
     const nuovoPacchetto = data[0];
-    // ✅ recupera contesto prenotazione
     const ctx = window.ctxNuovoPacchetto;
 
-    // ✅ RICONCILIAZIONE ACCONTO (se presente)
     if (typeof riconciliaAccontoNuovoPacchetto === "function") {
       await riconciliaAccontoNuovoPacchetto(nuovoPacchetto);
     }
 
     setStatus("Pacchetto creato ✅", "ok");
 
-    // ✅ CHIUSURA MODALE (ORA FUNZIONA)
-    if (typeof chiudiModalPacchetto === "function") {
-      chiudiModalPacchetto();
-    }
+    // ✅ FIX CRITICO: chiusura modale SICURA
+    chiudiModalPacchetto();
 
-    // ✅ RESET FORM
+    // ✅ FIX: reset stato globale
+    window.ctxNuovoPacchetto = null;
+
     pulisciFormPacchetto();
 
-    // ✅ RELOAD DATI
-    if (typeof loadPacchetti === "function") {
-      await loadPacchetti();
-    }
-    if (typeof loadClienti === "function") {
-      await loadClienti();
-    }
-    if (typeof renderCalendario === "function") {
-      renderCalendario();
-    }
+    // ✅ reload completo dati
+    await loadPacchetti();
+    await loadClienti();
 
-    // ✅ RITORNO ALLA LEZIONE (UX FLUIDO)
     if (ctx) {
+      mostraDettaglioLezione(
+        ctx.idLezione,
+        dettaglioLezioneBoxAttivo
+      );
 
-  mostraDettaglioLezione(
-    ctx.idLezione,
-    dettaglioLezioneBoxAttivo
-  );
+      setTimeout(() => {
+        const inputCliente = document.getElementById(`slot_cliente_${ctx.slotIndex}`);
+        const selectPacchetto = document.getElementById(`slot_pacchetto_${ctx.slotIndex}`);
 
-  // ✅ DOPO render → seleziona automaticamente
-  setTimeout(() => {
+        if (inputCliente) inputCliente.dispatchEvent(new Event("input"));
 
-    const inputCliente = document.getElementById(`slot_cliente_${ctx.slotIndex}`);
-    const selectPacchetto = document.getElementById(`slot_pacchetto_${ctx.slotIndex}`);
-
-    const cliente = clientiData.find(c =>
-      String(c.ID_Cliente) === String(ctx.idCliente)
-    );
-
-    if (inputCliente && cliente) {
-      inputCliente.value = `${cliente.Nome} ${cliente.Cognome}`;
-      inputCliente.dispatchEvent(new Event("input"));
+        setTimeout(() => {
+          if (selectPacchetto) {
+            selectPacchetto.value = nuovoPacchetto.ID_Pacchetto;
+          }
+        }, 120);
+      }, 200);
     }
-
-    setTimeout(() => {
-      if (selectPacchetto) {
-        selectPacchetto.value = nuovoPacchetto.ID_Pacchetto;
-      }
-    }, 120);
-
-  }, 200);
-
-  // ✅ pulisci contesto
-  window.ctxNuovoPacchetto = null;
-
-} else {
-  // fallback normale
-  if (window.idLezioneCorrente) {
-    mostraDettaglioLezione(
-      window.idLezioneCorrente,
-      dettaglioLezioneBoxAttivo
-    );
-  }
-}
 
   } catch (err) {
     console.error("Errore aggiungiPacchetto:", err);
