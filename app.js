@@ -997,21 +997,21 @@ function renderClientiMobileSafe() {
       const cells = rows[i].querySelectorAll("td");
       if (!cells || cells.length < 4) continue;
 
-      const id = cells[0].innerText;
-      const nome = cells[1].innerText;
-      const cognome = cells[2].innerText;
-      const telefono = cells[3].innerText;
+      const id = String(cells[0].innerText || "").trim();
+      const nome = String(cells[1].innerText || "").trim();
+      const cognome = String(cells[2].innerText || "").trim();
+      const telefono = String(cells[3].innerText || "").trim();
+
+      if (!id) continue;
 
       // ✅ Recupero info pacchetti
       const residui = getLezioniResiduePerTipologia(id);
-
       const righeResiduo = Object.entries(residui || {})
-        .map(([tipo, val]) => `• ${tipo}: ${val}`)
+        .map(([tipo, val]) => `• ${safe(tipo)}: ${safe(val)}`)
         .join("<br>");
 
       cards.push(`
         <div class="card-ios">
-
           <div class="card-title">
             ${safe(nome)} ${safe(cognome)}
           </div>
@@ -1022,14 +1022,15 @@ function renderClientiMobileSafe() {
 
           ${
             righeResiduo
-              ? `<div class="card-sub">
-                   🎯<br>${righeResiduo}
-                 </div>`
+              ? `
+                <div class="card-sub">
+                  🎯<br>${righeResiduo}
+                </div>
+              `
               : ""
           }
 
           <div class="card-actions">
-
             <button onclick="mostraSchedaCliente('${escapeQuote(id)}')">
               🔎 Scheda
             </button>
@@ -1038,12 +1039,12 @@ function renderClientiMobileSafe() {
               💳 Incasso
             </button>
 
-            <button onclick="mostraPacchettiCliente('${escapeQuote(cliente.ID_Cliente)}')">
+            <button onclick="mostraPacchettiCliente('${escapeQuote(id)}')">
               🎟️ Pacchetti
             </button>
 
-            <button onclick="apriNuovoPacchettoDaCliente('${escapeQuote(cliente.ID_Cliente)}')">
-              ➕ Nuovo
+            <button onclick="apriNuovoPacchettoDaCliente('${escapeQuote(id)}')">
+              ➕ Nuovo Pacchetto
             </button>
 
             <button onclick="mostraPrenotazioniCliente('${escapeQuote(id)}')">
@@ -1053,19 +1054,26 @@ function renderClientiMobileSafe() {
             <button onclick="inviaWhatsAppCliente('${escapeQuote(id)}')">
               📲 WhatsApp
             </button>
-
           </div>
-
         </div>
       `);
     }
 
     if (cards.length > 0) {
       out.innerHTML = cards.join("");
+    } else {
+      out.innerHTML = `
+        <div class="card-ios">
+          <div class="card-title">Nessun cliente trovato</div>
+          <div class="card-sub">
+            Prova a rimuovere il filtro di ricerca o a ricaricare i clienti.
+          </div>
+        </div>
+      `;
     }
-
   } catch (err) {
     console.error("Errore renderClientiMobileSafe:", err);
+    setStatus("Errore visualizzazione lista clienti", "err");
   }
 }
 
@@ -2029,6 +2037,122 @@ function applicaAccontoNuovoPacchetto() {
   }
 }
 
+function apriNuovoPacchettoDaCliente(idCliente) {
+  const cliente = clientiData.find(c =>
+    String(c.ID_Cliente) === String(idCliente)
+  );
+
+  if (!cliente) {
+    setStatus("Cliente non trovato per nuovo pacchetto", "err");
+    return;
+  }
+
+  // ✅ Manteniamo il contesto corretto:
+  // Clienti → Nuovo Pacchetto
+  window.lastPacchettoNavigation = {
+    origine: "clienti",
+    idCliente: idCliente
+  };
+
+  chiudiHomeSeAperta();
+
+  // ✅ Nasconde tutte le sezioni principali
+  const dashboardSection = document.getElementById("dashboardSection");
+  const calendarioSection = document.getElementById("calendarioSection");
+  const clientiSection = document.getElementById("clientiSection");
+  const contiSection = document.getElementById("contiSection");
+  const lezioniSection = document.getElementById("lezioniSection");
+  const prenotazioniSection = document.getElementById("prenotazioniSection");
+  const pacchettiSection = document.getElementById("pacchettiSection");
+
+  const dashboardWrapper = dashboardSection?.parentElement;
+  const calendarioWrapper = calendarioSection?.parentElement;
+  const clientiWrapper = clientiSection?.parentElement;
+  const contiWrapper = contiSection?.parentElement;
+  const lezioniWrapper = lezioniSection?.parentElement;
+  const prenotazioniWrapper = prenotazioniSection?.parentElement;
+  const pacchettiWrapper = pacchettiSection?.parentElement;
+
+  [
+    dashboardWrapper,
+    calendarioWrapper,
+    clientiWrapper,
+    contiWrapper,
+    lezioniWrapper,
+    prenotazioniWrapper,
+    pacchettiWrapper
+  ].forEach(wrapper => {
+    if (wrapper) wrapper.classList.remove("active-section");
+  });
+
+  [
+    dashboardSection,
+    calendarioSection,
+    clientiSection,
+    contiSection,
+    lezioniSection,
+    prenotazioniSection,
+    pacchettiSection
+  ].forEach(section => {
+    if (section) section.classList.add("hidden");
+  });
+
+  // ✅ Mostra la sezione pacchetti SOLO come sotto-flusso partito dal cliente
+  if (pacchettiWrapper) pacchettiWrapper.classList.add("active-section");
+  if (pacchettiSection) pacchettiSection.classList.remove("hidden");
+
+  // ✅ Mantiene evidenziato il tab Clienti, perché il flusso nasce da Clienti
+  document.querySelectorAll(".footer-tab").forEach(btn => {
+    btn.classList.remove("active");
+  });
+
+  const tabClienti = document.getElementById("tabClienti");
+  if (tabClienti) tabClienti.classList.add("active");
+
+  // ✅ Prepara select e form pacchetto
+  if (typeof renderSelectPacchettoClienti === "function") {
+    renderSelectPacchettoClienti();
+  }
+
+  if (typeof renderSelectTipiPacchetto === "function") {
+    renderSelectTipiPacchetto();
+  }
+
+  const nuovoPacchettoBox = document.getElementById("nuovoPacchettoBox");
+
+  if (nuovoPacchettoBox && nuovoPacchettoBox.classList.contains("hidden")) {
+    toggleNuovoPacchetto();
+  } else {
+    if (typeof preparaNuovoPacchetto === "function") {
+      preparaNuovoPacchetto();
+    }
+  }
+
+  setTimeout(() => {
+    const clienteSelect = document.getElementById("pac_cliente");
+
+    if (clienteSelect) {
+      clienteSelect.value = idCliente;
+    }
+
+    if (typeof aggiornaAnteprimaPacchetto === "function") {
+      aggiornaAnteprimaPacchetto();
+    }
+
+    const box = document.getElementById("nuovoPacchettoBox");
+    if (box) {
+      box.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }
+
+    setStatus(
+      `Nuovo pacchetto per ${cliente.Nome || ""} ${cliente.Cognome || ""}`,
+      "ok"
+    );
+  }, 120);
+}
 
 function mostraPrenotazioniCliente(idCliente) {
   const box = document.getElementById("outputClienti");
@@ -2674,20 +2798,17 @@ function apriNuovaLezioneDaHome() {
 }
 
 function apriNuovoPacchettoDaHome() {
-  vaiTab("pacchetti");
+  // ✅ Nuova logica coerente:
+  // da Home non apriamo più la sezione Pacchetti diretta.
+  // Prima si passa dai Clienti, perché il pacchetto deve sempre appartenere a un cliente.
+  vaiTab("clienti");
 
   setTimeout(() => {
-    const box = document.getElementById("nuovoPacchettoBox");
-    if (box && box.classList.contains("hidden")) {
-      toggleNuovoPacchetto();
-    }
+    setStatus("Seleziona un cliente e usa ➕ Nuovo Pacchetto", "ok");
 
-    const section = document.getElementById("pacchettiSection");
-    if (section) {
-      section.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
+    const searchInput = document.getElementById("search_clienti");
+    if (searchInput) {
+      searchInput.focus();
     }
   }, 160);
 }
