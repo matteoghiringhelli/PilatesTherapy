@@ -1038,8 +1038,12 @@ function renderClientiMobileSafe() {
               💳 Incasso
             </button>
 
-            <button onclick="mostraPacchettiCliente('${escapeQuote(id)}')">
+            <button onclick="mostraPacchettiCliente('${escapeQuote(cliente.ID_Cliente)}')">
               🎟️ Pacchetti
+            </button>
+
+            <button onclick="apriNuovoPacchettoDaCliente('${escapeQuote(cliente.ID_Cliente)}')">
+              ➕ Nuovo
             </button>
 
             <button onclick="mostraPrenotazioniCliente('${escapeQuote(id)}')">
