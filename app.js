@@ -1139,6 +1139,34 @@ function getClienteLabelPrenotazione(cliente) {
   return `${cliente.Nome || ""} ${cliente.Cognome || ""} — ${cliente.ID_Cliente || ""}`.trim();
 }
 
+function gestisciEnterSlot(event, idLezione, index) {
+  if (event.key !== "Enter") return;
+
+  event.preventDefault();
+
+  const nextIndex = index + 1;
+  const nextInput = document.getElementById(`slot_cliente_${nextIndex}`);
+
+  if (nextInput) {
+    nextInput.focus();
+  }
+}
+
+function onClienteSelezionatoSlot(idLezione, index) {
+  aggiornaPacchettoSlotLezione(idLezione, index);
+
+  // ✅ auto-focus sul prossimo slot
+  setTimeout(() => {
+    const nextIndex = index + 1;
+    const nextInput = document.getElementById(`slot_cliente_${nextIndex}`);
+
+    if (nextInput && nextInput.value === "") {
+      nextInput.focus();
+    }
+  }, 120);
+}
+
+
 function getClienteIdDaInputPrenotazione(value) {
   const raw = String(value || "").trim();
   if (!raw) return "";
@@ -1172,6 +1200,21 @@ function getClienteIdDaInputPrenotazione(value) {
   });
 
   return matchNome ? matchNome.ID_Cliente : "";
+}
+
+function suggerisciClientePrecedente(index) {
+  if (index === 0) return;
+
+  const prevInput = document.getElementById(`slot_cliente_${index - 1}`);
+  const currInput = document.getElementById(`slot_cliente_${index}`);
+
+  if (!prevInput || !currInput) return;
+
+  const prevValue = prevInput.value;
+
+  if (prevValue && !currInput.value) {
+    currInput.value = prevValue;
+  }
 }
 
 function getPacchettiCompatibiliConResiduoPerPrenotazione(idCliente, idLezione) {
@@ -1350,12 +1393,15 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
 
               <input
                 id="slot_cliente_${index}"
+                onclick="suggerisciClientePrecedente(${index})"
                 list="slot_clienti_datalist_${index}"
-                placeholder="Cerca nome o cognome..."
+                placeholder="Cerca cliente..."
                 autocomplete="off"
-                onchange="aggiornaPacchettoSlotLezione('${escapeQuote(idLezione)}', ${index})"
-                oninput="aggiornaPacchettoSlotLezione('${escapeQuote(idLezione)}', ${index})"
+                onchange="onClienteSelezionatoSlot('${escapeQuote(idLezione)}', ${index})"
+                oninput="onClienteSelezionatoSlot('${escapeQuote(idLezione)}', ${index})"
+                onkeydown="gestisciEnterSlot(event, '${escapeQuote(idLezione)}', ${index})"
               >
+
 
               <datalist id="slot_clienti_datalist_${index}">
                 ${clientiOptions}
@@ -1386,6 +1432,11 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
         ← Indietro
       </button>
     </div>
+
+    setTimeout(() => {
+      const first = document.getElementById("slot_cliente_0");
+      if (first) first.focus();
+    }, 120);
 
     <div class="view-content">
       <div class="lesson-detail">
