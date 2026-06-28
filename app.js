@@ -1258,7 +1258,6 @@ function duplicaClienteSlot(idLezione, index) {
 function abilitaSwipeDelete() {
   document.querySelectorAll(".swipe-container").forEach(container => {
     if (container.dataset.swipeReady === "true") return;
-
     container.dataset.swipeReady = "true";
 
     const content = container.querySelector(".swipe-content");
@@ -1269,27 +1268,21 @@ function abilitaSwipeDelete() {
     let isDragging = false;
 
     content.addEventListener("touchstart", e => {
-      if (!e.touches || !e.touches.length) return;
-
       startX = e.touches[0].clientX;
       currentX = startX;
       isDragging = true;
     }, { passive: true });
 
     content.addEventListener("touchmove", e => {
-      if (!isDragging || !e.touches || !e.touches.length) return;
+      if (!isDragging) return;
 
       currentX = e.touches[0].clientX;
-
       const deltaX = currentX - startX;
 
-      // swipe verso sinistra
       if (deltaX < -20) {
-        const translate = Math.max(deltaX, -88);
-        content.style.transform = `translateX(${translate}px)`;
+        content.style.transform = `translateX(${Math.max(deltaX, -88)}px)`;
       }
 
-      // swipe verso destra: richiude
       if (deltaX > 20) {
         container.classList.remove("swipe-open");
         content.style.transform = "";
@@ -1297,28 +1290,26 @@ function abilitaSwipeDelete() {
     }, { passive: true });
 
     content.addEventListener("touchend", () => {
-      if (!isDragging) return;
-
       isDragging = false;
-
       const deltaX = currentX - startX;
 
       if (deltaX < -45) {
         container.classList.add("swipe-open");
         content.style.transform = "";
-        feedbackTap(content);
       } else {
         container.classList.remove("swipe-open");
         content.style.transform = "";
       }
     });
 
-    // ✅ Tap su altra card: chiude eventuali altre card aperte
+    // ✅ FIX: gestione click corretta (NO doppio click)
+    container.querySelector(".swipe-delete-action button")?.addEventListener("click", e => {
+      e.stopPropagation();
+    });
+
     content.addEventListener("click", () => {
-      document.querySelectorAll(".swipe-container.swipe-open").forEach(openContainer => {
-        if (openContainer !== container) {
-          openContainer.classList.remove("swipe-open");
-        }
+      document.querySelectorAll(".swipe-container.swipe-open").forEach(c => {
+        if (c !== container) c.classList.remove("swipe-open");
       });
     });
   });
@@ -3258,31 +3249,36 @@ function apriNuovoPacchettoDaHome() {
 }
 
 function apriDettaglioPacchettoDaCliente(idPacchetto) {
+  const p = pacchettiData.find(x =>
+    String(x.ID_Pacchetto) === String(idPacchetto)
+  );
 
+  if (!p) {
+    setStatus("Pacchetto non trovato", "err");
+    return;
+  }
+
+  // ✅ salva origine corretta
+  window.lastPacchettoNavigation = {
+    origine: "clienti",
+    idCliente: p.ID_Cliente,
+    idPacchetto: p.ID_Pacchetto
+  };
+
+  // ✅ vai su tab pacchetti
   vaiTab("pacchetti", { allowInternalNav: true });
 
   setTimeout(() => {
+    mostraDettaglioPacchetto(idPacchetto, "clienti");
 
-    // ✅ RIATTIVA VISTA (FIX CRITICO)
     const container = document.getElementById("outputPacchetti");
     if (container) {
-      container.style.removeProperty("display");
-    }
-
-    if (typeof renderPacchetti === "function") {
-      renderPacchetti();
-    }
-
-    const pacchettoDiv = document.querySelector(`[data-id="${idPacchetto}"]`);
-
-    if (pacchettoDiv) {
-      pacchettoDiv.scrollIntoView({
+      container.scrollIntoView({
         behavior: "smooth",
         block: "start"
       });
     }
-
-  }, 120);
+  }, 200);
 }
 
 
