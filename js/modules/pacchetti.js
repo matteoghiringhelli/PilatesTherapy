@@ -1202,7 +1202,6 @@ function renderReportPacchetti() {
 // ============================
 
 async function aggiungiPacchetto() {
-
   try {
 
     const idCliente = document.getElementById("pac_cliente")?.value;
@@ -1214,49 +1213,67 @@ async function aggiungiPacchetto() {
     }
 
     const payload = {
+      ID_Pacchetto: generaNuovoIdPacchetto(),
       ID_Cliente: idCliente,
       Tipo_Pacchetto: tipo,
+
       Lezioni_Base: Number(document.getElementById("pac_lezioni_base")?.value || 0),
-      Lezioni_Add: Number(document.getElementById("pac_lezioni_extra")?.value || 0),
+      Lezioni_Add: Number(document.getElementById("pac_lezioni_add")?.value || 0),
       Lezioni_Totali: Number(document.getElementById("pac_lezioni_totali")?.value || 0),
+
       Prezzo: Number(document.getElementById("pac_prezzo")?.value || 0),
-      Flag_Pagato: document.getElementById("pac_flag_pagato")?.value,
+
+      Flag_Pagato: document.getElementById("pac_flag_pagato")?.value || "No",
       Da_Pagare: Number(document.getElementById("pac_da_pagare")?.value || 0),
-      Data_Inizio: document.getElementById("pac_data_inizio")?.value,
-      Data_Fine: document.getElementById("pac_data_fine")?.value
+
+      Flag_C: document.getElementById("pac_flag_c")?.value || "Si",
+
+      Fattura_Nr: document.getElementById("pac_fattura_nr")?.value || "",
+      Data_Fattura: document.getElementById("pac_data_fattura")?.value || null,
+
+      Valido_Da: document.getElementById("pac_valido_da")?.value || "",
+      Valido_A: document.getElementById("pac_valido_a")?.value || "",
+
+      Stato: "Attivo"
     };
 
-    const { error } = await supabaseClient
-      .from("pacchetti")
-      .insert([payload]);
+    // ✅ INSERT CORRETTO (RLS SAFE)
+    const data = await safeInsert("pacchetti", payload);
 
-    if (error) {
-      console.error(error);
-      setStatus("Errore salvataggio", "err");
+    if (!data || !data.length) {
+      setStatus("Errore salvataggio pacchetto", "err");
       return;
+    }
+
+    const nuovoPacchetto = data[0];
+
+    // ✅ RICONCILIAZIONE ACCONTO (se presente)
+    if (typeof riconciliaAccontoNuovoPacchetto === "function") {
+      await riconciliaAccontoNuovoPacchetto(nuovoPacchetto);
     }
 
     setStatus("Pacchetto creato ✅", "ok");
 
-    // ✅ CHIUSURA MODALE (SE ESISTE)
+    // ✅ CHIUSURA MODALE (ORA FUNZIONA)
     if (typeof chiudiModalPacchetto === "function") {
       chiudiModalPacchetto();
     }
 
-    // ✅ REFRESH
+    // ✅ RESET FORM
+    pulisciFormPacchetto();
+
+    // ✅ RELOAD DATI
     if (typeof loadPacchetti === "function") {
       await loadPacchetti();
     }
-
     if (typeof loadClienti === "function") {
       await loadClienti();
     }
-
     if (typeof renderCalendario === "function") {
       renderCalendario();
     }
 
-    // ✅ RITORNO LEZIONE
+    // ✅ RITORNO ALLA LEZIONE (UX FLUIDO)
     if (window.idLezioneCorrente) {
       mostraDettaglioLezione(
         window.idLezioneCorrente,
@@ -1265,7 +1282,7 @@ async function aggiungiPacchetto() {
     }
 
   } catch (err) {
-    console.error(err);
+    console.error("Errore aggiungiPacchetto:", err);
     setStatus("Errore imprevisto", "err");
   }
 }
