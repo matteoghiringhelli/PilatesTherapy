@@ -1382,7 +1382,14 @@ function apriNuovoPacchettoDaPrenotazione(idLezione, index) {
     origine: "prenotazione_lezione"
   };
 
-  apriNuovoPacchettoDaCliente(idCliente);
+  // ✅ salva contesto prenotazione
+    window.ctxNuovoPacchetto = {
+      idLezione: idLezione,
+      slotIndex: index,
+      idCliente: idCliente
+    };
+
+    apriNuovoPacchettoDaCliente(idCliente);
 
   setTimeout(() => {
     setStatus(
@@ -2569,6 +2576,16 @@ function apriNuovoPacchettoDaCliente(idCliente) {
   // ✅ SPOSTA il form dentro il modale (NON copia)
   content.innerHTML = "";
   content.appendChild(originale);
+
+  // ✅ FIX CRITICO: ricollega il bottone SALVA al modale
+
+  const btnSalva = originale.querySelector("button[onclick*='aggiungiPacchetto']");
+
+  if (btnSalva) {
+    btnSalva.onclick = function () {
+      aggiungiPacchetto(); // chiamata corretta
+    };
+  }
 
   // ✅ MOSTRA il form
   originale.classList.remove("hidden");
