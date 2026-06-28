@@ -1205,33 +1205,30 @@ async function aggiungiPacchetto() {
 
   try {
 
-    // ✅ raccogli dati (usa la tua logica esistente)
-    const cliente = document.getElementById("pac_cliente")?.value;
+    const idCliente = document.getElementById("pac_cliente")?.value;
     const tipo = document.getElementById("pac_tipo")?.value;
-    const lezioniTotali = document.getElementById("pac_lezioni_totali")?.value;
-    const prezzo = document.getElementById("pac_prezzo")?.value;
-    const pagato = document.getElementById("pac_flag_pagato")?.value;
-    const daPagare = document.getElementById("pac_da_pagare")?.value;
 
-    if (!cliente || !tipo) {
-      setStatus("Compila cliente e tipo pacchetto", "err");
+    if (!idCliente || !tipo) {
+      setStatus("Cliente e Tipo pacchetto obbligatori", "err");
       return;
     }
 
-    // ✅ payload (mantieni i tuoi campi reali se diversi)
     const payload = {
-      ID_Cliente: cliente,
+      ID_Cliente: idCliente,
       Tipo_Pacchetto: tipo,
-      Lezioni_Totali: Number(lezioniTotali || 0),
-      Prezzo: Number(prezzo || 0),
-      Flag_Pagato: pagato,
-      Da_Pagare: Number(daPagare || 0)
+      Lezioni_Base: Number(document.getElementById("pac_lezioni_base")?.value || 0),
+      Lezioni_Add: Number(document.getElementById("pac_lezioni_extra")?.value || 0),
+      Lezioni_Totali: Number(document.getElementById("pac_lezioni_totali")?.value || 0),
+      Prezzo: Number(document.getElementById("pac_prezzo")?.value || 0),
+      Flag_Pagato: document.getElementById("pac_flag_pagato")?.value,
+      Da_Pagare: Number(document.getElementById("pac_da_pagare")?.value || 0),
+      Data_Inizio: document.getElementById("pac_data_inizio")?.value,
+      Data_Fine: document.getElementById("pac_data_fine")?.value
     };
 
-    // ✅ salvataggio
     const { error } = await supabaseClient
       .from("pacchetti")
-      .insert(payload);
+      .insert([payload]);
 
     if (error) {
       console.error(error);
@@ -1239,20 +1236,22 @@ async function aggiungiPacchetto() {
       return;
     }
 
-    // ✅ FEEDBACK
     setStatus("Pacchetto creato ✅", "ok");
 
-    // ✅ 1. chiudi modale
-    chiudiModalPacchetto();
+    // ✅ QUI AVVIENE LA MAGIA
 
-    // ✅ 2. refresh dati
+    if (typeof chiudiModalPacchetto === "function") {
+      chiudiModalPacchetto();
+    }
+
     await loadPacchetti();
     await loadClienti();
 
-    // ✅ 3. refresh UI principale
-    renderCalendario();
+    if (typeof renderCalendario === "function") {
+      renderCalendario();
+    }
 
-    // ✅ 4. RITORNO ALLA LEZIONE (SUPER IMPORTANTE)
+    // ✅ ritorno alla lezione se presente
     if (window.idLezioneCorrente) {
       mostraDettaglioLezione(
         window.idLezioneCorrente,
@@ -1262,7 +1261,7 @@ async function aggiungiPacchetto() {
 
   } catch (err) {
     console.error(err);
-    setStatus("Errore imprevisto salvataggio", "err");
+    setStatus("Errore imprevisto", "err");
   }
 }
 
