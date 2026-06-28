@@ -3571,16 +3571,10 @@ if (tab === "reportPacchetti") {
 }
 
 function scrollToSection(sectionId) {
-  const section = document.getElementById(sectionId);
-  if (!section) return;
-
-  setTimeout(() => {
-    section.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
-  }, 80);
+  // ✅ disabilitato per UX mobile pulita
+  window.scrollTo({ top: 0, behavior: "instant" });
 }
+
 
 
 /* ===================== PACCHETTI BASE =====================
