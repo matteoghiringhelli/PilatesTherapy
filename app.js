@@ -2573,18 +2573,26 @@ function apriNuovoPacchettoDaCliente(idCliente) {
   content.style.display = "block";
 
   setTimeout(() => {
+  const selectCliente = document.getElementById("pac_cliente");
+  if (selectCliente) {
+    selectCliente.value = idCliente;
+  }
 
-    const selectCliente = document.getElementById("pac_cliente");
+  // ✅ IMPORTANTE: inizializza tipo pacchetto
+  if (typeof renderSelectTipiPacchetto === "function") {
+    renderSelectTipiPacchetto();
+  }
 
-    if (selectCliente) {
-      selectCliente.value = idCliente;
-    }
+  if (typeof preparaNuovoPacchetto === "function") {
+    preparaNuovoPacchetto();
+  }
 
-    if (typeof preparaNuovoPacchetto === "function") {
-      preparaNuovoPacchetto();
-    }
+  // ✅ FORZA CALCOLO INIZIALE
+  if (typeof aggiornaAnteprimaPacchetto === "function") {
+    aggiornaAnteprimaPacchetto();
+  }
 
-  }, 80);
+}, 80);
 }
 
 function mostraPrenotazioniCliente(idCliente) {
