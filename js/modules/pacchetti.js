@@ -1209,7 +1209,7 @@ async function aggiungiPacchetto() {
     const tipo = document.getElementById("pac_tipo")?.value;
 
     if (!idCliente || !tipo) {
-      setStatus("Cliente e Tipo pacchetto obbligatori", "err");
+      setStatus("Cliente e Tipo obbligatori", "err");
       return;
     }
 
@@ -1232,26 +1232,31 @@ async function aggiungiPacchetto() {
 
     if (error) {
       console.error(error);
-      setStatus("Errore salvataggio pacchetto", "err");
+      setStatus("Errore salvataggio", "err");
       return;
     }
 
     setStatus("Pacchetto creato ✅", "ok");
 
-    // ✅ QUI AVVIENE LA MAGIA
-
+    // ✅ CHIUSURA MODALE (SE ESISTE)
     if (typeof chiudiModalPacchetto === "function") {
       chiudiModalPacchetto();
     }
 
-    await loadPacchetti();
-    await loadClienti();
+    // ✅ REFRESH
+    if (typeof loadPacchetti === "function") {
+      await loadPacchetti();
+    }
+
+    if (typeof loadClienti === "function") {
+      await loadClienti();
+    }
 
     if (typeof renderCalendario === "function") {
       renderCalendario();
     }
 
-    // ✅ ritorno alla lezione se presente
+    // ✅ RITORNO LEZIONE
     if (window.idLezioneCorrente) {
       mostraDettaglioLezione(
         window.idLezioneCorrente,
