@@ -1434,6 +1434,7 @@ function ripristinaPrenotazioneDopoNuovoPacchetto(idLezione, slotIndex, idClient
 }
 
 function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
+  window.idLezioneCorrente = idLezione;
   dettaglioLezioneBoxAttivo = boxId;
 
   const box = document.getElementById(boxId);
