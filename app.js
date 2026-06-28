@@ -1139,6 +1139,12 @@ function getClienteLabelPrenotazione(cliente) {
   return `${cliente.Nome || ""} ${cliente.Cognome || ""} — ${cliente.ID_Cliente || ""}`.trim();
 }
 
+function feedbackTap() {
+  if (navigator.vibrate) {
+    navigator.vibrate(10);
+  }
+}
+
 function gestisciEnterSlot(event, idLezione, index) {
   if (event.key !== "Enter") return;
 
@@ -1209,6 +1215,7 @@ function duplicaClienteSlot(idLezione, index) {
     return;
   }
 
+  feedbackTap();
   currInput.value = valorePrecedente;
 
   aggiornaPacchettoSlotLezione(idLezione, index);
@@ -1218,6 +1225,29 @@ function duplicaClienteSlot(idLezione, index) {
   }, 80);
 }
 
+function abilitaSwipeDelete() {
+  let startX = 0;
+
+  document.querySelectorAll(".swipe-content").forEach(el => {
+    el.addEventListener("touchstart", e => {
+      startX = e.touches[0].clientX;
+    });
+
+    el.addEventListener("touchmove", e => {
+      const deltaX = e.touches[0].clientX - startX;
+
+      if (deltaX < -30) {
+        el.style.transform = "translateX(-80px)";
+      }
+    });
+
+    el.addEventListener("touchend", () => {
+      setTimeout(() => {
+        el.style.transform = "translateX(0)";
+      }, 1200);
+    });
+  });
+}
 
 function getPacchettiCompatibiliConResiduoPerPrenotazione(idCliente, idLezione) {
   return getPacchettiCompatibiliPerPrenotazione(idCliente, idLezione)
@@ -1358,8 +1388,39 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
           String(pc.ID_Pacchetto) === String(p.ID_Pacchetto)
         );
 
-        return `
-          <div class="lesson-client-row">
+          return `
+            <div class="swipe-container" style="position:relative; overflow:hidden;">
+
+            <div class="swipe-delete" style="
+              position:absolute;
+              right:0;
+              top:0;
+              bottom:0;
+              width:80px;
+              background:#ff3b30;
+              color:white;
+              display:flex;
+              align-items:center;
+              justify-content:center;
+              font-size:20px;
+            ">
+              <button style="
+                background:none;
+                border:none;
+                color:white;
+                font-size:18px;
+              "
+              onclick="eliminaPrenotazioneDaLezione('${escapeQuote(p.ID_Prenotazione)}','${escapeQuote(idLezione)}')">
+                🗑️
+              </button>
+            </div>
+
+            <div class="lesson-client-row swipe-content" style="
+              background:white;
+              position:relative;
+              z-index:2;
+            ">
+
             <strong>
               ${cliente ? safe(cliente.Nome + " " + cliente.Cognome) : "Cliente non trovato"}
             </strong>
@@ -1375,6 +1436,8 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
                 🗑️ Cancella prenotazione
               </button>
             </div>
+          </div>
+          </div>
           </div>
         `;
       }).join("")
@@ -1496,10 +1559,12 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
     </div>
   `);
 
-  setTimeout(() => {
-    const first = document.getElementById("slot_cliente_0");
-    if (first) first.focus();
-  }, 120);
+setTimeout(() => {
+  const first = document.getElementById("slot_cliente_0");
+  if (first) first.focus();
+
+  abilitaSwipeDelete();
+}, 120);
 }
 
 
@@ -1845,6 +1910,7 @@ async function salvaPrenotazioniDaLezione(idLezione) {
     setStatus("Prenotazioni salvate ✅", "ok");
 
     if (btnSalva) {
+      feedbackTap();
       btnSalva.innerText = "✅ Salvato";
       btnSalva.style.background = "#34c759";
     }
