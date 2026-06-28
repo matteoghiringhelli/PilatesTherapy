@@ -1461,6 +1461,7 @@ if (nav.origine === "clienti" && nav.idCliente) {
   // fallback
   vaiTab("pacchetti", { allowInternalNav: true });
 }
+}
 
 
 
