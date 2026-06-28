@@ -2548,39 +2548,43 @@ function applicaAccontoNuovoPacchetto() {
 
 function apriNuovoPacchettoDaCliente(idCliente) {
 
-  // ✅ entra nella sezione pacchetti con accesso interno
-  vaiTab("pacchetti", { allowInternalNav: true });
+  const overlay = document.getElementById("modalPacchettoOverlay");
+  const content = document.getElementById("modalPacchettoContent");
+
+  if (!overlay || !content) return;
+
+  // ✅ mostra modale
+  overlay.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+
+  // ✅ copia il form esistente
+  const originale = document.getElementById("nuovoPacchettoBox");
+
+  if (!originale) {
+    content.innerHTML = "Errore: form non trovato";
+    return;
+  }
+
+  // ✅ CLONA IL FORM (importantissimo)
+  content.innerHTML = originale.innerHTML
+    .replaceAll("toggleNuovoPacchetto()", "chiudiModalPacchetto()");
+
+  // ✅ mostriamo il contenuto
+  content.style.display = "block";
 
   setTimeout(() => {
 
-    const nuovoPacchettoBox = document.getElementById("nuovoPacchettoBox");
     const selectCliente = document.getElementById("pac_cliente");
 
-    // ✅ MOSTRA FORZATAMENTE IL FORM
-    if (nuovoPacchettoBox) {
-      nuovoPacchettoBox.classList.remove("hidden");
-      nuovoPacchettoBox.style.display = "block";
-    }
-
-    // ✅ imposta cliente pre-selezionato
     if (selectCliente) {
       selectCliente.value = idCliente;
     }
 
-    // ✅ inizializza form
     if (typeof preparaNuovoPacchetto === "function") {
       preparaNuovoPacchetto();
     }
 
-    // ✅ scroll sul form
-    if (nuovoPacchettoBox) {
-      nuovoPacchettoBox.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-    }
-
-  }, 120);
+  }, 80);
 }
 
 function mostraPrenotazioniCliente(idCliente) {
@@ -3312,7 +3316,11 @@ function apriDettaglioLezioneDaHome(idLezione) {
   }, 180);
 }
 
-
+function chiudiModalPacchetto() {
+  const overlay = document.getElementById("modalPacchettoOverlay");
+  if (overlay) overlay.classList.add("hidden");
+  document.body.style.overflow = "";
+}
 
 /* ===================== FOOTER MENU APP ===================== */
 function vaiTab(tab, options = {}) {
