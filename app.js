@@ -1304,27 +1304,27 @@ function abilitaSwipeDelete() {
       content.style.transform = "";
     });
 
-    // ✅ FIX CRITICO: click diretto immediato
+    // ✅ FIX CRITICO: gestisci touch PRIMA del click
     if (deleteBtn) {
+
+      deleteBtn.addEventListener("touchstart", e => {
+        e.stopPropagation();   // blocca swipe
+      }, { passive: true });
+
       deleteBtn.addEventListener("click", e => {
         e.preventDefault();
         e.stopPropagation();
-
-        // ✅ chiudi swipe subito (UX pulita)
-        container.classList.remove("swipe-open");
-
-        // ✅ forza esecuzione onclick immediata
-        const onclick = deleteBtn.getAttribute("onclick");
-        if (onclick) {
-          eval(onclick);
-        }
+        // ✅ il click HTML onclick viene eseguito normalmente
       });
     }
 
     content.addEventListener("click", () => {
-      document.querySelectorAll(".swipe-container.swipe-open").forEach(c => {
-        if (c !== container) c.classList.remove("swipe-open");
-      });
+      document.querySelectorAll(".swipe-container.swipe-open")
+        .forEach(c => {
+          if (c !== container) {
+            c.classList.remove("swipe-open");
+          }
+        });
     });
   });
 }
