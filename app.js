@@ -1450,7 +1450,6 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
   const lezione = lezioniData.find(l =>
     String(l.ID_Lezione) === String(idLezione)
   );
-
   if (!lezione) return;
 
   const prenotazioniLezione = prenotazioniData.filter(p =>
@@ -1466,7 +1465,6 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
         const cliente = clientiData.find(c =>
           String(c.ID_Cliente) === String(p.ID_Cliente)
         );
-
         const pacchetto = pacchettiData.find(pc =>
           String(pc.ID_Pacchetto) === String(p.ID_Pacchetto)
         );
@@ -1476,27 +1474,23 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
           : "Cliente non trovato";
 
         const testoPacchetto = pacchetto
-          ? `${p.ID_Pacchetto || "-"} — ${pacchetto.Tipo_Pacchetto || ""}`
-          : `${p.ID_Pacchetto || "-"}`;
+          ? `${p.ID_Pacchetto} — ${pacchetto.Tipo_Pacchetto}`
+          : p.ID_Pacchetto;
 
         return `
           <div class="swipe-container">
             <div class="swipe-delete-action">
-              <button onclick="eliminaPrenotazioneDaLezione('${escapeQuote(p.ID_Prenotazione)}', '${escapeQuote(idLezione)}')">
+              <button onclick="event.stopPropagation(); eliminaPrenotazioneDaLezione('${escapeQuote(p.ID_Prenotazione)}', '${escapeQuote(idLezione)}')">
                 🗑️
               </button>
             </div>
 
             <div class="lesson-client-row swipe-content">
-              <strong>
-                ${safe(nomeCliente)}
-              </strong>
+              <strong>${safe(nomeCliente)}</strong>
               <br>
-
               <span style="font-size:12px; color:#666;">
                 Pacchetto: ${safe(testoPacchetto)}
               </span>
-
               <div class="muted" style="margin-top:6px;">
                 Scorri a sinistra per eliminare
               </div>
@@ -1510,66 +1504,6 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
       </div>
     `;
 
-  const clientiOptions = clientiData.map(c => `
-    <option value="${escapeAttr(getClienteLabelPrenotazione(c))}"></option>
-  `).join("");
-
-  const slotHtml = postiLiberi > 0
-    ? Array.from({ length: postiLiberi }).map((_, index) => `
-        <div class="lesson-client-row">
-          <strong>Slot ${index + 1}</strong>
-
-          <div class="form-row">
-            <label class="field-block">
-              <span class="field-label">Cliente</span>
-
-              <input
-                id="slot_cliente_${index}"
-                list="slot_clienti_datalist_${index}"
-                placeholder="Cerca cliente..."
-                autocomplete="off"
-                onchange="onClienteSelezionatoSlot('${escapeQuote(idLezione)}', ${index})"
-                oninput="onClienteSelezionatoSlot('${escapeQuote(idLezione)}', ${index})"
-                onkeydown="gestisciEnterSlot(event, '${escapeQuote(idLezione)}', ${index})"
-              >
-
-              <datalist id="slot_clienti_datalist_${index}">
-                ${clientiOptions}
-              </datalist>
-            </label>
-
-            <label class="field-block">
-              <span class="field-label">Pacchetto</span>
-
-              <select id="slot_pacchetto_${index}">
-                <option value="">Seleziona prima il cliente</option>
-              </select>
-            </label>
-          </div>
-
-          <div id="slot_feedback_pacchetto_${index}" class="muted" style="margin-top:8px;"></div>
-
-          <div id="slot_nuovo_pacchetto_${index}" class="card-actions hidden"></div>
-
-          ${
-            index > 0
-              ? `
-                <div class="card-actions">
-                  <button onclick="duplicaClienteSlot('${escapeQuote(idLezione)}', ${index})">
-                    🔁 Duplica cliente sopra
-                  </button>
-                </div>
-              `
-              : ""
-          }
-        </div>
-      `).join("")
-    : `
-      <div class="lesson-client-row">
-        🔴 Lezione piena. Non ci sono slot disponibili.
-      </div>
-    `;
-
   animateView(box, `
     <div class="app-toolbar">
       <button class="app-back-btn" onclick="chiudiDettaglioLezione('${escapeQuote(boxId)}')">
@@ -1579,6 +1513,7 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
 
     <div class="view-content">
       <div class="lesson-detail">
+
         <div class="lesson-detail-title">
           ${safe(lezione.Data)} - ${safe(formatOraHHMM(lezione.Ora))}
         </div>
@@ -1587,45 +1522,18 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
           ${safe(lezione.Tipologia)} (${prenotati}/${max})
         </div>
 
-        <div class="lesson-detail-sub">
-          👤 ${safe(lezione.Istruttore)}
-        </div>
-
         <div class="lesson-detail-section">
           <div class="lesson-detail-section-title">
             Clienti già prenotati
           </div>
-
           ${clientiGiaPrenotatiHtml}
         </div>
 
-        <div class="lesson-detail-section">
-          <div class="lesson-detail-section-title">
-            Aggiungi prenotazioni
-          </div>
-
-          ${slotHtml}
-        </div>
-
-        ${
-          postiLiberi > 0
-            ? `
-              <div class="lesson-detail-actions">
-                <button id="salvaPrenotazioniBtn" onclick="salvaPrenotazioniDaLezione('${escapeQuote(idLezione)}')">
-                  💾 Salva prenotazioni
-                </button>
-              </div>
-            `
-            : ""
-        }
       </div>
     </div>
   `);
 
   setTimeout(() => {
-    const first = document.getElementById("slot_cliente_0");
-    if (first) first.focus();
-
     abilitaSwipeDelete();
   }, 120);
 }
@@ -3258,29 +3166,20 @@ function apriNuovoPacchettoDaHome() {
 }
 
 function apriDettaglioPacchettoDaCliente(idPacchetto) {
-
+  // ✅ passo sempre allowInternalNav = true
   vaiTab("pacchetti", { allowInternalNav: true });
 
   setTimeout(() => {
 
-    // ✅ RIATTIVA VISTA (FIX CRITICO)
-    const container = document.getElementById("outputPacchetti");
-    if (container) {
-      container.style.removeProperty("display");
-    }
-
+    // ✅ GARANTISCO render lista
     if (typeof renderPacchetti === "function") {
       renderPacchetti();
     }
 
-    const pacchettoDiv = document.querySelector(`[data-id="${idPacchetto}"]`);
-
-    if (pacchettoDiv) {
-      pacchettoDiv.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-    }
+    // ✅ FIX CRITICO: apro direttamente dettaglio
+    setTimeout(() => {
+      mostraDettaglioPacchetto(idPacchetto, "clienti");
+    }, 120);
 
   }, 120);
 }
