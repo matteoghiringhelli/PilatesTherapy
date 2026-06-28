@@ -1324,20 +1324,27 @@ async function aggiungiPacchetto() {
 
     setStatus("Pacchetto creato ✅", "ok");
 
-    chiudiModalPacchetto();
+    
 
     await loadPacchetti();
     await loadClienti();
-    await loadPrenotazioni();
+
+// ✅ FIX: chiamata asincrona NON bloccante
+    if (typeof loadPrenotazioni === "function") {
+      loadPrenotazioni();
+    }
+
+    chiudiModalPacchetto();
+
 
     // ✅ MESSAGGIO DETTAGLIATO
     if (migrati.length) {
 
-      const lista = migrati.map(p => {
-        const data = p.Data_Lezione || "";
-        const ora = (p.Ora_Lezione || "").substring(0,5);
-        return `Lezione ${data} ${ora} → pacchetto aggiornato`;
-      }).join("\n");
+    const lista = migrati.map(p => {
+      const data = p.Data_Lezione || "";
+      const ora = (p.Ora_Lezione || "").substring(0,5);
+      return `Lezione ${data} ${ora} pacchetto aggiornato`;
+    }).join("\n");
 
 
       alert(
