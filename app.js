@@ -3091,17 +3091,7 @@ function renderHome() {
   const homeHtml = `
     <div id="homeSection" class="app-view">
 
-      <div class="home-hero">
-        <div style="display:flex; align-items:center; gap:12px;">
-          <img src="icon-192.png" style="width:42px; height:42px; border-radius:12px;">
-          <div class="home-title">Pilates Therapy</div>
-        </div>
-
-        <div class="home-subtitle">
-          Hub operativo dello studio: agenda, clienti, prenotazioni, pacchetti e report in un solo punto.
-        </div>
-      </div>
-
+      
       <div class="home-kpi-grid">
 
         <div class="home-kpi-card">
@@ -3117,9 +3107,15 @@ function renderHome() {
         </div>
 
         <div class="home-kpi-card">
-          <div class="home-kpi-label">Clienti</div>
-          <div class="home-kpi-value">${clientiData.length}</div>
-          <div class="home-kpi-note">anagrafiche attive</div>
+          <div class="home-kpi-label">Clienti attivi</div>
+          <div class="home-kpi-value">${
+            new Set(
+              pacchettiData
+                .filter(p => String(p.Stato || "").toLowerCase() === "attivo")
+                .map(p => p.ID_Cliente)
+            ).size
+          }</div>
+          <div class="home-kpi-note">con pacchetto attivo</div>
         </div>
 
         <div class="home-kpi-card">
@@ -3150,14 +3146,6 @@ function renderHome() {
           </div>
         </button>
 
-        <button class="home-action-card green" onclick="apriNuovaPrenotazioneDaHome()">
-          <div class="home-action-icon">📝</div>
-          <div>
-            <div class="home-action-title">Prenotazione</div>
-            <div class="home-action-sub">Crea una nuova prenotazione manuale.</div>
-          </div>
-        </button>
-
         
         <button class="home-action-card purple" onclick="vaiTab('conti')">
           <div class="home-action-icon">💼</div>
@@ -3167,14 +3155,6 @@ function renderHome() {
           </div>
         </button>
 
-
-        <button class="home-action-card" onclick="apriNuovoPacchettoDaHome()">
-          <div class="home-action-icon">🎟️</div>
-          <div>
-            <div class="home-action-title">Pacchetto</div>
-            <div class="home-action-sub">Registra pagamento, scadenza e saldo.</div>
-          </div>
-        </button>
 
         <button class="home-action-card warning" onclick="vaiTab('reportPacchetti')">
           <div class="home-action-icon">🚨</div>
