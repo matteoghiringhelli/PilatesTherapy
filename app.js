@@ -1382,7 +1382,14 @@ function apriNuovoPacchettoDaPrenotazione(idLezione, index) {
     origine: "prenotazione_lezione"
   };
 
-  apriNuovoPacchettoDaCliente(idCliente);
+  // ✅ salva contesto prenotazione
+    window.ctxNuovoPacchetto = {
+      idLezione: idLezione,
+      slotIndex: index,
+      idCliente: idCliente
+    };
+
+    apriNuovoPacchettoDaCliente(idCliente);
 
   setTimeout(() => {
     setStatus(
