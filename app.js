@@ -1139,9 +1139,37 @@ function getClienteLabelPrenotazione(cliente) {
   return `${cliente.Nome || ""} ${cliente.Cognome || ""} — ${cliente.ID_Cliente || ""}`.trim();
 }
 
-function feedbackTap() {
-  if (navigator.vibrate) {
-    navigator.vibrate(10);
+function feedbackTap(target = null) {
+  // ✅ Vibrazione se supportata dal dispositivo/browser.
+  // Su iPhone può non essere percepibile o non essere disponibile.
+  try {
+    if (navigator.vibrate) {
+      navigator.vibrate(20);
+    }
+  } catch (err) {
+    console.warn("Feedback vibrazione non disponibile:", err);
+  }
+
+  // ✅ Fallback visivo sempre funzionante.
+  let el = null;
+
+  if (typeof target === "string") {
+    el = document.querySelector(target);
+  } else if (target && target.classList) {
+    el = target;
+  }
+
+  if (el) {
+    el.classList.remove("tap-feedback");
+
+    // forza restart animazione
+    void el.offsetWidth;
+
+    el.classList.add("tap-feedback");
+
+    setTimeout(() => {
+      el.classList.remove("tap-feedback");
+    }, 220);
   }
 }
 
@@ -1212,13 +1240,15 @@ function duplicaClienteSlot(idLezione, index) {
 
   if (!valorePrecedente) {
     setStatus("Lo slot precedente è vuoto", "err");
+    feedbackTap(currInput);
     return;
   }
 
-  feedbackTap();
   currInput.value = valorePrecedente;
 
   aggiornaPacchettoSlotLezione(idLezione, index);
+
+  feedbackTap(currInput);
 
   setTimeout(() => {
     currInput.focus();
@@ -1226,25 +1256,70 @@ function duplicaClienteSlot(idLezione, index) {
 }
 
 function abilitaSwipeDelete() {
-  let startX = 0;
+  document.querySelectorAll(".swipe-container").forEach(container => {
+    if (container.dataset.swipeReady === "true") return;
 
-  document.querySelectorAll(".swipe-content").forEach(el => {
-    el.addEventListener("touchstart", e => {
+    container.dataset.swipeReady = "true";
+
+    const content = container.querySelector(".swipe-content");
+    if (!content) return;
+
+    let startX = 0;
+    let currentX = 0;
+    let isDragging = false;
+
+    content.addEventListener("touchstart", e => {
+      if (!e.touches || !e.touches.length) return;
+
       startX = e.touches[0].clientX;
-    });
+      currentX = startX;
+      isDragging = true;
+    }, { passive: true });
 
-    el.addEventListener("touchmove", e => {
-      const deltaX = e.touches[0].clientX - startX;
+    content.addEventListener("touchmove", e => {
+      if (!isDragging || !e.touches || !e.touches.length) return;
 
-      if (deltaX < -30) {
-        el.style.transform = "translateX(-80px)";
+      currentX = e.touches[0].clientX;
+
+      const deltaX = currentX - startX;
+
+      // swipe verso sinistra
+      if (deltaX < -20) {
+        const translate = Math.max(deltaX, -88);
+        content.style.transform = `translateX(${translate}px)`;
+      }
+
+      // swipe verso destra: richiude
+      if (deltaX > 20) {
+        container.classList.remove("swipe-open");
+        content.style.transform = "";
+      }
+    }, { passive: true });
+
+    content.addEventListener("touchend", () => {
+      if (!isDragging) return;
+
+      isDragging = false;
+
+      const deltaX = currentX - startX;
+
+      if (deltaX < -45) {
+        container.classList.add("swipe-open");
+        content.style.transform = "";
+        feedbackTap(content);
+      } else {
+        container.classList.remove("swipe-open");
+        content.style.transform = "";
       }
     });
 
-    el.addEventListener("touchend", () => {
-      setTimeout(() => {
-        el.style.transform = "translateX(0)";
-      }, 1200);
+    // ✅ Tap su altra card: chiude eventuali altre card aperte
+    content.addEventListener("click", () => {
+      document.querySelectorAll(".swipe-container.swipe-open").forEach(openContainer => {
+        if (openContainer !== container) {
+          openContainer.classList.remove("swipe-open");
+        }
+      });
     });
   });
 }
@@ -1388,56 +1463,36 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
           String(pc.ID_Pacchetto) === String(p.ID_Pacchetto)
         );
 
-          return `
-            <div class="swipe-container" style="position:relative; overflow:hidden;">
+        const nomeCliente = cliente
+          ? `${cliente.Nome || ""} ${cliente.Cognome || ""}`.trim()
+          : "Cliente non trovato";
 
-            <div class="swipe-delete" style="
-              position:absolute;
-              right:0;
-              top:0;
-              bottom:0;
-              width:80px;
-              background:#ff3b30;
-              color:white;
-              display:flex;
-              align-items:center;
-              justify-content:center;
-              font-size:20px;
-            ">
-              <button style="
-                background:none;
-                border:none;
-                color:white;
-                font-size:18px;
-              "
-              onclick="eliminaPrenotazioneDaLezione('${escapeQuote(p.ID_Prenotazione)}','${escapeQuote(idLezione)}')">
+        const testoPacchetto = pacchetto
+          ? `${p.ID_Pacchetto || "-"} — ${pacchetto.Tipo_Pacchetto || ""}`
+          : `${p.ID_Pacchetto || "-"}`;
+
+        return `
+          <div class="swipe-container">
+            <div class="swipe-delete-action">
+              <button onclick="eliminaPrenotazioneDaLezione('${escapeQuote(p.ID_Prenotazione)}', '${escapeQuote(idLezione)}')">
                 🗑️
               </button>
             </div>
 
-            <div class="lesson-client-row swipe-content" style="
-              background:white;
-              position:relative;
-              z-index:2;
-            ">
+            <div class="lesson-client-row swipe-content">
+              <strong>
+                ${safe(nomeCliente)}
+              </strong>
+              <br>
 
-            <strong>
-              ${cliente ? safe(cliente.Nome + " " + cliente.Cognome) : "Cliente non trovato"}
-            </strong>
-            <br>
+              <span style="font-size:12px; color:#666;">
+                Pacchetto: ${safe(testoPacchetto)}
+              </span>
 
-            <span style="font-size:12px; color:#666;">
-              Pacchetto: ${safe(p.ID_Pacchetto || "-")}
-              ${pacchetto ? ` — ${safe(pacchetto.Tipo_Pacchetto || "")}` : ""}
-            </span>
-
-            <div class="card-actions" style="margin-top:8px;">
-              <button onclick="eliminaPrenotazioneDaLezione('${escapeQuote(p.ID_Prenotazione)}', '${escapeQuote(idLezione)}')">
-                🗑️ Cancella prenotazione
-              </button>
+              <div class="muted" style="margin-top:6px;">
+                Scorri a sinistra per eliminare
+              </div>
             </div>
-          </div>
-          </div>
           </div>
         `;
       }).join("")
@@ -1559,12 +1614,12 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
     </div>
   `);
 
-setTimeout(() => {
-  const first = document.getElementById("slot_cliente_0");
-  if (first) first.focus();
+  setTimeout(() => {
+    const first = document.getElementById("slot_cliente_0");
+    if (first) first.focus();
 
-  abilitaSwipeDelete();
-}, 120);
+    abilitaSwipeDelete();
+  }, 120);
 }
 
 
@@ -1927,6 +1982,8 @@ async function salvaPrenotazioniDaLezione(idLezione) {
 }
 
 async function eliminaPrenotazioneDaLezione(idPrenotazione, idLezione) {
+  feedbackTap(".swipe-container.swipe-open .swipe-content");
+
   if (!confirm("Eliminare questa prenotazione?")) return;
 
   try {
@@ -1942,10 +1999,10 @@ async function eliminaPrenotazioneDaLezione(idPrenotazione, idLezione) {
     }
 
     renderCalendario();
+
     mostraDettaglioLezione(idLezione, dettaglioLezioneBoxAttivo);
 
     setStatus("Prenotazione eliminata correttamente ✅", "ok");
-
   } catch (error) {
     console.error("Errore eliminaPrenotazioneDaLezione:", error);
     setStatus("Errore eliminazione prenotazione", "err");
