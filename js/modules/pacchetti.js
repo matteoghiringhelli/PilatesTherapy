@@ -252,6 +252,7 @@ function aggiornaAnteprimaPacchetto() {
   const dataFatturaInput = document.getElementById("pac_data_fattura");
   const saldoWarning = document.getElementById("pac_saldo_warning");
 
+  // ✅ allineamento data fattura
   if (
     validoDaInput &&
     dataFatturaInput &&
@@ -272,11 +273,10 @@ function aggiornaAnteprimaPacchetto() {
     );
   }
 
+  // ✅ FIX PRINCIPALE:
+  // NON impostiamo più automaticamente Lezioni_Add con saldo negativo
   if (lezioniAddInput && !lezioniAddManuale) {
-    lezioniAddInput.value =
-      saldoNegativoDaTrasferire < 0
-        ? String(saldoNegativoDaTrasferire)
-        : "0";
+    lezioniAddInput.value = "";
   }
 
   const lezioniAdd = Number(lezioniAddInput?.value || 0);
@@ -290,8 +290,9 @@ function aggiornaAnteprimaPacchetto() {
     lezioniTotaliInput.value = tipo ? lezioniTotali : "";
   }
 
+  // ✅ manteniamo warning saldo negativo (ma senza auto-fill)
   if (saldoWarning) {
-    if (saldoNegativoDaTrasferire < 0 && !lezioniAddManuale) {
+    if (saldoNegativoDaTrasferire < 0) {
       saldoWarning.textContent =
         `Saldo negativo precedente rilevato: ${saldoNegativoDaTrasferire}`;
       saldoWarning.style.color = "#b00020";
@@ -320,6 +321,7 @@ function aggiornaAnteprimaPacchetto() {
     }
   }
 
+  // ✅ gestione scadenza
   if (validoAInput) {
     validoAInput.value =
       tipo && validoDaInput?.value
@@ -340,6 +342,7 @@ function aggiornaAnteprimaPacchetto() {
     }
   }
 
+  // ✅ logica acconto (NON TOCCATA)
   if (
     window.pendingAccontoNuovoPacchetto &&
     window.pendingAccontoNuovoPacchetto.idCliente &&
@@ -1197,12 +1200,51 @@ function renderReportPacchetti() {
   `;
 }
 
+async function gestisciMigrazioneResiduoNegativo(vecchioPacchetto, nuovoPacchetto) {
+
+  // ✅ prendi tutte le prenotazioni del vecchio pacchetto
+  const pren = prenotazioniData
+    .filter(p => String(p.ID_Pacchetto) === String(vecchioPacchetto.ID_Pacchetto))
+    .sort((a, b) =>
+      new Date(a.Data_Lezione || 0) - new Date(b.Data_Lezione || 0)
+    );
+
+  const totale = Number(vecchioPacchetto.Lezioni_Totali || 0);
+
+  // ✅ individua da dove inizia il negativo
+  const prenInEccesso = pren.slice(totale);
+
+  if (!prenInEccesso.length) {
+    return { migrati: [], dataInizio: null };
+  }
+
+  const dataInizioNegativo = prenInEccesso[0].Data_Lezione;
+
+  // ✅ aggiorna prenotazioni → sposta su nuovo pacchetto
+  const idsDaAggiornare = prenInEccesso.map(p => p.ID_Prenotazione);
+
+  for (const id of idsDaAggiornare) {
+    await safeUpdate(
+      "prenotazioni",
+      { ID_Pacchetto: nuovoPacchetto.ID_Pacchetto },
+      { ID_Prenotazione: id }
+    );
+  }
+
+  return {
+    migrati: prenInEccesso,
+    dataInizio: dataInizioNegativo
+  };
+}
+
 // ============================
 // ✅ CREAZIONE PACCHETTO
 // ============================
 
 async function aggiungiPacchetto() {
+
   try {
+
     const idCliente = document.getElementById("pac_cliente")?.value;
     const tipo = document.getElementById("pac_tipo")?.value;
 
@@ -1211,21 +1253,35 @@ async function aggiungiPacchetto() {
       return;
     }
 
+    // ✅ trova pacchetto attivo stesso tipo
+    const vecchio = pacchettiData.find(p =>
+      String(p.ID_Cliente) === String(idCliente) &&
+      normalizzaTesto(getTipologiaPacchetto(p.Tipo_Pacchetto)) === normalizzaTesto(getTipologiaPacchetto(tipo)) &&
+      normalizzaTesto(p.Stato || "") === "attivo"
+    );
+
     const payload = {
       ID_Pacchetto: generaNuovoIdPacchetto(),
       ID_Cliente: idCliente,
       Tipo_Pacchetto: tipo,
+
       Lezioni_Base: Number(document.getElementById("pac_lezioni_base")?.value || 0),
       Lezioni_Add: Number(document.getElementById("pac_lezioni_add")?.value || 0),
       Lezioni_Totali: Number(document.getElementById("pac_lezioni_totali")?.value || 0),
+
       Prezzo: Number(document.getElementById("pac_prezzo")?.value || 0),
+
       Flag_Pagato: document.getElementById("pac_flag_pagato")?.value || "No",
       Da_Pagare: Number(document.getElementById("pac_da_pagare")?.value || 0),
+
       Flag_C: document.getElementById("pac_flag_c")?.value || "Si",
+
       Fattura_Nr: document.getElementById("pac_fattura_nr")?.value || "",
       Data_Fattura: document.getElementById("pac_data_fattura")?.value || null,
+
       Valido_Da: document.getElementById("pac_valido_da")?.value || "",
       Valido_A: document.getElementById("pac_valido_a")?.value || "",
+
       Stato: "Attivo"
     };
 
@@ -1237,44 +1293,63 @@ async function aggiungiPacchetto() {
     }
 
     const nuovoPacchetto = data[0];
-    const ctx = window.ctxNuovoPacchetto;
 
-    if (typeof riconciliaAccontoNuovoPacchetto === "function") {
-      await riconciliaAccontoNuovoPacchetto(nuovoPacchetto);
+    let migrati = [];
+    let dataInizio = null;
+
+    // ✅ GESTIONE NEGATIVO
+    if (vecchio) {
+
+      const result = await gestisciMigrazioneResiduoNegativo(vecchio, nuovoPacchetto);
+
+      migrati = result.migrati;
+      dataInizio = result.dataInizio;
+
+      // ✅ chiudi vecchio
+      await safeUpdate(
+        "pacchetti",
+        { Stato: "Chiuso" },
+        { ID_Pacchetto: vecchio.ID_Pacchetto }
+      );
+
+      // ✅ aggiorna data nuovo pacchetto
+      if (dataInizio) {
+        await safeUpdate(
+          "pacchetti",
+          { Valido_Da: dataInizio },
+          { ID_Pacchetto: nuovoPacchetto.ID_Pacchetto }
+        );
+      }
     }
 
     setStatus("Pacchetto creato ✅", "ok");
 
-    // ✅ FIX CRITICO: chiusura modale SICURA
     chiudiModalPacchetto();
 
-    // ✅ FIX: reset stato globale
-    window.ctxNuovoPacchetto = null;
-
-    pulisciFormPacchetto();
-
-    // ✅ reload completo dati
     await loadPacchetti();
     await loadClienti();
+    await loadPrenotazioni();
 
-    if (ctx) {
+    // ✅ MESSAGGIO DETTAGLIATO
+    if (migrati.length) {
+
+      const lista = migrati.map(p =>
+        `${p.Data_Lezione || ""} ${p.Ora_Lezione || ""}`
+      ).join("\n");
+
+      alert(
+        "Pacchetto aggiornato\n\n" +
+        "Lezioni migrate:\n" +
+        lista
+      );
+    }
+
+    // ✅ ritorno normale
+    if (window.idLezioneCorrente) {
       mostraDettaglioLezione(
-        ctx.idLezione,
+        window.idLezioneCorrente,
         dettaglioLezioneBoxAttivo
       );
-
-      setTimeout(() => {
-        const inputCliente = document.getElementById(`slot_cliente_${ctx.slotIndex}`);
-        const selectPacchetto = document.getElementById(`slot_pacchetto_${ctx.slotIndex}`);
-
-        if (inputCliente) inputCliente.dispatchEvent(new Event("input"));
-
-        setTimeout(() => {
-          if (selectPacchetto) {
-            selectPacchetto.value = nuovoPacchetto.ID_Pacchetto;
-          }
-        }, 120);
-      }, 200);
     }
 
   } catch (err) {
