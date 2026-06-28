@@ -2547,119 +2547,39 @@ function applicaAccontoNuovoPacchetto() {
 }
 
 function apriNuovoPacchettoDaCliente(idCliente) {
-  const cliente = clientiData.find(c =>
-    String(c.ID_Cliente) === String(idCliente)
-  );
 
-  if (!cliente) {
-    setStatus("Cliente non trovato per nuovo pacchetto", "err");
-    return;
-  }
+  // ✅ entra nella sezione pacchetti con accesso interno
+  vaiTab("pacchetti", { allowInternalNav: true });
 
-  // ✅ Manteniamo il contesto corretto:
-  // Clienti → Nuovo Pacchetto
-  window.lastPacchettoNavigation = {
-    origine: "clienti",
-    idCliente: idCliente
-  };
+  setTimeout(() => {
 
-  chiudiHomeSeAperta();
+    const nuovoPacchettoBox = document.getElementById("nuovoPacchettoBox");
+    const selectCliente = document.getElementById("pac_cliente");
 
-  // ✅ Nasconde tutte le sezioni principali
-  const dashboardSection = document.getElementById("dashboardSection");
-  const calendarioSection = document.getElementById("calendarioSection");
-  const clientiSection = document.getElementById("clientiSection");
-  const contiSection = document.getElementById("contiSection");
-  const lezioniSection = document.getElementById("lezioniSection");
-  const prenotazioniSection = document.getElementById("prenotazioniSection");
-  const pacchettiSection = document.getElementById("pacchettiSection");
+    // ✅ MOSTRA FORZATAMENTE IL FORM
+    if (nuovoPacchettoBox) {
+      nuovoPacchettoBox.classList.remove("hidden");
+      nuovoPacchettoBox.style.display = "block";
+    }
 
-  const dashboardWrapper = dashboardSection?.parentElement;
-  const calendarioWrapper = calendarioSection?.parentElement;
-  const clientiWrapper = clientiSection?.parentElement;
-  const contiWrapper = contiSection?.parentElement;
-  const lezioniWrapper = lezioniSection?.parentElement;
-  const prenotazioniWrapper = prenotazioniSection?.parentElement;
-  const pacchettiWrapper = pacchettiSection?.parentElement;
+    // ✅ imposta cliente pre-selezionato
+    if (selectCliente) {
+      selectCliente.value = idCliente;
+    }
 
-  [
-    dashboardWrapper,
-    calendarioWrapper,
-    clientiWrapper,
-    contiWrapper,
-    lezioniWrapper,
-    prenotazioniWrapper,
-    pacchettiWrapper
-  ].forEach(wrapper => {
-    if (wrapper) wrapper.classList.remove("active-section");
-  });
-
-  [
-    dashboardSection,
-    calendarioSection,
-    clientiSection,
-    contiSection,
-    lezioniSection,
-    prenotazioniSection,
-    pacchettiSection
-  ].forEach(section => {
-    if (section) section.classList.add("hidden");
-  });
-
-  // ✅ Mostra la sezione pacchetti SOLO come sotto-flusso partito dal cliente
-  if (pacchettiWrapper) pacchettiWrapper.classList.add("active-section");
-  if (pacchettiSection) pacchettiSection.classList.remove("hidden");
-
-  // ✅ Mantiene evidenziato il tab Clienti, perché il flusso nasce da Clienti
-  document.querySelectorAll(".footer-tab").forEach(btn => {
-    btn.classList.remove("active");
-  });
-
-  const tabClienti = document.getElementById("tabClienti");
-  if (tabClienti) tabClienti.classList.add("active");
-
-  // ✅ Prepara select e form pacchetto
-  if (typeof renderSelectPacchettoClienti === "function") {
-    renderSelectPacchettoClienti();
-  }
-
-  if (typeof renderSelectTipiPacchetto === "function") {
-    renderSelectTipiPacchetto();
-  }
-
-  const nuovoPacchettoBox = document.getElementById("nuovoPacchettoBox");
-
-  if (nuovoPacchettoBox && nuovoPacchettoBox.classList.contains("hidden")) {
-    toggleNuovoPacchetto();
-  } else {
+    // ✅ inizializza form
     if (typeof preparaNuovoPacchetto === "function") {
       preparaNuovoPacchetto();
     }
-  }
 
-  setTimeout(() => {
-    const clienteSelect = document.getElementById("pac_cliente");
-
-    if (clienteSelect) {
-      clienteSelect.value = idCliente;
-    }
-
-    if (typeof aggiornaAnteprimaPacchetto === "function") {
-      aggiornaAnteprimaPacchetto();
-    }
-
-    const box = document.getElementById("nuovoPacchettoBox");
-    if (box) {
-      box.scrollIntoView({
+    // ✅ scroll sul form
+    if (nuovoPacchettoBox) {
+      nuovoPacchettoBox.scrollIntoView({
         behavior: "smooth",
         block: "start"
       });
     }
 
-    setStatus(
-      `Nuovo pacchetto per ${cliente.Nome || ""} ${cliente.Cognome || ""}`,
-      "ok"
-    );
   }, 120);
 }
 
