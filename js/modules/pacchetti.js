@@ -1288,31 +1288,46 @@ async function aggiungiPacchetto() {
 // ============================
 
 async function eliminaPacchetto(idPacchetto) {
-
   if (!confirm("Eliminare il pacchetto?")) return;
 
   try {
-
     await safeDelete("pacchetti", {
       ID_Pacchetto: idPacchetto
     });
 
   } catch (error) {
     console.error("Errore eliminaPacchetto:", error);
+
+    const msg = String(error.message || "").toLowerCase();
+
+    // ✅ FIX chiave: intercetta FK prenotazioni
+    if (
+      msg.includes("violates foreign key constraint") ||
+      msg.includes("foreign key") ||
+      msg.includes("constraint") ||
+      msg.includes("reference")
+    ) {
+      setStatus(
+        "Impossibile eliminare il pacchetto perché ci sono delle prenotazioni collegate",
+        "err"
+      );
+      alert(
+        "Impossibile eliminare il pacchetto perché ci sono delle prenotazioni collegate"
+      );
+      return;
+    }
+
     setStatus("Errore eliminazione pacchetto", "err");
     return;
   }
 
-  // ✅ reload dati
   await loadPacchetti();
 
   if (typeof loadPrenotazioni === "function") {
     await loadPrenotazioni();
   }
 
-  // ✅ aggiorna report
   const reportBox = document.getElementById("reportPacchettiBox");
-
   if (
     reportBox &&
     !reportBox.classList.contains("hidden") &&
@@ -1322,5 +1337,8 @@ async function eliminaPacchetto(idPacchetto) {
   }
 
   setStatus("Pacchetto eliminato ✅", "ok");
-
 }
+
+
+
+
