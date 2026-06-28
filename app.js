@@ -1280,19 +1280,11 @@ function abilitaSwipeDelete() {
       if (!isDragging || !e.touches || !e.touches.length) return;
 
       currentX = e.touches[0].clientX;
-
       const deltaX = currentX - startX;
 
-      // swipe verso sinistra
       if (deltaX < -20) {
         const translate = Math.max(deltaX, -88);
         content.style.transform = `translateX(${translate}px)`;
-      }
-
-      // swipe verso destra: richiude
-      if (deltaX > 20) {
-        container.classList.remove("swipe-open");
-        content.style.transform = "";
       }
     }, { passive: true });
 
@@ -1300,26 +1292,15 @@ function abilitaSwipeDelete() {
       if (!isDragging) return;
 
       isDragging = false;
-
       const deltaX = currentX - startX;
 
       if (deltaX < -45) {
         container.classList.add("swipe-open");
         content.style.transform = "";
-        feedbackTap(content);
       } else {
         container.classList.remove("swipe-open");
         content.style.transform = "";
       }
-    });
-
-    // ✅ Tap su altra card: chiude eventuali altre card aperte
-    content.addEventListener("click", () => {
-      document.querySelectorAll(".swipe-container.swipe-open").forEach(openContainer => {
-        if (openContainer !== container) {
-          openContainer.classList.remove("swipe-open");
-        }
-      });
     });
   });
 }
@@ -3166,23 +3147,37 @@ function apriNuovoPacchettoDaHome() {
 }
 
 function apriDettaglioPacchettoDaCliente(idPacchetto) {
-  // ✅ passo sempre allowInternalNav = true
+
+  // ✅ entra nella sezione pacchetti correttamente
   vaiTab("pacchetti", { allowInternalNav: true });
 
-  setTimeout(() => {
+  setTimeout(async () => {
 
-    // ✅ GARANTISCO render lista
+    // ✅ FORZA CARICAMENTO DATI
+    if (typeof loadPacchetti === "function") {
+      await loadPacchetti();
+    }
+
     if (typeof renderPacchetti === "function") {
       renderPacchetti();
     }
 
-    // ✅ FIX CRITICO: apro direttamente dettaglio
+    // ✅ RIATTIVA LISTA (crasha senza questo)
+    const container = document.getElementById("outputPacchetti");
+    if (container) {
+      container.style.removeProperty("display");
+    }
+
+    // ✅ APRI SUBITO DETTAGLIO
     setTimeout(() => {
-      mostraDettaglioPacchetto(idPacchetto, "clienti");
+      if (typeof mostraDettaglioPacchetto === "function") {
+        mostraDettaglioPacchetto(idPacchetto, "clienti");
+      }
     }, 120);
 
   }, 120);
 }
+
 
 
 
