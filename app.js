@@ -2565,9 +2565,14 @@ function apriNuovoPacchettoDaCliente(idCliente) {
     return;
   }
 
-  // ✅ CLONA IL FORM (importantissimo)
-  content.innerHTML = originale.innerHTML
-    .replaceAll("toggleNuovoPacchetto()", "chiudiModalPacchetto()");
+  // ✅ SPOSTA il form dentro il modale (NON copia)
+  content.innerHTML = "";
+  content.appendChild(originale);
+
+  // ✅ MOSTRA il form
+  originale.classList.remove("hidden");
+  originale.style.display = "block";
+
 
   // ✅ mostriamo il contenuto
   content.style.display = "block";
@@ -3325,9 +3330,26 @@ function apriDettaglioLezioneDaHome(idLezione) {
 }
 
 function chiudiModalPacchetto() {
+
   const overlay = document.getElementById("modalPacchettoOverlay");
+  const content = document.getElementById("modalPacchettoContent");
+  const originale = document.getElementById("nuovoPacchettoBox");
+
   if (overlay) overlay.classList.add("hidden");
   document.body.style.overflow = "";
+
+  // ✅ RIPORTA IL FORM fuori dal modale
+  if (originale && content) {
+
+    const containerOriginale = document.getElementById("pacchettiSection");
+
+    if (containerOriginale) {
+      containerOriginale.appendChild(originale);
+
+      originale.classList.add("hidden");
+      originale.style.display = "";
+    }
+  }
 }
 
 /* ===================== FOOTER MENU APP ===================== */
