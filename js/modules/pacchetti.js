@@ -1202,7 +1202,6 @@ function renderReportPacchetti() {
 // ============================
 
 async function aggiungiPacchetto() {
-
   const payload = {
     ID_Pacchetto: generaNuovoIdPacchetto(),
     ID_Cliente: document.getElementById("pac_cliente")?.value || "",
@@ -1221,7 +1220,6 @@ async function aggiungiPacchetto() {
     Stato: document.getElementById("pac_stato")?.value || "Attivo"
   };
 
-  // ✅ VALIDAZIONI MINIME
   if (!payload.ID_Cliente) {
     setStatus("Cliente obbligatorio", "err");
     return;
@@ -1237,7 +1235,6 @@ async function aggiungiPacchetto() {
     return;
   }
 
-  // ✅ NORMALIZZAZIONE
   if (payload.Flag_Pagato === "Si") {
     payload.Da_Pagare = 0;
   }
@@ -1246,9 +1243,56 @@ async function aggiungiPacchetto() {
     payload.Fattura_Nr = "";
   }
 
-  try {
+  const pendingPrenotazione = window.pendingNuovoPacchettoDaPrenotazione || null;
 
-    await safeInsert("pacchetti", payload);
+  let nuovoPacchettoCreato = null;
+
+  try {
+    const inserted = await safeInsert("pacchetti", payload);
+
+    if (!inserted || !inserted.length) {
+      setStatus("Pacchetto non restituito da Supabase", "err");
+      return;
+    }
+
+    nuovoPacchettoCreato = inserted[0];
+
+    // ✅ Se arrivo da prenotazione e c'era un pacchetto attivo senza residuo,
+    // lo chiudo automaticamente dopo la creazione del nuovo pacchetto.
+    if (
+      pendingPrenotazione &&
+      pendingPrenotazione.origine === "prenotazione_lezione" &&
+      String(pendingPrenotazione.idCliente) === String(payload.ID_Cliente)
+    ) {
+      let pacchettiDaChiudere = [];
+
+      if (pendingPrenotazione.idPacchettoDaChiudere) {
+        pacchettiDaChiudere = pacchettiData.filter(p =>
+          String(p.ID_Pacchetto) === String(pendingPrenotazione.idPacchettoDaChiudere)
+        );
+      } else {
+        const tipologiaNuovoPacchetto = getTipologiaPacchetto(payload.Tipo_Pacchetto);
+
+        pacchettiDaChiudere = pacchettiData.filter(p => {
+          const stessoCliente = String(p.ID_Cliente) === String(payload.ID_Cliente);
+          const stessoTipo =
+            normalizzaTesto(getTipologiaPacchetto(p.Tipo_Pacchetto)) ===
+            normalizzaTesto(tipologiaNuovoPacchetto);
+          const attivo = normalizzaTesto(p.Stato || "") === "attivo";
+          const residuo = getLezioniResiduePacchetto(p);
+
+          return stessoCliente && stessoTipo && attivo && residuo <= 0;
+        });
+      }
+
+      for (const pacchettoPrecedente of pacchettiDaChiudere) {
+        await safeUpdate(
+          "pacchetti",
+          { Stato: "Chiuso" },
+          { ID_Pacchetto: pacchettoPrecedente.ID_Pacchetto }
+        );
+      }
+    }
 
   } catch (error) {
     console.error("Errore aggiungiPacchetto:", error);
@@ -1256,7 +1300,6 @@ async function aggiungiPacchetto() {
     return;
   }
 
-  // ✅ POST-INSERIMENTO
   await loadPacchetti();
 
   if (typeof loadPrenotazioni === "function") {
@@ -1273,7 +1316,6 @@ async function aggiungiPacchetto() {
     renderReportPacchetti();
   }
 
-  // ✅ PULIZIA FORM
   pulisciFormPacchetto();
 
   const box = document.getElementById("nuovoPacchettoBox");
@@ -1281,6 +1323,31 @@ async function aggiungiPacchetto() {
 
   setStatus("Pacchetto creato ✅", "ok");
 
+  // ✅ Ritorno automatico alla prenotazione da cui ero partito
+  if (
+    pendingPrenotazione &&
+    pendingPrenotazione.origine === "prenotazione_lezione" &&
+    nuovoPacchettoCreato &&
+    typeof ripristinaPrenotazioneDopoNuovoPacchetto === "function"
+  ) {
+    const idLezione = pendingPrenotazione.idLezione;
+    const slotIndex = pendingPrenotazione.slotIndex;
+    const idCliente = pendingPrenotazione.idCliente;
+    const idPacchetto = nuovoPacchettoCreato.ID_Pacchetto;
+
+    window.pendingNuovoPacchettoDaPrenotazione = null;
+
+    ripristinaPrenotazioneDopoNuovoPacchetto(
+      idLezione,
+      slotIndex,
+      idCliente,
+      idPacchetto
+    );
+
+    return;
+  }
+
+  window.pendingNuovoPacchettoDaPrenotazione = null;
 }
 
 // ============================
