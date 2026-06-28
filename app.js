@@ -2570,16 +2570,6 @@ function apriNuovoPacchettoDaCliente(idCliente) {
   content.innerHTML = "";
   content.appendChild(originale);
 
-  // ✅ FIX CRITICO: ricollega il bottone SALVA al modale
-
-  const btnSalva = originale.querySelector("button[onclick*='aggiungiPacchetto']");
-
-  if (btnSalva) {
-    btnSalva.onclick = function () {
-      aggiungiPacchetto(); // chiamata corretta
-    };
-  }
-
   // ✅ MOSTRA il form
   originale.classList.remove("hidden");
   originale.style.display = "block";
