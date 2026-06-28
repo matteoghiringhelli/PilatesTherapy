@@ -2451,7 +2451,7 @@ function preparaNuovoPacchettoConAcconto(idCliente, acconto, accontoMovimentoId 
     accontoMovimentoId: accontoMovimentoId
   };
 
-  vaiTab("pacchetti");
+  vaiTab("pacchetti", { allowInternalNav: true });
 
   setTimeout(() => {
     const box = document.getElementById("nuovoPacchettoBox");
@@ -3337,7 +3337,7 @@ async function apriDettaglioPacchettoDaCliente(idPacchetto) {
     console.log("🧭 Contesto navigazione pacchetto:", window.lastPacchettoNavigation);
 
     // ✅ 3. Vai alla tab pacchetti
-    vaiTab("pacchetti");
+    vaiTab("pacchetti", { allowInternalNav: true });
 
     // ✅ 4. Ricarico i pacchetti dopo il cambio tab
     await loadPacchetti();
@@ -3395,7 +3395,10 @@ function apriDettaglioLezioneDaHome(idLezione) {
 
 
 /* ===================== FOOTER MENU APP ===================== */
-function vaiTab(tab) {
+function vaiTab(tab, options = {}) {
+
+  const { allowInternalNav = false } = options;
+
   const dashboardSection = document.getElementById("dashboardSection");
   const calendarioSection = document.getElementById("calendarioSection");
   const clientiSection = document.getElementById("clientiSection");
@@ -3460,24 +3463,6 @@ function vaiTab(tab) {
   if (prenotazioniSection) prenotazioniSection.classList.add("hidden");
   if (pacchettiSection) pacchettiSection.classList.add("hidden");
 
-  const dettaglioLezioneBox = document.getElementById("dettaglioLezioneBox");
-  if (dettaglioLezioneBox) {
-    dettaglioLezioneBox.innerHTML = "";
-    dettaglioLezioneBox.classList.add("hidden");
-  }
-
-  const dettaglioCalendarioLezioneBox = document.getElementById("dettaglioCalendarioLezioneBox");
-  if (dettaglioCalendarioLezioneBox && tab !== "calendario") {
-    dettaglioCalendarioLezioneBox.innerHTML = "";
-    dettaglioCalendarioLezioneBox.classList.add("hidden");
-  }
-
-  const outputStoricoCliente = document.getElementById("outputStoricoCliente");
-  if (outputStoricoCliente) {
-    outputStoricoCliente.innerHTML = `
-      <p class="muted">Clicca sul nome di un cliente nella tabella prenotazioni per vedere il suo storico.</p>
-    `;
-  }
 
   if (tab === "home") {
     renderHome();
@@ -3485,22 +3470,18 @@ function vaiTab(tab) {
   }
 
   if (tab === "conti") {
-  if (contiWrapper) contiWrapper.classList.add("active-section");
-  if (contiSection) contiSection.classList.remove("hidden");
-  scrollToSection("contiSection");
-  loadConti();
-  return;
-}
+    if (contiWrapper) contiWrapper.classList.add("active-section");
+    if (contiSection) contiSection.classList.remove("hidden");
+    loadConti();
+    return;
+  }
 
   if (tab === "dashboard") {
     if (dashboardWrapper) dashboardWrapper.classList.add("active-section");
     if (dashboardSection) dashboardSection.classList.remove("hidden");
     if (tabDashboard) tabDashboard.classList.add("active");
-
     calcolaDashboardMensile();
     calcolaDashboardSettimanale();
-
-    scrollToSection("dashboardSection");
     return;
   }
 
@@ -3508,10 +3489,7 @@ function vaiTab(tab) {
     if (calendarioWrapper) calendarioWrapper.classList.add("active-section");
     if (calendarioSection) calendarioSection.classList.remove("hidden");
     if (tabCalendario) tabCalendario.classList.add("active");
-
     renderCalendario();
-
-    scrollToSection("calendarioSection");
     return;
   }
 
@@ -3519,10 +3497,7 @@ function vaiTab(tab) {
     if (clientiWrapper) clientiWrapper.classList.add("active-section");
     if (clientiSection) clientiSection.classList.remove("hidden");
     if (tabClienti) tabClienti.classList.add("active");
-
     renderClienti();
-
-    scrollToSection("clientiSection");
     return;
   }
 
@@ -3530,44 +3505,50 @@ function vaiTab(tab) {
     if (lezioniWrapper) lezioniWrapper.classList.add("active-section");
     if (lezioniSection) lezioniSection.classList.remove("hidden");
     if (tabLezioni) tabLezioni.classList.add("active");
-
     renderLezioni();
-
-    scrollToSection("lezioniSection");
     return;
   }
 
-if (tab === "prenotazioni") {
-  // ❌ BLOCCATO: flusso non più valido
-  setStatus("Usa Agenda → Lezione per gestire le prenotazioni", "err");
-  vaiTab("calendario");
-  return;
-}
+  if (tab === "prenotazioni") {
+    setStatus("Usa Agenda → Lezione per gestire le prenotazioni", "err");
+    vaiTab("calendario");
+    return;
+  }
 
-if (tab === "pacchetti") {
-  // ❌ BLOCCATO: accesso diretto non consentito
-  setStatus("Apri i pacchetti dalla scheda cliente", "err");
-  vaiTab("clienti");
-  return;
-}
+  // ✅ FIX IMPORTANTE
+  if (tab === "pacchetti") {
 
-if (tab === "reportPacchetti") {
-  if (pacchettiWrapper) pacchettiWrapper.classList.add("active-section");
-  if (pacchettiSection) pacchettiSection.classList.remove("hidden");
-  if (tabReportPacchetti) tabReportPacchetti.classList.add("active");
+    if (!allowInternalNav) {
+      setStatus("Apri i pacchetti dalla scheda cliente", "err");
+      vaiTab("clienti");
+      return;
+    }
 
-  const reportBox = document.getElementById("reportPacchettiBox");
-  if (reportBox) reportBox.classList.remove("hidden");
+    if (pacchettiWrapper) pacchettiWrapper.classList.add("active-section");
+    if (pacchettiSection) pacchettiSection.classList.remove("hidden");
 
-  renderReportPacchetti();
+    if (typeof renderPacchetti === "function") {
+      renderPacchetti();
+    }
 
-  document.getElementById("outputPacchetti")?.style.setProperty("display", "none");
+    return;
+  }
 
-  // ✅ BLOCCA QUALSIASI SCROLL AUTOMATICO
-  window.scrollTo({ top: 0, behavior: "instant" });
+  if (tab === "reportPacchetti") {
+    if (pacchettiWrapper) pacchettiWrapper.classList.add("active-section");
+    if (pacchettiSection) pacchettiSection.classList.remove("hidden");
+    if (tabReportPacchetti) tabReportPacchetti.classList.add("active");
 
-  return;
-}
+    const reportBox = document.getElementById("reportPacchettiBox");
+    if (reportBox) reportBox.classList.remove("hidden");
+
+    renderReportPacchetti();
+
+    document.getElementById("outputPacchetti")?.style.setProperty("display", "none");
+
+    window.scrollTo({ top: 0, behavior: "instant" });
+    return;
+  }
 }
 
 function scrollToSection(sectionId) {
@@ -5495,7 +5476,7 @@ function tornaDaDettaglioPacchetto() {
     origine: "pacchetti"
   };
 
-  vaiTab("pacchetti");
+  vaiTab("pacchetti", { allowInternalNav: true });
 
   setTimeout(() => {
     loadPacchetti();
