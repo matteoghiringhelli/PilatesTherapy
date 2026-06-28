@@ -1246,6 +1246,8 @@ async function aggiungiPacchetto() {
     }
 
     const nuovoPacchetto = data[0];
+    // ✅ recupera contesto prenotazione
+    const ctx = window.ctxNuovoPacchetto;
 
     // ✅ RICONCILIAZIONE ACCONTO (se presente)
     if (typeof riconciliaAccontoNuovoPacchetto === "function") {
@@ -1274,12 +1276,48 @@ async function aggiungiPacchetto() {
     }
 
     // ✅ RITORNO ALLA LEZIONE (UX FLUIDO)
-    if (window.idLezioneCorrente) {
-      mostraDettaglioLezione(
-        window.idLezioneCorrente,
-        dettaglioLezioneBoxAttivo
-      );
+    if (ctx) {
+
+  mostraDettaglioLezione(
+    ctx.idLezione,
+    dettaglioLezioneBoxAttivo
+  );
+
+  // ✅ DOPO render → seleziona automaticamente
+  setTimeout(() => {
+
+    const inputCliente = document.getElementById(`slot_cliente_${ctx.slotIndex}`);
+    const selectPacchetto = document.getElementById(`slot_pacchetto_${ctx.slotIndex}`);
+
+    const cliente = clientiData.find(c =>
+      String(c.ID_Cliente) === String(ctx.idCliente)
+    );
+
+    if (inputCliente && cliente) {
+      inputCliente.value = `${cliente.Nome} ${cliente.Cognome}`;
+      inputCliente.dispatchEvent(new Event("input"));
     }
+
+    setTimeout(() => {
+      if (selectPacchetto) {
+        selectPacchetto.value = nuovoPacchetto.ID_Pacchetto;
+      }
+    }, 120);
+
+  }, 200);
+
+  // ✅ pulisci contesto
+  window.ctxNuovoPacchetto = null;
+
+} else {
+  // fallback normale
+  if (window.idLezioneCorrente) {
+    mostraDettaglioLezione(
+      window.idLezioneCorrente,
+      dettaglioLezioneBoxAttivo
+    );
+  }
+}
 
   } catch (err) {
     console.error("Errore aggiungiPacchetto:", err);
