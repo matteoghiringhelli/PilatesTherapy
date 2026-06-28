@@ -1194,20 +1194,6 @@ function getClienteIdDaInputPrenotazione(value) {
   return matchNome ? matchNome.ID_Cliente : "";
 }
 
-function suggerisciClientePrecedente(index) {
-  if (index === 0) return;
-
-  const prevInput = document.getElementById(`slot_cliente_${index - 1}`);
-  const currInput = document.getElementById(`slot_cliente_${index}`);
-
-  if (!prevInput || !currInput) return;
-
-  const prevValue = prevInput.value;
-
-  if (prevValue && !currInput.value) {
-    currInput.value = prevValue;
-  }
-}
 
 function getPacchettiCompatibiliConResiduoPerPrenotazione(idCliente, idLezione) {
   return getPacchettiCompatibiliPerPrenotazione(idCliente, idLezione)
@@ -1389,7 +1375,6 @@ function mostraDettaglioLezione(idLezione, boxId = "dettaglioLezioneBox") {
 
               <input
                 id="slot_cliente_${index}"
-                onclick="suggerisciClientePrecedente(${index})"
                 list="slot_clienti_datalist_${index}"
                 placeholder="Cerca cliente..."
                 autocomplete="off"
