@@ -1196,7 +1196,11 @@ function renderReportPacchetti() {
         : `<div class="report-empty">Nessun pacchetto nella categoria ${safe(titoloCorrente)}.</div>`
     }
 
-    ${renderReportFattureMancanti(fattureMancantiItems)}
+    ${
+      reportPacchettiFiltro === "fatture"
+        ? ""
+        : renderReportFattureMancanti(fattureMancantiItems)
+    }
   `;
 }
 
