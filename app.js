@@ -3469,23 +3469,35 @@ function vaiTab(tab, options = {}) {
   }
 
   // ✅ FIX IMPORTANTE
-  if (tab === "pacchetti") {
+if (tab === "pacchetti") {
 
-    if (!allowInternalNav) {
-      setStatus("Apri i pacchetti dalla scheda cliente", "err");
-      vaiTab("clienti");
-      return;
-    }
-
-    if (pacchettiWrapper) pacchettiWrapper.classList.add("active-section");
-    if (pacchettiSection) pacchettiSection.classList.remove("hidden");
-
-    if (typeof renderPacchetti === "function") {
-      renderPacchetti();
-    }
-
+  if (!allowInternalNav) {
+    setStatus("Apri i pacchetti dalla scheda cliente", "err");
+    vaiTab("clienti");
     return;
   }
+
+  if (pacchettiWrapper) pacchettiWrapper.classList.add("active-section");
+  if (pacchettiSection) pacchettiSection.classList.remove("hidden");
+
+  // ✅ FIX CRITICO: ri-mostra il contenitore pacchetti
+  const outputPacchetti = document.getElementById("outputPacchetti");
+  if (outputPacchetti) {
+    outputPacchetti.style.display = "";
+  }
+
+  // ✅ nascondi eventuale report
+  const reportBox = document.getElementById("reportPacchettiBox");
+  if (reportBox) {
+    reportBox.classList.add("hidden");
+  }
+
+  if (typeof renderPacchetti === "function") {
+    renderPacchetti();
+  }
+
+  return;
+}
 
   if (tab === "reportPacchetti") {
     if (pacchettiWrapper) pacchettiWrapper.classList.add("active-section");
