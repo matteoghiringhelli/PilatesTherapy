@@ -1340,11 +1340,28 @@ async function aggiungiPacchetto() {
     // ✅ MESSAGGIO DETTAGLIATO
     if (migrati.length) {
 
-    const lista = migrati.map(p => {
-      const data = p.Data_Lezione || "";
-      const ora = (p.Ora_Lezione || "").substring(0,5);
-      return `Lezione ${data} ${ora} pacchetto aggiornato`;
-    }).join("\n");
+const lista = migrati.map(p => {
+
+  // ✅ prova vari campi possibili (robusto)
+  let data = p.Data_Lezione || p.Data || "";
+  let ora = (p.Ora_Lezione || p.Ora || "").substring(0,5);
+
+  // ✅ fallback forte: prova da lezione
+  if ((!data || !ora) && p.ID_Lezione && Array.isArray(lezioniData)) {
+    const l = lezioniData.find(x =>
+      String(x.ID_Lezione) === String(p.ID_Lezione)
+    );
+
+    if (l) {
+      data = data || l.Data || "";
+      ora = ora || (l.Ora || "").substring(0,5);
+    }
+  }
+
+  return `Lezione ${data} ${ora} pacchetto aggiornato`;
+
+}).join("\n");
+
 
 
       alert(
