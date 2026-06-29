@@ -1198,8 +1198,8 @@ function renderReportPacchetti() {
 
     ${
       reportPacchettiFiltro === "fatture"
-        ? ""
-        : renderReportFattureMancanti(fattureMancantiItems)
+        ? renderReportFattureMancanti(fattureMancantiItems)
+        : ""
     }
   `;
 }
