@@ -560,12 +560,32 @@ function renderPacchettiMobileSafe() {
 
 function apriDettaglioPacchettoDaAlert(idPacchetto) {
 
+  const reportBox = document.getElementById("reportPacchettiBox");
+  const outputPacchetti = document.getElementById("outputPacchetti");
+
   window.lastPacchettoNavigation = {
     origine: "alert",
     idPacchetto: idPacchetto
   };
 
-  mostraDettaglioPacchetto(idPacchetto, "alert");
+  // ✅ nasconde il report
+  if (reportBox) {
+    reportBox.classList.add("hidden");
+  }
+
+  // ✅ mostra area pacchetti
+  if (outputPacchetti) {
+    outputPacchetti.style.display = "";
+  }
+
+  // ✅ abilita la sezione pacchetti
+  vaiTab("pacchetti", {
+    allowInternalNav: true
+  });
+
+  setTimeout(() => {
+    mostraDettaglioPacchetto(idPacchetto, "alert");
+  }, 50);
 }
 
 function tornaDaDettaglioPacchetto() {
