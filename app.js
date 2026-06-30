@@ -5405,14 +5405,59 @@ async function login() {
 
 
 function tornaDaDettaglioPacchetto() {
+
   console.log("↩️ Torna da dettaglio pacchetto");
 
   const nav = window.lastPacchettoNavigation || {};
+
   console.log("🧭 Contesto ritorno pacchetto:", nav);
 
-  // ✅ Caso 1: arrivo da Clienti → Pacchetti Cliente → Dettaglio
-  // Torno esattamente alla vista Pacchetti dello stesso cliente
+  // =====================================================
+  // ALERT → ritorna al report Alert
+  // =====================================================
+
+  if (nav.origine === "alert") {
+
+    console.log("✅ Ritorno Alert");
+
+    vaiTab("reportPacchetti");
+
+    setTimeout(() => {
+
+      const reportBox =
+        document.getElementById("reportPacchettiBox");
+
+      const outputPacchetti =
+        document.getElementById("outputPacchetti");
+
+      if (reportBox) {
+        reportBox.classList.remove("hidden");
+      }
+
+      if (outputPacchetti) {
+        outputPacchetti.style.display = "none";
+      }
+
+      if (typeof renderReportPacchetti === "function") {
+        renderReportPacchetti();
+      }
+
+      reportBox?.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+
+    }, 120);
+
+    return;
+  }
+
+  // =====================================================
+  // CLIENTE → ritorna pacchetti cliente
+  // =====================================================
+
   if (nav.origine === "clienti" && nav.idCliente) {
+
     const idCliente = nav.idCliente;
 
     console.log("✅ Ritorno ai pacchetti del cliente:", idCliente);
@@ -5420,39 +5465,50 @@ function tornaDaDettaglioPacchetto() {
     vaiTab("clienti");
 
     setTimeout(() => {
+
       mostraPacchettiCliente(idCliente);
 
-      const box = document.getElementById("outputClienti");
+      const box =
+        document.getElementById("outputClienti");
+
       if (box) {
         box.scrollIntoView({
           behavior: "smooth",
           block: "start"
         });
       }
+
     }, 220);
 
     return;
   }
 
-  // ✅ Caso 2: arrivo dalla lista globale Pacchetti
-  console.log("➡️ Ritorno alla lista globale pacchetti");
+  // =====================================================
+  // LISTA PACCHETTI
+  // =====================================================
 
-  window.lastPacchettoNavigation = {
-    origine: "pacchetti"
-  };
+  console.log("➡️ Ritorno lista pacchetti");
 
-  vaiTab("pacchetti", { allowInternalNav: true });
+  vaiTab("pacchetti", {
+    allowInternalNav: true
+  });
 
   setTimeout(() => {
-    loadPacchetti();
 
-    const box = document.getElementById("outputPacchetti");
+    if (typeof loadPacchetti === "function") {
+      loadPacchetti();
+    }
+
+    const box =
+      document.getElementById("outputPacchetti");
+
     if (box) {
       box.scrollIntoView({
         behavior: "smooth",
         block: "start"
       });
     }
+
   }, 180);
 }
 
