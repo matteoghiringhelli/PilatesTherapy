@@ -595,13 +595,30 @@ function tornaDaDettaglioPacchetto() {
   // ✅ ritorno agli Alert
   if (nav.origine === "alert") {
 
-    vaiTab("reportPacchetti");
+    // torna alla tab Alert reale
+    vaiTab("alert");
 
     setTimeout(() => {
+
+      const reportBox =
+        document.getElementById("reportPacchettiBox");
+
+      if (reportBox) {
+        reportBox.classList.remove("hidden");
+      }
+
       if (typeof renderReportPacchetti === "function") {
         renderReportPacchetti();
       }
-    }, 100);
+
+      const outputPacchetti =
+        document.getElementById("outputPacchetti");
+
+      if (outputPacchetti) {
+        outputPacchetti.style.display = "none";
+      }
+
+    }, 120);
 
     return;
   }
@@ -613,7 +630,7 @@ function tornaDaDettaglioPacchetto() {
 
     setTimeout(() => {
       mostraPacchettiCliente(nav.idCliente);
-    }, 150);
+    }, 120);
 
     return;
   }
@@ -628,7 +645,7 @@ function tornaDaDettaglioPacchetto() {
     return;
   }
 
-  // ✅ fallback di sicurezza
+  // ✅ fallback
   vaiTab("pacchetti", {
     allowInternalNav: true
   });
