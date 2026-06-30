@@ -592,38 +592,37 @@ function tornaDaDettaglioPacchetto() {
 
   const nav = window.lastPacchettoNavigation || {};
 
-  // ✅ ritorno agli Alert
+  // ✅ ritorno da Alert
   if (nav.origine === "alert") {
 
-    // torna alla tab Alert reale
-    vaiTab("alert");
+    const outputPacchetti =
+      document.getElementById("outputPacchetti");
 
-    setTimeout(() => {
+    const reportBox =
+      document.getElementById("reportPacchettiBox");
 
-      const reportBox =
-        document.getElementById("reportPacchettiBox");
+    if (outputPacchetti) {
+      outputPacchetti.innerHTML = "";
+      outputPacchetti.style.display = "none";
+    }
 
-      if (reportBox) {
-        reportBox.classList.remove("hidden");
-      }
+    if (reportBox) {
+      reportBox.classList.remove("hidden");
+    }
 
-      if (typeof renderReportPacchetti === "function") {
-        renderReportPacchetti();
-      }
+    if (typeof renderReportPacchetti === "function") {
+      renderReportPacchetti();
+    }
 
-      const outputPacchetti =
-        document.getElementById("outputPacchetti");
-
-      if (outputPacchetti) {
-        outputPacchetti.style.display = "none";
-      }
-
-    }, 120);
+    reportBox?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
 
     return;
   }
 
-  // ✅ ritorno Cliente → Pacchetti Cliente
+  // ✅ ritorno Cliente
   if (nav.origine === "clienti" && nav.idCliente) {
 
     vaiTab("clienti");
@@ -635,7 +634,7 @@ function tornaDaDettaglioPacchetto() {
     return;
   }
 
-  // ✅ ritorno Lista Pacchetti
+  // ✅ ritorno lista pacchetti
   if (nav.origine === "pacchetti") {
 
     vaiTab("pacchetti", {
@@ -650,6 +649,8 @@ function tornaDaDettaglioPacchetto() {
     allowInternalNav: true
   });
 }
+
+
 
 function mostraDettaglioPacchetto(idPacchetto, origine = null) {
   const out = document.getElementById("outputPacchetti");
