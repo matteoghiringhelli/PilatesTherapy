@@ -568,6 +568,52 @@ function apriDettaglioPacchettoDaAlert(idPacchetto) {
   mostraDettaglioPacchetto(idPacchetto, "alert");
 }
 
+function tornaDaDettaglioPacchetto() {
+
+  const nav = window.lastPacchettoNavigation || {};
+
+  // ✅ ritorno agli Alert
+  if (nav.origine === "alert") {
+
+    vaiTab("reportPacchetti");
+
+    setTimeout(() => {
+      if (typeof renderReportPacchetti === "function") {
+        renderReportPacchetti();
+      }
+    }, 100);
+
+    return;
+  }
+
+  // ✅ ritorno Cliente → Pacchetti Cliente
+  if (nav.origine === "clienti" && nav.idCliente) {
+
+    vaiTab("clienti");
+
+    setTimeout(() => {
+      mostraPacchettiCliente(nav.idCliente);
+    }, 150);
+
+    return;
+  }
+
+  // ✅ ritorno Lista Pacchetti
+  if (nav.origine === "pacchetti") {
+
+    vaiTab("pacchetti", {
+      allowInternalNav: true
+    });
+
+    return;
+  }
+
+  // ✅ fallback di sicurezza
+  vaiTab("pacchetti", {
+    allowInternalNav: true
+  });
+}
+
 function mostraDettaglioPacchetto(idPacchetto, origine = null) {
   const out = document.getElementById("outputPacchetti");
   if (!out) return;
@@ -1149,8 +1195,8 @@ function renderReportFattureMancanti(items) {
                 : ""
             }
 
-            <button onclick="mostraPacchettiCliente('${escapeQuote(p.ID_Cliente)}')">
-              🎟️ Dettaglio Pacchetti
+            <button onclick="apriDettaglioPacchettoDaAlert('${escapeQuote(p.ID_Pacchetto)}')">
+              🎟️ Dettaglio Pacchetto
             </button>
           </div>
         </div>
