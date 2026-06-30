@@ -558,6 +558,16 @@ function renderPacchettiMobileSafe() {
   }
 }
 
+function apriDettaglioPacchettoDaAlert(idPacchetto) {
+
+  window.lastPacchettoNavigation = {
+    origine: "alert",
+    idPacchetto: idPacchetto
+  };
+
+  mostraDettaglioPacchetto(idPacchetto, "alert");
+}
+
 function mostraDettaglioPacchetto(idPacchetto, origine = null) {
   const out = document.getElementById("outputPacchetti");
   if (!out) return;
@@ -583,6 +593,13 @@ function mostraDettaglioPacchetto(idPacchetto, origine = null) {
     window.lastPacchettoNavigation = {
       origine: "clienti",
       idCliente: p.ID_Cliente,
+      idPacchetto: p.ID_Pacchetto
+    };
+  }
+
+  if (origine === "alert") {
+    window.lastPacchettoNavigation = {
+      origine: "alert",
       idPacchetto: p.ID_Pacchetto
     };
   }
@@ -1086,8 +1103,8 @@ function renderReportPacchettiCard(item, tipoReport) {
             : ""
         }
 
-        <button onclick="mostraPacchettiCliente('${escapeQuote(p.ID_Cliente)}')">
-          🎟️ Dettaglio Pacchetti
+        <button onclick="apriDettaglioPacchettoDaAlert('${escapeQuote(p.ID_Pacchetto)}')">
+          🎟️ Dettaglio Pacchetto
         </button>
       </div>
     </div>
